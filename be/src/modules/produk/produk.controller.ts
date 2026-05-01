@@ -203,6 +203,8 @@ export const updateProduk = catchAsync(async (req: Request, res: Response) => {
 
   // 2. Handle File Path
   const imagePath = req.file ? `/uploads/${req.file.filename}` : undefined;
+  console.log(imagePath);
+  console.log(oldProduct);
 
   // 3. Update Database
   const produk = await updateProdukService(id, {
@@ -217,7 +219,7 @@ export const updateProduk = catchAsync(async (req: Request, res: Response) => {
   // 4. Clean Up (Production Logic)
   // Jika update berhasil dan ada gambar baru, hapus gambar lama dari disk
   if (imagePath && oldProduct.image) {
-    const oldFilePath = path.join(__dirname, "../../public", oldProduct.image);
+    const oldFilePath = path.join("/app/uploads", oldProduct.image);
     await fs.unlink(oldFilePath).catch(() => null); // ignore error jika file tidak ada
   }
 
@@ -230,28 +232,32 @@ export const updateProduk = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// Di Service
+export const softDeleteProdukService = async (id: string) => {
+  const result = await pool.query(
+    "UPDATE produk SET deleted_at = NOW() WHERE id = $1 RETURNING *",
+    [id],
+  );
+  return result.rows[0];
+};
+
 export const deleteProduk = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
 
-  const existing = await pool.query("SELECT image FROM produk WHERE id = $1", [
-    id,
-  ]);
+  const existing = await pool.query(
+    "SELECT id FROM produk WHERE id = $1 AND deleted_at IS NULL",
+    [id],
+  );
+
   if (existing.rowCount === 0)
     throw new AppError("Produk tidak ditemukan", 404);
 
-  const imagePath = existing.rows[0].image;
+  await softDeleteProdukService(id);
 
-  await deleteProdukService(Number(id));
-
-  if (imagePath) {
-    const filePath = path.join(__dirname, "../../public", imagePath);
-    await fs.unlink(filePath).catch(() => null);
-  }
-
-  await delCache("produk");
+  await delCache("produk:*");
 
   res.status(200).json({
     status: "success",
-    message: "Berhasil menghapus produk",
+    message: "Produk berhasil dinonaktifkan",
   });
 });
