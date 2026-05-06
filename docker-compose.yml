@@ -25,7 +25,6 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-jangan_pake_password_lemah}
     volumes:
       - postgres_main_data:/var/lib/postgresql/data
-      - ./be/src/database/migrations:/docker-entrypoint-initdb.d
     restart: always
     healthcheck:
       test:
@@ -40,13 +39,12 @@ services:
   backend:
     build:
       context: ./be
-      dockerfile: Dockerfile
     container_name: backend-api
     ports:
       - "${BACKEND_PORT:-5000}:5000"
     volumes:
       - ./be:/app
-      - /app/node_modules # Proteksi Anonymous Volume
+      - /app/node_modules
     depends_on:
       postgres-db:
         condition: service_healthy
@@ -58,18 +56,19 @@ services:
       - PORT=5000
       - NODE_ENV=${NODE_ENV:-development}
       - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:3000}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
     restart: always
 
   frontend:
     build:
       context: ./fe
-      dockerfile: Dockerfile
     container_name: frontend-app
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
     volumes:
       - ./fe:/app
-      - /app/node_modules # Proteksi Anonymous Volume
+      - /app/node_modules
     depends_on:
       - backend
     environment:

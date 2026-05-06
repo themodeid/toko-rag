@@ -9,6 +9,7 @@
     "start": "node dist/server.js",
     "db:migrate": "ts-node src/database/cli.ts up",
     "db:rollback": "ts-node src/database/cli.ts down",
+    "db:reset": "ts-node src/database/cli.ts reset",
     "db:make": "ts-node src/database/cli.ts make",
     "db:seed": "ts-node src/database/cli.ts seed"
   },

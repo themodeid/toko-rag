@@ -127,3 +127,25 @@ export const rollbackMigration = async () => {
     client.release();
   }
 };
+
+// reset schema public untuk development, lalu jalankan ulang migration dari awal
+export const resetDatabase = async () => {
+  const client = await pool.connect();
+  try {
+    console.log("⚠️  Resetting database schema...");
+    await client.query("BEGIN");
+    await client.query("DROP SCHEMA IF EXISTS public CASCADE");
+    await client.query("CREATE SCHEMA public");
+    await client.query('GRANT ALL ON SCHEMA public TO PUBLIC');
+    await client.query("COMMIT");
+    console.log("✅ Database schema reset complete.");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error("❌ Database reset failed:", error);
+    throw error;
+  } finally {
+    client.release();
+  }
+
+  await runMigrations();
+};
