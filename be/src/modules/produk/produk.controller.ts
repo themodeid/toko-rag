@@ -261,3 +261,4 @@ export const deleteProduk = catchAsync(async (req: Request, res: Response) => {
     message: "Produk berhasil dinonaktifkan",
   });
 });
+

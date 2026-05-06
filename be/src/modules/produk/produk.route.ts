@@ -5,7 +5,7 @@ import { produkSchema, updateProdukSchema } from "./produk.schema";
 import { authGuard } from "../../middlewares/auth";
 import { roleGuard } from "../../middlewares/roleGuard";
 import { upload } from "../../middlewares/upload";
-import { getAllProduk, getProdukById } from "./produk.controller";
+import { getAllProduk, getProdukById, deleteProduk } from "./produk.controller";
 const router = Router();
 
 // Public / user login
@@ -32,5 +32,7 @@ router.patch(
 );
 
 router.put("/:id", authGuard, roleGuard("admin"), controller.updateProduk);
+
+router.delete("/:id", authGuard, roleGuard("admin"), controller.deleteProduk);
 
 export default router;
