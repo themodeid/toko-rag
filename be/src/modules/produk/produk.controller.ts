@@ -2,8 +2,11 @@ import { Request, Response } from "express";
 import { pool } from "../../config/database";
 import { AppError } from "../../errors/AppError";
 import { catchAsync } from "../../utils/catchAsync";
+import fs from "fs/promises";
+import path from "path";
+import { setCache, getCache, delCache } from "../../config/redis";
 
-// ===== SERVICE FUNCTIONS =====
+// service
 export const getAllProdukService = async () => {
   const result = await pool.query("SELECT * FROM produk ORDER BY id DESC");
   return result.rows;
@@ -95,11 +98,52 @@ export const deleteProdukService = async (id: number) => {
 };
 
 // ===== CONTROLLER FUNCTIONS =====
+
 export const getAllProduk = catchAsync(async (req: Request, res: Response) => {
-  const produk = await getAllProdukService();
-  res.status(200).json({
-    message: "Berhasil mengambil semua produk",
-    produk,
+  // 1. Validasi & Sanitasi Input
+  const page = Math.max(1, Number(req.query.page) || 1);
+  const limit = Math.max(1, Math.min(Number(req.query.limit) || 10, 100));
+  const offset = (page - 1) * limit;
+
+  const cacheKey = `produk:page=${page}:limit=${limit}`;
+
+  // 2. Cek Cache
+  const cached = await getCache(cacheKey);
+  if (cached) {
+    return res.status(200).json({
+      status: "success",
+      source: "cache",
+      ...cached,
+    });
+  }
+
+  const [result, countResult] = await Promise.all([
+    pool.query("SELECT * FROM produk ORDER BY id DESC LIMIT $1 OFFSET $2", [
+      limit,
+      offset,
+    ]),
+    pool.query("SELECT COUNT(*) FROM produk"),
+  ]);
+
+  const totalItems = parseInt(countResult.rows[0].count);
+  const totalPages = Math.ceil(totalItems / limit);
+
+  const responseData = {
+    produk: result.rows,
+    pagination: {
+      total_items: totalItems,
+      total_pages: totalPages,
+      current_page: page,
+      limit: limit,
+    },
+  };
+
+  await setCache(cacheKey, responseData, 60);
+
+  return res.status(200).json({
+    status: "success",
+    source: "database",
+    ...responseData,
   });
 });
 
@@ -123,7 +167,9 @@ export const getProdukById = catchAsync(async (req: Request, res: Response) => {
 export const createProduk = catchAsync(async (req: Request, res: Response) => {
   const { nama, harga, stock, status } = req.body;
 
-  if (!req.file) throw new AppError("Gambar produk wajib diupload", 400);
+  if (!req.file) {
+    throw new AppError("Gambar produk wajib diupload", 400);
+  }
 
   const imagePath = `/uploads/${req.file.filename}`;
 
@@ -131,60 +177,87 @@ export const createProduk = catchAsync(async (req: Request, res: Response) => {
     nama,
     harga: Number(harga),
     stock: Number(stock),
-    status: status === "true",
+    status: String(status) === "true",
     image: imagePath,
   });
 
+  await delCache("produk");
+
   res.status(201).json({
+    status: "success",
     message: "Berhasil membuat produk",
-    produk,
+    data: { produk },
   });
 });
 
 export const updateProduk = catchAsync(async (req: Request, res: Response) => {
-  let { id } = req.params;
-
-  if (!id || Array.isArray(id)) {
-    throw new AppError("ID tidak valid", 400);
-  }
-
+  const { id } = req.params;
   const { nama, harga, stock, status } = req.body;
 
-  const parsedStatus = status !== undefined
-    ? status === true || status === "true"
-    : undefined;
-
-  if (!id) throw new AppError("ID tidak valid", 400);
-
+  // 1. Cari data lama (Penting untuk hapus file gambar lama)
   const existing = await pool.query("SELECT * FROM produk WHERE id = $1", [id]);
-
   if (existing.rowCount === 0)
     throw new AppError("Produk tidak ditemukan", 404);
 
-  const imagePath = req.file ? `/uploads/${req.file.filename}` : undefined;
+  const oldProduct = existing.rows[0];
 
+  // 2. Handle File Path
+  const imagePath = req.file ? `/uploads/${req.file.filename}` : undefined;
+  console.log(imagePath);
+  console.log(oldProduct);
+
+  // 3. Update Database
   const produk = await updateProdukService(id, {
     nama,
     harga: harga !== undefined ? Number(harga) : undefined,
     stock: stock !== undefined ? Number(stock) : undefined,
-    status: parsedStatus,
+    status:
+      status !== undefined ? status === true || status === "true" : undefined,
     image: imagePath,
   });
 
+  // 4. Clean Up (Production Logic)
+  // Jika update berhasil dan ada gambar baru, hapus gambar lama dari disk
+  if (imagePath && oldProduct.image) {
+    const oldFilePath = path.join("/app/uploads", oldProduct.image);
+    await fs.unlink(oldFilePath).catch(() => null); // ignore error jika file tidak ada
+  }
+
+  await delCache("produk:*");
+
   res.status(200).json({
+    status: "success",
     message: "Berhasil mengupdate produk",
-    produk,
+    data: { produk },
   });
 });
+
+// Di Service
+export const softDeleteProdukService = async (id: string) => {
+  const result = await pool.query(
+    "UPDATE produk SET deleted_at = NOW() WHERE id = $1 RETURNING *",
+    [id],
+  );
+  return result.rows[0];
+};
 
 export const deleteProduk = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
 
-  const produk = await deleteProdukService(Number(id));
-  if (!produk) throw new AppError("Produk tidak ditemukan", 404);
+  const existing = await pool.query(
+    "SELECT id FROM produk WHERE id = $1 AND deleted_at IS NULL",
+    [id],
+  );
+
+  if (existing.rowCount === 0)
+    throw new AppError("Produk tidak ditemukan", 404);
+
+  await softDeleteProdukService(id);
+
+  await delCache("produk:*");
 
   res.status(200).json({
-    message: "Berhasil menghapus produk",
-    produk,
+    status: "success",
+    message: "Produk berhasil dinonaktifkan",
   });
 });

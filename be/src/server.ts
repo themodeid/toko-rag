@@ -2,6 +2,7 @@ import { app } from "./app";
 import { pool } from "./config/database";
 import { ENV } from "./config/env";
 import { runMigrations } from "./database/migrationRunner";
+import { connectRedis } from "./config/redis";
 
 async function startServer(): Promise<void> {
   console.log("===================================");
@@ -12,9 +13,15 @@ async function startServer(): Promise<void> {
     await pool.query("SELECT 1");
     console.log("✅ Database connected successfully");
 
+    // ================= TEST REDIS CONNECTION
+    console.log("🔄 Testing redis connection...");
+    await connectRedis();
+    console.log("✅ Redis connected successfully");
+
     // ================= RUN MIGRATIONS
     console.log("🔄 Running database migrations...");
     await runMigrations();
+    console.log("✅ Migrations completed successfully");
 
     // ================= START HTTP SERVER
     app.listen(ENV.PORT, () => {

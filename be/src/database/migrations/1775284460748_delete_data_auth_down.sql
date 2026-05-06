@@ -1,1 +1,0 @@
--- Write your DOWN migration here

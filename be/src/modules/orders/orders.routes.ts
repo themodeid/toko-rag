@@ -20,8 +20,6 @@ router.post("/", authGuard, validateBody(CheckoutSchema), controller.checkout);
  * READ
  * ================================
  */
-// Ambil semua order
-router.get("/", authGuard, controller.getOrders);
 
 // Ambil semua order aktif beserta item
 router.get("/activeItems", authGuard, controller.getOrdersActiveWithItems);
@@ -35,9 +33,6 @@ router.get("/myAllOrders", authGuard, controller.getMyAllOrdersWithItems);
 // Ambil items dari order tertentu
 router.get("/:id/items", authGuard, controller.getOrdersItems);
 
-// Ambil detail order tertentu (saya)
-router.get("/:id", authGuard, controller.getMyOrders);
-
 /**
  * ================================
  * UPDATE
@@ -48,13 +43,5 @@ router.patch("/:id/selesai", authGuard, controller.doneOrders);
 
 // Cancel order
 router.patch("/:id/cancel", authGuard, controller.cancelOrder);
-
-/**
- * ================================
- * DELETE
- * ================================
- */
-// Hapus semua order
-router.delete("/", authGuard, controller.deleteAll);
 
 export default router;

@@ -68,7 +68,7 @@ export default function MenuPage() {
       if (exist) {
         const updated = prev.map((item) =>
           item.produkId === produk.id
-            ? { ...item, quantity: item.quantity + 1 }
+            ? { ...item, quantity: item.quantity + 1, subtotal: (item.quantity + 1) * item.harga }
             : item,
         );
         return updated;
@@ -80,6 +80,8 @@ export default function MenuPage() {
             nama: produk.nama,
             harga: produk.harga,
             quantity: 1,
+            subtotal: produk.harga,
+            queue: 0,
             image: produk.image,
           },
         ];
@@ -115,7 +117,7 @@ export default function MenuPage() {
     setCart((prev) =>
       prev
         .map((item) =>
-          item.produkId === produkId ? { ...item, quantity } : item,
+          item.produkId === produkId ? { ...item, quantity, subtotal: quantity * item.harga } : item,
         )
         .filter((item) => item.quantity > 0),
     );

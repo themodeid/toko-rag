@@ -14,7 +14,7 @@ export const checkout = catchAsync(async (req: Request, res: Response) => {
 
   for (const item of items) {
     if (!item.produk_id || typeof item.produk_id !== "string") {
-      throw new AppError("ID produk tidak valid", 400);
+      throw new AppError("ID produk tidak valid", 404);
     }
     if (!item.quantity || item.quantity <= 0) {
       throw new AppError("Quantity harus lebih dari 0", 400);
@@ -281,65 +281,6 @@ export const doneOrders = catchAsync(async (req: Request, res: Response) => {
   }
 });
 
-// ambil semua orders
-export const getOrders = catchAsync(async (req: Request, res: Response) => {
-  const query = `
-    SELECT 
-      orders.id,
-      orders.total_price,
-      orders.status_pesanan,
-      orders.created_at,
-      auth.username
-    FROM orders
-    JOIN auth ON orders.auth_id = auth.id
-    ORDER BY orders.created_at ASC
-  `;
-
-  const result = await pool.query(query);
-
-  res.status(200).json({
-    message: "Berhasil mengambil semua orders",
-    data: result.rows,
-  });
-});
-
-export const deleteAll = catchAsync(async (req: Request, res: Response) => {
-  try {
-    const query = `
-      TRUNCATE TABLE order_items, orders RESTART IDENTITY CASCADE;
-    `;
-
-    await pool.query(query);
-
-    res.status(200).json({
-      message: "Berhasil hapus semua data",
-    });
-  } catch (err) {
-    console.error("ERROR DELETE ALL:", err);
-    res.status(500).json({
-      message: "Gagal hapus data",
-    });
-  }
-});
-
-export const getMyOrders = catchAsync(async (req: Request, res: Response) => {
-  const userId = req.user.id;
-
-  const query = `
-    SELECT *
-    FROM orders
-    WHERE auth_id = $1
-    ORDER BY created_at DESC
-  `;
-
-  const result = await pool.query(query, [userId]);
-
-  res.status(200).json({
-    message: "Berhasil mengambil pesanan anda",
-    data: result.rows,
-  });
-});
-
 export const getMyOrdersActive = catchAsync(
   async (req: Request, res: Response) => {
     const userId = req.user.id;
@@ -389,7 +330,7 @@ export const getOrdersItems = catchAsync(
   },
 );
 
-// mengambil semua orderan aktif beserta item didalm=amnya
+// mengambil semua orderan aktif beserta item didalamnya
 export const getOrdersActiveWithItems = catchAsync(
   async (req: Request, res: Response) => {
     const query = `

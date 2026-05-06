@@ -85,6 +85,8 @@ export default function AddMenuPage() {
         stock,
         status,
       });
+
+      router.push("/profil_produk")
     } catch (err) {
       setError("Gagal membuat produk");
       setTimeout(() => setError(null), 3000);
