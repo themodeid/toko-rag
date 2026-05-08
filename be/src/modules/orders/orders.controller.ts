@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { AppError } from "../../errors/AppError";
 import { catchAsync } from "../../utils/catchAsync";
 import { pool } from "../../config/database";
+import { delCache, getCache, setCache } from "../../config/redis";
 
 // checkout penting
 export const checkout = catchAsync(async (req: Request, res: Response) => {
@@ -333,6 +334,18 @@ export const getOrdersItems = catchAsync(
 // mengambil semua orderan aktif beserta item didalamnya
 export const getOrdersActiveWithItems = catchAsync(
   async (req: Request, res: Response) => {
+    const cachekey = "orders:active";
+
+    const cachedData = await getCache(cachekey);
+
+    if (cachedData) {
+      return res.status(200).json({
+        message: "Data dari cache 🚀",
+        total: cachedData.length,
+        data: cachedData,
+      });
+    }
+
     const query = `
       SELECT 
         o.id,
@@ -371,8 +384,11 @@ export const getOrdersActiveWithItems = catchAsync(
 
     const result = await pool.query(query);
 
-    res.status(200).json({
-      message: "Berhasil mengambil seluruh pesanan aktif beserta itemnya",
+    // cukup kirim object, jangan stringify lagi
+    await setCache(cachekey, result.rows, 10); // 10 detik lebih realistis
+
+    return res.status(200).json({
+      message: "Data dari database 🐢",
       total: result.rows.length,
       data: result.rows,
     });
@@ -382,6 +398,17 @@ export const getOrdersActiveWithItems = catchAsync(
 // mengambil semua pesanan saya yang aktif beserta item didalamnya
 export const getMyOrdersActiveWithItems = catchAsync(
   async (req: Request, res: Response) => {
+    const cachekey = `orders:active:${req.user.id}`;
+    const cachedData = await getCache(cachekey);
+
+    if (cachedData) {
+      return res.status(200).json({
+        message: "Data dari cache 🚀",
+        total: cachedData.length,
+        data: cachedData,
+      });
+    }
+
     const userId = req.user.id;
 
     const query = `
@@ -419,8 +446,10 @@ export const getMyOrdersActiveWithItems = catchAsync(
 
     const result = await pool.query(query, [userId]);
 
-    res.status(200).json({
-      message: "Berhasil mengambil pesanan aktif anda beserta itemnya",
+    await setCache(cachekey, result.rows, 60);
+
+    return res.status(200).json({
+      message: "Data dari database 🐢",
       total: result.rows.length,
       data: result.rows,
     });
@@ -473,4 +502,3 @@ export const getMyAllOrdersWithItems = catchAsync(
     });
   },
 );
-
