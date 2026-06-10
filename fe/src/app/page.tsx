@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import FeatherIcon from "feather-icons-react";
 import { useAuth } from "@/context/AuthContext";
+import Sidebar from "@/components/Sidebar";
 
 // Types
 import { Produk } from "@/features/produk/types";
@@ -16,7 +17,6 @@ import { createOrder } from "@/features/cart/api";
 
 export default function MenuPage() {
   const router = useRouter();
-  const pathname = usePathname();
 
   // UI state
   const [loading, setLoading] = useState(false);
@@ -27,13 +27,6 @@ export default function MenuPage() {
   const { user, isAuthenticated, logout , } = useAuth();
   const [produk, setProduk] = useState<Produk[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
-
-  const navClass = (path: string) =>
-    `flex items-center justify-center w-12 h-12 rounded-xl cursor-pointer transition-all duration-300 ${
-      pathname === path
-        ? "bg-green-500 text-zinc-950 shadow-[0_0_15px_rgba(34,197,94,0.5)] scale-110"
-        : "text-zinc-400 hover:text-green-400 hover:bg-white/5 hover:scale-105"
-    }`;
 
   async function getProduk() {
     try {
@@ -132,49 +125,7 @@ export default function MenuPage() {
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-[#09090b] text-zinc-50 font-poppins selection:bg-green-500/30">
-      {/* ================= SIDEBAR / BOTTOM NAV ================= */}
-      <aside className="w-full md:w-24 h-20 md:h-screen fixed bottom-0 md:sticky md:top-0 bg-zinc-950/80 md:bg-white/[0.02] backdrop-blur-xl border-t md:border-t-0 md:border-r border-white/5 flex flex-row md:flex-col items-center justify-around md:justify-start py-0 md:py-8 gap-0 md:gap-8 shadow-[0_-4px_24px_rgba(0,0,0,0.5)] md:shadow-[4px_0_24px_rgba(0,0,0,0.2)] z-50">
-        <div
-          className="hidden md:flex w-12 h-12 bg-gradient-to-br from-green-400 to-green-600 rounded-xl items-center justify-center shadow-lg shadow-green-500/30 mb-8 cursor-pointer hover:scale-105 transition-transform"
-          onClick={() => router.push("/")}
-        >
-          <FeatherIcon icon="coffee" className="w-6 h-6 text-zinc-950" />
-        </div>
-
-        <div className="flex flex-row md:flex-col gap-2 md:gap-6 w-full items-center justify-evenly md:justify-start px-4 md:px-0">
-          <div
-            className={navClass("/")}
-            onClick={() => router.push("/")}
-            title="Menu"
-          >
-            <FeatherIcon icon="home" className="w-5 h-5" />
-          </div>
-
-          <div
-            className={navClass("/pesanan/history_pesanan")}
-            onClick={() => router.push("/pesanan/history_pesanan")}
-            title="Riwayat Pesanan"
-          >
-            <FeatherIcon icon="file-text" className="w-5 h-5" />
-          </div>
-
-          <div
-            className={navClass("/login")}
-            onClick={() => router.push("/login")}
-            title="Profil / Login"
-          >
-            <FeatherIcon icon="user" className="w-5 h-5" />
-          </div>
-
-          <div
-            className={navClass("/logout")}
-            onClick={handleLogout}
-            title="Logout"
-          >
-            <FeatherIcon icon="log-out" className="w-5 h-5" />
-          </div>
-        </div>
-      </aside>
+      <Sidebar />
 
       <div className="flex-1 flex flex-col lg:flex-row w-full min-w-0">
         <main className="flex-1 p-4 md:p-8 lg:p-12 pb-12 lg:pb-12 overflow-y-auto w-full custom-scrollbar">

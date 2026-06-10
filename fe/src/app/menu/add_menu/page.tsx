@@ -1,9 +1,11 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import FeatherIcon from "feather-icons-react";
+import Sidebar from "@/components/Sidebar";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 // Types
 import { Produk } from "@/features/produk/types";
@@ -12,7 +14,6 @@ import { Produk } from "@/features/produk/types";
 import { createProduk, getAllProduk } from "@/features/produk/api";
 
 export default function AddMenuPage() {
-  const pathname = usePathname();
   const router = useRouter();
 
   // UI / state
@@ -22,13 +23,6 @@ export default function AddMenuPage() {
   // Data state
   const [produk, setProduk] = useState<Produk[]>([]);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-
-  const navClass = (path: string) =>
-    `flex items-center justify-center w-12 h-12 rounded-xl cursor-pointer transition-all duration-300 ${
-      pathname === path
-        ? "bg-blue-500 text-zinc-950 shadow-[0_0_15px_rgba(59,130,246,0.5)] scale-110"
-        : "text-zinc-400 hover:text-blue-400 hover:bg-white/5 hover:scale-105"
-    }`;
 
   async function getProduk() {
     try {
@@ -86,7 +80,10 @@ export default function AddMenuPage() {
         status,
       });
 
-      router.push("/profil_produk")
+      setImagePreview(null);
+      getProduk();
+      const form = document.querySelector("form") as HTMLFormElement | null;
+      if (form) form.reset();
     } catch (err) {
       setError("Gagal membuat produk");
       setTimeout(() => setError(null), 3000);
@@ -96,40 +93,9 @@ export default function AddMenuPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-[#09090b] text-zinc-50 font-poppins selection:bg-blue-500/30">
-      {/* ================= SIDEBAR / BOTTOM NAV ================= */}
-      <aside className="w-full md:w-24 h-20 md:h-screen fixed bottom-0 md:sticky md:top-0 bg-zinc-950/80 md:bg-white/[0.02] backdrop-blur-xl border-t md:border-t-0 md:border-r border-white/5 flex flex-row md:flex-col items-center justify-around md:justify-start py-0 md:py-8 gap-0 md:gap-8 shadow-[0_-4px_24px_rgba(0,0,0,0.5)] md:shadow-[4px_0_24px_rgba(0,0,0,0.2)] z-50">
-        <div className="flex flex-row md:flex-col gap-2 md:gap-6 w-full items-center justify-evenly md:justify-start px-4 md:px-0">
-          {[
-            { path: "/pesanan/daftar_pesanan", icon: "list", label: "Pesanan" },
-            { path: "/menu/add_menu", icon: "plus", label: "Tambah Menu" },
-          ].map((menu) => (
-            <div
-              key={menu.path}
-              className={navClass(menu.path)}
-              onClick={() => router.push(menu.path)}
-              title={menu.label}
-            >
-              <FeatherIcon icon={menu.icon} className="w-5 h-5" />
-            </div>
-          ))}
-        </div>
-
-        <div className="hidden md:flex flex-col gap-6 w-full items-center mt-auto">
-          {[{ path: "/login_admin", icon: "user", label: "Admin Login" }].map(
-            (menu) => (
-              <div
-                key={menu.path}
-                className={navClass(menu.path)}
-                onClick={() => router.push(menu.path)}
-                title={menu.label}
-              >
-                <FeatherIcon icon={menu.icon} className="w-5 h-5" />
-              </div>
-            ),
-          )}
-        </div>
-      </aside>
+    <ProtectedRoute allowedRole="admin">
+      <div className="min-h-screen flex flex-col md:flex-row bg-[#09090b] text-zinc-50 font-poppins selection:bg-blue-500/30">
+        <Sidebar type="admin" />
 
       <main className="flex-1 p-4 md:p-8 lg:p-12 pb-24 md:pb-12 overflow-y-auto space-y-12 w-full">
         <div className="max-w-6xl mx-auto pt-4 md:pt-0">
@@ -385,5 +351,6 @@ export default function AddMenuPage() {
         </div>
       </main>
     </div>
+    </ProtectedRoute>
   );
 }

@@ -1,9 +1,9 @@
-export type login = {
+export type LoginPayload = {
   username: string;
   password: string;
 };
 
-export type register = {
+export type RegisterPayload = {
   username: string;
   password: string;
   role: string;

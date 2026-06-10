@@ -1,14 +1,12 @@
 import {
-  login as LoginType,
-  register as RegisterType,
+  LoginPayload,
+  RegisterPayload,
   AuthResponse,
 } from "@/features/auth/types";
 
 import api from "@/lib/axios";
 
-const API_URL = `${process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000"}/api/auth`;
-
-export async function login(data: LoginType): Promise<AuthResponse> {
+export async function login(data: LoginPayload): Promise<AuthResponse> {
   const res = await api.post("/api/auth/login", data);
 
   const token = res.data.token;
@@ -19,16 +17,9 @@ export async function login(data: LoginType): Promise<AuthResponse> {
   return { token, role };
 }
 
-export async function register(data: RegisterType): Promise<AuthResponse> {
-  const response = await fetch(`${API_URL}/register`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) throw new Error("Failed to register");
-  return response.json();
+export async function register(data: RegisterPayload): Promise<AuthResponse> {
+  const res = await api.post<AuthResponse>("/api/auth/register", data);
+  return res.data;
 }
 
 export async function logout() {

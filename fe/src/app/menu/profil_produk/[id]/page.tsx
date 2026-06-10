@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter, usePathname } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import FeatherIcon from "feather-icons-react";
 import Image from "next/image";
+import Sidebar from "@/components/Sidebar";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 // Types
 import { Produk, UpdateProdukPayload } from "@/features/produk/types";
@@ -14,7 +16,6 @@ import { getProdukById, updateProduk } from "@/features/produk/api";
 export default function MenuPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const pathname = usePathname();
 
   // UI / loading state
   const [loading, setLoading] = useState(false);
@@ -22,13 +23,6 @@ export default function MenuPage() {
 
   // Data state
   const [produk, setProduk] = useState<Produk | null>(null);
-
-  const navClass = (path: string) =>
-    `flex items-center justify-center w-12 h-12 rounded-xl cursor-pointer transition-all duration-300 ${
-      pathname === path
-        ? "bg-blue-500 text-zinc-950 shadow-[0_0_15px_rgba(59,130,246,0.5)] scale-110"
-        : "text-zinc-400 hover:text-blue-400 hover:bg-white/5 hover:scale-105"
-    }`;
 
   async function getProduk() {
     try {
@@ -99,39 +93,9 @@ export default function MenuPage() {
   if (!produk && !loading) return null;
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-[#09090b] text-zinc-50 font-poppins selection:bg-blue-500/30">
-      <aside className="w-full md:w-24 h-20 md:h-screen fixed bottom-0 md:sticky md:top-0 bg-zinc-950/80 md:bg-white/[0.02] backdrop-blur-xl border-t md:border-t-0 md:border-r border-white/5 flex flex-row md:flex-col items-center justify-around md:justify-start py-0 md:py-8 gap-0 md:gap-8 shadow-[0_-4px_24px_rgba(0,0,0,0.5)] md:shadow-[4px_0_24px_rgba(0,0,0,0.2)] z-50">
-        <div className="flex flex-row md:flex-col gap-2 md:gap-6 w-full items-center justify-evenly md:justify-start px-4 md:px-0">
-          {[
-            { path: "/pesanan/daftar_pesanan", icon: "list", label: "Pesanan" },
-            { path: "/menu/add_menu", icon: "plus", label: "Tambah Menu" },
-          ].map((menu) => (
-            <div
-              key={menu.path}
-              className={navClass(menu.path)}
-              onClick={() => router.push(menu.path)}
-              title={menu.label}
-            >
-              <FeatherIcon icon={menu.icon} className="w-5 h-5" />
-            </div>
-          ))}
-        </div>
-
-        <div className="hidden md:flex flex-col gap-6 w-full items-center mt-auto">
-          {[{ path: "/login_admin", icon: "user", label: "Admin Login" }].map(
-            (menu) => (
-              <div
-                key={menu.path}
-                className={navClass(menu.path)}
-                onClick={() => router.push(menu.path)}
-                title={menu.label}
-              >
-                <FeatherIcon icon={menu.icon} className="w-5 h-5" />
-              </div>
-            ),
-          )}
-        </div>
-      </aside>
+    <ProtectedRoute allowedRole="admin">
+      <div className="min-h-screen flex flex-col md:flex-row bg-[#09090b] text-zinc-50 font-poppins selection:bg-blue-500/30">
+        <Sidebar type="admin" />
 
       <main className="flex-1 p-4 md:p-8 lg:p-12 pb-24 md:pb-12 overflow-y-auto w-full relative">
         <div className="absolute top-1/4 right-1/4 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[100px] pointer-events-none"></div>
@@ -298,5 +262,6 @@ export default function MenuPage() {
         </div>
       </main>
     </div>
+    </ProtectedRoute>
   );
 }
