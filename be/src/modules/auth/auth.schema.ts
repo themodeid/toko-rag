@@ -1,19 +1,29 @@
 import { z } from "zod";
-import { UserSchema } from "../users/users.schema";
 
 export const RegisterSchema = z.object({
-  username: z.string().min(1).max(50),
-  password: z.string().min(6).max(100),
-  role: z.enum(["user", "admin"]).default("user"),
+  username: z.string().min(3, "Username minimal 3 karakter").max(100),
+  password: z.string().min(6, "Password minimal 6 karakter"),
 });
 
 export const LoginSchema = z.object({
-  username: z.string().min(1).max(50),
-  password: z.string().min(6).max(100),
+  username: z.string().min(1, "Username wajib diisi"),
+  password: z.string().min(1, "Password wajib diisi"),
 });
 
 export const LoginResponseSchema = z.object({
   message: z.string(),
-  token: z.string().min(10),
-  user: UserSchema,
+  token: z.string(),
+  user: z.object({
+    id: z.string().uuid(),
+    username: z.string(),
+    role: z.enum(["admin", "user"]),
+  }),
 });
+
+export const LogoutSchema = z.object({
+  refreshToken: z.string().optional(),
+});
+
+export type RegisterInput = z.infer<typeof RegisterSchema>;
+export type LoginInput = z.infer<typeof LoginSchema>;
+export type LoginResponse = z.infer<typeof LoginResponseSchema>;

@@ -1,13 +1,14 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import { AppError } from "../errors/AppError";
+import { AppError } from "../utils/appError";
+import { ENV } from "../config/env";
 import type { JwtPayloadUser } from "../types/express";
 
 export const authGuard = (req: Request, _res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    throw new AppError("Unauthorized", 401);
+    throw new AppError("Unauthorized: Token otentikasi diperlukan", 401);
   }
 
   const token = authHeader.split(" ")[1];
@@ -15,7 +16,7 @@ export const authGuard = (req: Request, _res: Response, next: NextFunction) => {
   try {
     const payload = jwt.verify(
       token,
-      process.env.JWT_SECRET!
+      ENV.JWT_SECRET
     ) as JwtPayloadUser;
 
     // simpan user dari token ke request

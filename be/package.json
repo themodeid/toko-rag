@@ -1,22 +1,20 @@
 {
-  "name": "backend",
+  "name": "toko-online-backend",
   "version": "1.0.0",
-  "main": "app.js",
-  "id": "clean1",
+  "main": "src/app.ts",
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only --poll src/server.ts",
+    "dev": "ts-node-dev --respawn --transpile-only src/app.ts",
     "build": "tsc",
-    "start": "node dist/server.js",
+    "start": "node dist/app.js",
     "db:migrate": "ts-node src/database/cli.ts up",
     "db:rollback": "ts-node src/database/cli.ts down",
     "db:reset": "ts-node src/database/cli.ts reset",
     "db:make": "ts-node src/database/cli.ts make",
     "db:seed": "ts-node src/database/cli.ts seed"
   },
-  "keywords": [],
+  "keywords": ["ecommerce", "pos", "antrian", "redis", "postgresql"],
   "author": "",
   "license": "ISC",
-  "description": "",
   "dependencies": {
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
@@ -34,8 +32,13 @@
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
-    "@types/node": "^25.0.10",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/jsonwebtoken": "^9.0.8",
+    "@types/morgan": "^1.9.9",
+    "@types/node": "^22.13.4",
+    "@types/pg": "^8.11.11",
     "ts-node-dev": "^2.0.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.7.3"
   }
 }

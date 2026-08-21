@@ -1,56 +1,159 @@
 import express from "express";
 import cors from "cors";
 import morgan from "morgan";
+import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import path from "path";
-import routes from "./routes";
-import { ENV } from "./config/env";
+import { pool } from "./config/database";
+import { connectRedis } from "./config/redis";
+import { runMigrations } from "./database/migrationRunner";
+import routes from "./routes/index";
 import { errorHandler } from "./middlewares/errorHandler";
+import { ENV } from "./config/env";
 
 export const app = express();
 
-app.use(cors({ origin: ENV.CORS_ORIGIN, credentials: true }));
-app.use(morgan("dev"));
-app.use(express.json({ limit: "10kb" }));
+// ======================================================
+// 🛠️ MIDDLEWARES
+// ======================================================
 
-// Serve static files from uploads directory
+// 1. CORS Configuration (Dynamic Origins)
+const allowedOrigins = ENV.CORS_ORIGIN
+  ? ENV.CORS_ORIGIN.split(",").map((o) => o.trim())
+  : ["http://localhost:4000", "http://localhost:3000"];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Izinkan request tanpa origin (seperti curl/Postman/Mobile App) atau jika origin terdaftar
+      if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes("*")) {
+        callback(null, true);
+      } else {
+        callback(new Error(`Blocked by CORS: ${origin} is not allowed`));
+      }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  })
+);
+
+app.use(helmet({ crossOriginResourcePolicy: false }));
+app.use(morgan("dev"));
+
+// 2. Global Rate Limiter
+const limiter = rateLimit({
+  windowMs: ENV.RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000,
+  max: ENV.RATE_LIMIT_MAX || 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    status: "fail",
+    statusCode: 429,
+    message: "Terlalu banyak permintaan dari IP ini, silakan coba lagi nanti.",
+  },
+});
+app.use("/api", limiter);
+
+app.use(
+  express.urlencoded({ extended: true, limit: ENV.JSON_BODY_LIMIT || "10mb" })
+);
+app.use(express.json({ limit: ENV.JSON_BODY_LIMIT || "10mb" }));
+
+// Serve static uploads
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
-// app.use(
-//   rateLimit({
-//     windowMs: 15 * 60 * 1000,
-//     max: 100,
-//   }),
-// );
-
-// Handle JSON parsing errors
+// Syntax Error Handler (JSON Invalid)
 app.use(
   (
     err: any,
-    req: express.Request,
+    _req: express.Request,
     res: express.Response,
-    next: express.NextFunction,
+    next: express.NextFunction
   ) => {
     if (err instanceof SyntaxError && "body" in err) {
       return res.status(400).json({
-        status: "error",
-        message: "Invalid JSON format",
+        status: "fail",
         statusCode: 400,
+        message: "Invalid JSON format in request body",
       });
     }
     next(err);
-  },
+  }
 );
 
-app.use("/api", routes);
-
-// 404 handler for undefined routes
-app.use((req, res) => {
-  res.status(404).json({
-    status: "error",
-    message: `Route ${req.method} ${req.path} tidak ditemukan`,
-    statusCode: 404,
+// Healthcheck
+app.get("/api/health", (_req, res) => {
+  res.status(200).json({
+    status: "ok",
+    message: "Toko Online Backend is healthy",
+    timestamp: new Date().toISOString(),
+    env: ENV.NODE_ENV,
   });
 });
 
+// ======================================================
+// 🛣️ ROUTES & HANDLERS
+// ======================================================
+
+app.use("/api", routes);
+
+// 404 Handler
+app.use((req, res) => {
+  res.status(404).json({
+    status: "fail",
+    statusCode: 404,
+    message: `Route ${req.method} ${req.path} tidak ditemukan`,
+  });
+});
+
+// Centralized Error Handler (Must be last)
 app.use(errorHandler);
+
+// ======================================================
+// 🚀 SERVER STARTUP LOGIC
+// ======================================================
+export async function startServer(): Promise<void> {
+  console.log("===================================");
+  console.log("🛒 Starting Toko Online Backend Server...");
+
+  try {
+    // 1. TEST DATABASE CONNECTION
+    await pool.query("SELECT 1");
+    console.log("✅ PostgreSQL Database connected successfully");
+
+    // 2. TEST REDIS CONNECTION
+    try {
+      await connectRedis();
+      console.log("✅ Redis connected successfully");
+    } catch (redisErr) {
+      console.warn("⚠️ Redis unavailable, falling back to database query only");
+    }
+
+    // 3. RUN DATABASE MIGRATIONS
+    console.log("🔄 Running database migrations...");
+    await runMigrations();
+    console.log("✅ Migrations checked/applied successfully");
+
+    // 4. START HTTP SERVER
+    app.listen(ENV.PORT, () => {
+      console.log("===================================");
+      console.log("🚀 Toko Online Server is up and running!");
+      console.log(`🌐 Base API URL : http://localhost:${ENV.PORT}/api`);
+      console.log(`🕒 System Time  : ${new Date().toLocaleString()}`);
+      console.log("===================================");
+    });
+  } catch (error) {
+    console.error("===================================");
+    console.error("❌ Server failed to start:", error);
+    console.error("===================================");
+
+    if (ENV.NODE_ENV === "production") {
+      process.exit(1);
+    }
+  }
+}
+
+if (process.env.NODE_ENV !== "test") {
+  startServer();
+}

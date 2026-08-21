@@ -1,0 +1,13 @@
+{
+  "name": "toko-online",
+  "private": true,
+  "scripts": {
+    "env:init": "node scripts/init-env.js",
+    "docker:up": "docker compose up -d --build",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "docker:db": "docker compose up -d postgres-db redis",
+    "docker:restart": "docker compose restart",
+    "docker:ps": "docker compose ps"
+  }
+}

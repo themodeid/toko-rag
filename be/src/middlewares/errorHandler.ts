@@ -1,15 +1,17 @@
 import { Request, Response, NextFunction } from "express";
-import { AppError } from "../errors/AppError";
+import { AppError } from "../utils/appError";
+import { ZodError } from "zod";
+import { ENV } from "../config/env";
 
-const isDevelopment = process.env.NODE_ENV === "development";
+const isDevelopment = ENV.NODE_ENV === "development";
 
 export const errorHandler = (
-  err: Error | AppError,
+  err: Error | AppError | any,
   req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ) => {
-  console.error("Error occurred:", {
+  console.error("❌ Error occurred:", {
     message: err.message,
     name: err.name,
     stack: err.stack,
@@ -18,19 +20,28 @@ export const errorHandler = (
     timestamp: new Date().toISOString(),
   });
 
+  // 1. Zod Validation Error
+  if (err instanceof ZodError) {
+    return res.status(400).json({
+      status: "fail",
+      statusCode: 400,
+      message: "Validasi data gagal",
+      errors: (err as any).issues || (err as any).errors,
+    });
+  }
+
+  // 2. Custom AppError
   if (err instanceof AppError) {
     const errorResponse: any = {
       status: err.status,
-      message: err.message,
       statusCode: err.statusCode,
+      message: err.message,
     };
 
-    // Include details if available (e.g., validation errors)
     if (err.details) {
       errorResponse.details = err.details;
     }
 
-    // Add detailed information in development mode
     if (isDevelopment) {
       errorResponse.stack = err.stack;
       errorResponse.name = err.name;
@@ -42,33 +53,68 @@ export const errorHandler = (
     return res.status(err.statusCode).json(errorResponse);
   }
 
-  // Handle unexpected errors
+  // 3. PostgreSQL Common Errors
+  if (err.code === "23505") {
+    // Unique violation
+    return res.status(409).json({
+      status: "fail",
+      statusCode: 409,
+      message: "Data sudah ada (duplikat)",
+      detail: err.detail,
+    });
+  }
+
+  if (err.code === "23503") {
+    // Foreign key violation
+    return res.status(400).json({
+      status: "fail",
+      statusCode: 400,
+      message: "Referensi data tidak ditemukan",
+      detail: err.detail,
+    });
+  }
+
+  if (err.code === "22P02") {
+    // Invalid text representation (e.g. invalid UUID)
+    return res.status(400).json({
+      status: "fail",
+      statusCode: 400,
+      message: "Format ID atau parameter tidak valid",
+    });
+  }
+
+  // 4. JWT Errors
+  if (err.name === "JsonWebTokenError") {
+    return res.status(401).json({
+      status: "fail",
+      statusCode: 401,
+      message: "Token tidak valid",
+    });
+  }
+
+  if (err.name === "TokenExpiredError") {
+    return res.status(401).json({
+      status: "fail",
+      statusCode: 401,
+      message: "Token sudah kadaluarsa",
+    });
+  }
+
+  // 5. Unhandled / Internal Server Error
   const errorResponse: any = {
     status: "error",
+    statusCode: 500,
     message: isDevelopment
       ? err.message || "Internal server error"
       : "Internal server error",
-    statusCode: 500,
   };
 
-  // Add detailed information in development mode
   if (isDevelopment) {
     errorResponse.name = err.name;
     errorResponse.stack = err.stack;
     errorResponse.path = req.path;
     errorResponse.method = req.method;
     errorResponse.timestamp = new Date().toISOString();
-    
-    // Include additional error properties if available
-    if ((err as any).code) {
-      errorResponse.code = (err as any).code;
-    }
-    if ((err as any).keyValue) {
-      errorResponse.keyValue = (err as any).keyValue;
-    }
-    if ((err as any).errors) {
-      errorResponse.errors = (err as any).errors;
-    }
   }
 
   return res.status(500).json(errorResponse);

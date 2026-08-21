@@ -70,3 +70,12 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
     token TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- =========================
+-- INDEXES
+-- =========================
+CREATE INDEX IF NOT EXISTS idx_orders_auth_id ON orders(auth_id);
+CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status_pesanan);
+CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
+CREATE INDEX IF NOT EXISTS idx_daily_queue_date ON daily_queue(queue_date);
+CREATE INDEX IF NOT EXISTS idx_produk_deleted_at ON produk(deleted_at);

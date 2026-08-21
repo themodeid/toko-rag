@@ -1,80 +1,92 @@
 services:
   redis:
     image: redis:7-alpine
-    container_name: redis-toko-online
+    container_name: ${REDIS_CONTAINER_NAME:-redis-toko-online}
+    restart: unless-stopped
     ports:
-      - "6381:6379"
-    restart: always
+      - "${REDIS_PORT:-6381}:6379"
     command: redis-server --save 60 1 --loglevel warning
     volumes:
       - redis_data:/data
+    env_file:
+      - .env
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 5
+      start_period: 5s
 
   postgres-db:
-    image: postgres:16-alpine
-    container_name: postgres-db-main
-    ports:
-      - "5453:5432"
+    image: postgres:15-alpine
+    container_name: ${POSTGRES_CONTAINER_NAME:-postgres-db-main}
+    restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      POSTGRES_DB: ${DB_NAME:-toko_online_db}
-      POSTGRES_USER: ${DB_USER:-admin}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-jangan_pake_password_lemah}
+      POSTGRES_DB: ${POSTGRES_DB:-toko_online_adam}
+      POSTGRES_USER: ${POSTGRES_USER:-adam_dev}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-adamwahyukur}
+    ports:
+      - "${POSTGRES_PORT:-5453}:5432"
     volumes:
       - postgres_main_data:/var/lib/postgresql/data
-    restart: always
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U ${DB_USER:-admin} -d ${DB_NAME:-toko_online_db}",
-        ]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
       timeout: 5s
       retries: 5
+      start_period: 10s
 
   backend:
     build:
       context: ./be
-    container_name: backend-api
+      dockerfile: Dockerfile
+    container_name: ${BACKEND_CONTAINER_NAME:-backend-api}
     ports:
-      - "${BACKEND_PORT:-5000}:5000"
-    volumes:
-      - ./be:/app
-      - /app/node_modules
-    command: npm run dev
+      - "${BACKEND_PORT:-5000}:${BACKEND_PORT:-5000}"
+    restart: unless-stopped
     depends_on:
       postgres-db:
         condition: service_healthy
       redis:
         condition: service_healthy
+    env_file:
+      - .env
     environment:
-      - DATABASE_URL=postgresql://${DB_USER:-admin}:${DB_PASSWORD:-jangan_pake_password_lemah}@postgres-db:5432/${DB_NAME:-toko_online_db}
-      - REDIS_URL=redis://redis:6379
-      - PORT=5000
-      - NODE_ENV=${NODE_ENV:-development}
-      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:3000}
-      - JWT_SECRET=${JWT_SECRET}
-      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
-    restart: always
+      PORT: ${BACKEND_PORT:-5000}
+      DATABASE_URL: ${DATABASE_URL_DOCKER}
+      REDIS_URL: ${REDIS_URL_DOCKER}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1d}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:4000,http://localhost:3000}
+    volumes:
+      - ./be:/app
+      - /app/node_modules
+    command: npm run dev
 
   frontend:
     build:
       context: ./fe
-    container_name: frontend-app
+      dockerfile: dockerfile
+    container_name: ${FRONTEND_CONTAINER_NAME:-frontend-app}
     ports:
-      - "${FRONTEND_PORT:-3000}:3000"
+      - "${FRONTEND_PORT:-4000}:${FRONTEND_PORT:-4000}"
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_started
+    env_file:
+      - .env
+    environment:
+      PORT: ${FRONTEND_PORT:-4000}
+      HOSTNAME: 0.0.0.0
+      NEXT_PUBLIC_API_BASE_URL: http://${APP_PUBLIC_HOST:-localhost}:${BACKEND_PORT:-5000}
+      INTERNAL_API_URL: http://backend:${BACKEND_PORT:-5000}/api
     volumes:
       - ./fe:/app
       - /app/node_modules
-    depends_on:
-      - backend
-    environment:
-      - NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
-    restart: always
+    command: npm run dev
 
 volumes:
   postgres_main_data:

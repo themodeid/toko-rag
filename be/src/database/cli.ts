@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { runMigrations, rollbackMigration, resetDatabase } from "./migrationRunner";
+import { runSeeder } from "./seed";
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -17,6 +18,9 @@ async function main() {
       process.exit(0);
     } else if (command === "reset") {
       await resetDatabase();
+      process.exit(0);
+    } else if (command === "seed") {
+      await runSeeder();
       process.exit(0);
     } else if (command === "make") {
       const name = args[1];
@@ -41,7 +45,7 @@ async function main() {
       console.log(`   ${path.relative(process.cwd(), downFile)}`);
       process.exit(0);
     } else {
-      console.error("Unknown command. Use: up, down, reset, or make <name>");
+      console.error("Unknown command. Use: up, down, reset, seed, or make <name>");
       process.exit(1);
     }
   } catch (error) {
