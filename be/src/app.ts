@@ -39,7 +39,12 @@ app.use(
   })
 );
 
-app.use(helmet({ crossOriginResourcePolicy: false }));
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    crossOriginEmbedderPolicy: false,
+  })
+);
 app.use(morgan("dev"));
 app.use(cookieParser());
 
