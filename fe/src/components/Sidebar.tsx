@@ -11,20 +11,15 @@ interface SidebarProps {
 export default function Sidebar({ type }: SidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
 
-  // If type is not explicitly provided, auto-detect based on path
-  const isAdminMode =
-    type === "admin" ||
-    pathname.startsWith("/menu") ||
-    pathname.startsWith("/pesanan/daftar_pesanan") ||
-    pathname === "/login_admin";
+  const isAdmin = user?.role === "admin" || type === "admin";
 
   const handleLogout = async () => {
     const confirm = window.confirm("Apakah Anda yakin ingin logout?");
     if (!confirm) return;
     await logout();
-    router.push(isAdminMode ? "/login_admin" : "/login");
+    router.push("/login");
   };
 
   const activeColor = "bg-zinc-100 text-zinc-900 font-semibold shadow-sm";
@@ -35,12 +30,13 @@ export default function Sidebar({ type }: SidebarProps) {
       pathname === path ? activeColor : hoverColor
     }`;
 
-  if (isAdminMode) {
+  if (isAdmin) {
     return (
       <aside className="w-full md:w-20 h-16 md:h-screen fixed bottom-0 md:sticky md:top-0 bg-zinc-900 border-t md:border-t-0 md:border-r border-zinc-800 flex flex-row md:flex-col items-center justify-around md:justify-start py-0 md:py-6 gap-0 md:gap-6 z-50">
         <div
           className="hidden md:flex w-10 h-10 bg-zinc-800 border border-zinc-700 rounded-lg items-center justify-center mb-4 cursor-pointer hover:bg-zinc-700/80 transition-colors"
           onClick={() => router.push("/pesanan/daftar_pesanan")}
+          title="Panel Admin"
         >
           <FeatherIcon icon="shield" className="w-5 h-5 text-zinc-200" />
         </div>
@@ -49,7 +45,7 @@ export default function Sidebar({ type }: SidebarProps) {
           <div
             className={navClass("/pesanan/daftar_pesanan")}
             onClick={() => router.push("/pesanan/daftar_pesanan")}
-            title="Pesanan Aktif"
+            title="Daftar Pesanan & Antrean Kasir"
           >
             <FeatherIcon icon="list" className="w-4 h-4" />
           </div>
@@ -57,17 +53,17 @@ export default function Sidebar({ type }: SidebarProps) {
           <div
             className={navClass("/menu/add_menu")}
             onClick={() => router.push("/menu/add_menu")}
-            title="Manajemen Menu"
+            title="Tambah / Kelola Menu"
           >
             <FeatherIcon icon="plus" className="w-4 h-4" />
           </div>
 
           <div
-            className={navClass("/login_admin")}
-            onClick={() => router.push("/login_admin")}
-            title="Admin Login"
+            className={navClass("/")}
+            onClick={() => router.push("/")}
+            title="Lihat Tampilan Toko (POS)"
           >
-            <FeatherIcon icon="user" className="w-4 h-4" />
+            <FeatherIcon icon="shopping-bag" className="w-4 h-4" />
           </div>
 
           {isAuthenticated && (
@@ -89,6 +85,7 @@ export default function Sidebar({ type }: SidebarProps) {
       <div
         className="hidden md:flex w-10 h-10 bg-zinc-800 border border-zinc-700 rounded-lg items-center justify-center mb-4 cursor-pointer hover:bg-zinc-700/80 transition-colors"
         onClick={() => router.push("/")}
+        title="Toko Online"
       >
         <FeatherIcon icon="coffee" className="w-5 h-5 text-zinc-200" />
       </div>
@@ -97,7 +94,7 @@ export default function Sidebar({ type }: SidebarProps) {
         <div
           className={navClass("/")}
           onClick={() => router.push("/")}
-          title="Menu"
+          title="Katalog Menu"
         >
           <FeatherIcon icon="home" className="w-4 h-4" />
         </div>
@@ -105,18 +102,20 @@ export default function Sidebar({ type }: SidebarProps) {
         <div
           className={navClass("/pesanan/history_pesanan")}
           onClick={() => router.push("/pesanan/history_pesanan")}
-          title="Riwayat Pesanan"
+          title="Riwayat Pesanan Saya"
         >
           <FeatherIcon icon="file-text" className="w-4 h-4" />
         </div>
 
-        <div
-          className={navClass("/login")}
-          onClick={() => router.push("/login")}
-          title="Profil / Login"
-        >
-          <FeatherIcon icon="user" className="w-4 h-4" />
-        </div>
+        {!isAuthenticated && (
+          <div
+            className={navClass("/login")}
+            onClick={() => router.push("/login")}
+            title="Masuk / Daftar Akun"
+          >
+            <FeatherIcon icon="user" className="w-4 h-4" />
+          </div>
+        )}
 
         {isAuthenticated && (
           <div
