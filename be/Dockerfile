@@ -11,10 +11,10 @@ RUN npm run build
 # Production runtime stage
 FROM node:20-alpine AS runner
 WORKDIR /app
-ENV NODE_ENV=production
+ENV NODE_ENV=development
 
 COPY package*.json ./
-RUN npm install --omit=dev
+RUN npm install
 
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/src/database/migrations ./dist/database/migrations

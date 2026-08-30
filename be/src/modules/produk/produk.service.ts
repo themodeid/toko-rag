@@ -1,5 +1,6 @@
 import { pool } from "../../config/database";
 import { AppError } from "../../utils/appError";
+import { invalidateRagCache } from "../rag/rag.cache";
 
 export interface CreateProdukDTO {
   nama: string;
@@ -7,6 +8,9 @@ export interface CreateProdukDTO {
   stock: number;
   status: boolean;
   image: string;
+  kategori?: string;
+  deskripsi?: string;
+  ingredients?: string;
 }
 
 export interface UpdateProdukDTO {
@@ -15,9 +19,12 @@ export interface UpdateProdukDTO {
   stock?: number;
   status?: boolean;
   image?: string;
+  kategori?: string;
+  deskripsi?: string;
+  ingredients?: string;
 }
 
-export const getAllProdukService = async (limit = 10, offset = 0) => {
+export const getAllProdukService = async (limit = 100, offset = 0) => {
   const [result, countResult] = await Promise.all([
     pool.query(
       "SELECT * FROM produk WHERE deleted_at IS NULL ORDER BY id DESC LIMIT $1 OFFSET $2",
@@ -47,12 +54,22 @@ export const getProdukByIdService = async (id: string) => {
 export const createProdukService = async (data: CreateProdukDTO) => {
   const result = await pool.query(
     `
-    INSERT INTO produk (nama, harga, stock, status, image)
-    VALUES ($1, $2, $3, $4, $5)
+    INSERT INTO produk (nama, harga, stock, status, image, kategori, deskripsi, ingredients)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
     RETURNING *
     `,
-    [data.nama, data.harga, data.stock, data.status, data.image]
+    [
+      data.nama,
+      data.harga,
+      data.stock,
+      data.status,
+      data.image,
+      data.kategori || "Umum",
+      data.deskripsi || null,
+      data.ingredients || null,
+    ]
   );
+  await invalidateRagCache();
   return result.rows[0];
 };
 
@@ -84,6 +101,18 @@ export const updateProdukService = async (
     fields.push(`image = $${idx++}`);
     values.push(data.image);
   }
+  if (data.kategori !== undefined) {
+    fields.push(`kategori = $${idx++}`);
+    values.push(data.kategori);
+  }
+  if (data.deskripsi !== undefined) {
+    fields.push(`deskripsi = $${idx++}`);
+    values.push(data.deskripsi);
+  }
+  if (data.ingredients !== undefined) {
+    fields.push(`ingredients = $${idx++}`);
+    values.push(data.ingredients);
+  }
 
   fields.push(`updated_at = NOW()`);
 
@@ -101,6 +130,7 @@ export const updateProdukService = async (
   values.push(id);
 
   const result = await pool.query(query, values);
+  await invalidateRagCache();
   return result.rows[0];
 };
 
@@ -109,6 +139,7 @@ export const softDeleteProdukService = async (id: string) => {
     "UPDATE produk SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL RETURNING *",
     [id]
   );
+  await invalidateRagCache();
   return result.rows[0];
 };
 
@@ -117,5 +148,6 @@ export const hardDeleteProdukService = async (id: string) => {
     "DELETE FROM produk WHERE id = $1 RETURNING *",
     [id]
   );
+  await invalidateRagCache();
   return result.rows[0];
 };

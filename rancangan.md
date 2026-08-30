@@ -164,6 +164,11 @@ CREATE TABLE refresh_tokens (
 - `GET /getMe`: Profil pengguna yang sedang login
 - `DELETE /deleteAllUsers`: Hapus semua pengguna *(Khusus testing)*
 
+### AI Assistant & RAG (`/api/rag`)
+- `POST /chat`: Kirim pertanyaan ke AI RAG Assistant (live stock & ingredients context injection)
+- `GET /suggestions`: Dapatkan daftar saran pertanyaan cepat (quick prompts)
+
+
 ---
 
 ## 6. Petunjuk Operasional

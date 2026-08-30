@@ -15,7 +15,7 @@ import {
 // ===================== GET ALL PRODUK =====================
 export const getAllProduk = catchAsync(async (req: Request, res: Response) => {
   const page = Math.max(1, Number(req.query.page) || 1);
-  const limit = Math.max(1, Math.min(Number(req.query.limit) || 10, 100));
+  const limit = Math.max(1, Math.min(Number(req.query.limit) || 20, 100));
   const offset = (page - 1) * limit;
 
   const cacheKey = `produk:page=${page}:limit=${limit}`;
@@ -54,7 +54,7 @@ export const getAllProduk = catchAsync(async (req: Request, res: Response) => {
 
 // ===================== GET PRODUK BY ID =====================
 export const getProdukById = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const id = req.params.id as string;
 
   if (!id || typeof id !== "string") {
     throw new AppError("ID tidak valid", 400);
@@ -75,13 +75,14 @@ export const getProdukById = catchAsync(async (req: Request, res: Response) => {
 
 // ===================== CREATE PRODUK =====================
 export const createProduk = catchAsync(async (req: Request, res: Response) => {
-  const { nama, harga, stock, status } = req.body;
+  const { nama, harga, stock, status, kategori, deskripsi, ingredients } = req.body;
+  const file = (req as any).file;
 
-  if (!req.file) {
+  if (!file) {
     throw new AppError("Gambar produk wajib diupload", 400);
   }
 
-  const imagePath = `/uploads/${req.file.filename}`;
+  const imagePath = `/uploads/${file.filename}`;
 
   const produk = await createProdukService({
     nama,
@@ -89,6 +90,9 @@ export const createProduk = catchAsync(async (req: Request, res: Response) => {
     stock: Number(stock),
     status: String(status) === "true" || status === true,
     image: imagePath,
+    kategori: kategori || "Umum",
+    deskripsi: deskripsi || "",
+    ingredients: ingredients || "",
   });
 
   await delCachePattern("produk:*");
@@ -102,15 +106,16 @@ export const createProduk = catchAsync(async (req: Request, res: Response) => {
 
 // ===================== UPDATE PRODUK =====================
 export const updateProduk = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const { nama, harga, stock, status } = req.body;
+  const id = req.params.id as string;
+  const { nama, harga, stock, status, kategori, deskripsi, ingredients } = req.body;
+  const file = (req as any).file;
 
   const oldProduct = await getProdukByIdService(id);
   if (!oldProduct) {
     throw new AppError("Produk tidak ditemukan", 404);
   }
 
-  const imagePath = req.file ? `/uploads/${req.file.filename}` : undefined;
+  const imagePath = file ? `/uploads/${file.filename}` : undefined;
 
   const produk = await updateProdukService(id, {
     nama,
@@ -119,6 +124,9 @@ export const updateProduk = catchAsync(async (req: Request, res: Response) => {
     status:
       status !== undefined ? status === true || String(status) === "true" : undefined,
     image: imagePath,
+    kategori,
+    deskripsi,
+    ingredients,
   });
 
   // Hapus gambar lama dari disk jika ada file gambar baru
@@ -139,7 +147,7 @@ export const updateProduk = catchAsync(async (req: Request, res: Response) => {
 
 // ===================== DELETE (SOFT DELETE) PRODUK =====================
 export const deleteProduk = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const id = req.params.id as string;
 
   const existing = await getProdukByIdService(id);
   if (!existing) {

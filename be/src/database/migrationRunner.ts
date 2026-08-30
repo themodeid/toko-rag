@@ -55,7 +55,9 @@ export const runMigrations = async () => {
     if (!appliedMigrations.includes(migrationName)) {
       console.log(`⏳ Applying migration: ${migrationName}...`);
 
-      const sql = fs.readFileSync(path.join(migrationsPath, file), "utf-8");
+      const sql = fs
+        .readFileSync(path.join(migrationsPath, file), "utf-8")
+        .replace(/^\uFEFF/, "");
 
       // menggunakan transaksi agar jika terjadi error maka migration akan di rollback
       const client = await pool.connect();
@@ -107,7 +109,7 @@ export const rollbackMigration = async () => {
 
   console.log(`⏳ Rolling back migration: ${lastMigration}...`);
 
-  const sql = fs.readFileSync(filePath, "utf-8");
+  const sql = fs.readFileSync(filePath, "utf-8").replace(/^\uFEFF/, "");
 
   const client = await pool.connect();
   try {

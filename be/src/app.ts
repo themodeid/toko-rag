@@ -3,6 +3,7 @@ import cors from "cors";
 import morgan from "morgan";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import cookieParser from "cookie-parser";
 import path from "path";
 import { pool } from "./config/database";
 import { connectRedis } from "./config/redis";
@@ -17,7 +18,7 @@ export const app = express();
 // 🛠️ MIDDLEWARES
 // ======================================================
 
-// 1. CORS Configuration (Dynamic Origins)
+// 1. CORS Configuration (Dynamic Origins with Credentials)
 const allowedOrigins = ENV.CORS_ORIGIN
   ? ENV.CORS_ORIGIN.split(",").map((o) => o.trim())
   : ["http://localhost:4000", "http://localhost:3000"];
@@ -40,9 +41,37 @@ app.use(
 
 app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(morgan("dev"));
+app.use(cookieParser());
 
-// 2. Global Rate Limiter
-const limiter = rateLimit({
+// 2. Specialized & Global Rate Limiters
+export const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 menit
+  max: 10, // Maksimal 10 kali percobaan login/register per 15 menit
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    status: "fail",
+    statusCode: 429,
+    message: "Terlalu banyak percobaan autentikasi dari IP ini. Silakan coba lagi setelah 15 menit.",
+  },
+});
+app.use("/api/auth/login", authLimiter);
+app.use("/api/auth/register", authLimiter);
+
+export const ragLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 menit
+  max: 30, // Maksimal 30 permintaan AI per menit
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    status: "fail",
+    statusCode: 429,
+    message: "Batas permintaan chat AI terlampaui. Silakan tunggu 1 menit.",
+  },
+});
+app.use("/api/rag", ragLimiter);
+
+const globalLimiter = rateLimit({
   windowMs: ENV.RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000,
   max: ENV.RATE_LIMIT_MAX || 200,
   standardHeaders: true,
@@ -53,7 +82,7 @@ const limiter = rateLimit({
     message: "Terlalu banyak permintaan dari IP ini, silakan coba lagi nanti.",
   },
 });
-app.use("/api", limiter);
+app.use("/api", globalLimiter);
 
 app.use(
   express.urlencoded({ extended: true, limit: ENV.JSON_BODY_LIMIT || "10mb" })

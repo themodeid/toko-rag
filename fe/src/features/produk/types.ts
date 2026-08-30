@@ -6,9 +6,12 @@ export type Produk = {
   stock: number;
   status: boolean;
   image: string;
+  kategori?: string;
+  deskripsi?: string;
+  ingredients?: string;
 };
 
-// mengambil semua data produk fersi ringan
+// mengambil semua data produk versi ringan
 export type ProdukImage = {
   id: string;
   image: string;
@@ -21,6 +24,9 @@ export type CreateProdukPayload = {
   stock: number;
   status: boolean;
   image: File;
+  kategori?: string;
+  deskripsi?: string;
+  ingredients?: string;
 };
 
 /* Payload update */
@@ -30,6 +36,9 @@ export type UpdateProdukPayload = {
   stock?: number;
   status?: boolean;
   image?: File;
+  kategori?: string;
+  deskripsi?: string;
+  ingredients?: string;
 };
 
 export interface ProdukResponse {

@@ -11,18 +11,18 @@ RUN npm run build
 # Production runtime stage
 FROM node:20-alpine AS runner
 WORKDIR /app
-ENV NODE_ENV=production
+ENV NODE_ENV=development
 
 COPY package*.json ./
-RUN npm install --omit=dev
+RUN npm install
 
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/next.config.* ./
 
-EXPOSE 3000
+EXPOSE 4000 3000
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "const http=require('http');const url='http://localhost:3000/api/health';const req=http.get(url,(res)=>{const ok=res.statusCode===200;res.resume();res.on('end',()=>process.exit(ok?0:1));});req.setTimeout(2000,()=>{req.destroy();process.exit(1);});req.on('error',()=>process.exit(1));"
+  CMD node -e "const p=process.env.PORT||4000;const req=require('http').get('http://localhost:'+p+'/api/health',(res)=>{process.exit(res.statusCode===200?0:1);});req.setTimeout(2000,()=>{req.destroy();process.exit(1);});req.on('error',()=>process.exit(1));"
 
 CMD ["npm", "run", "start"]

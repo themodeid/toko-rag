@@ -35,10 +35,21 @@ export const registerUser = catchAsync(async (req: Request, res: Response) => {
   );
 });
 
+// Cookie configuration for production & development
+const COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: (process.env.NODE_ENV === "production" ? "none" : "lax") as "none" | "lax",
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 hari
+};
+
 // ===================== LOGIN =====================
 export const login = catchAsync(async (req: Request, res: Response) => {
   const parsed = LoginSchema.parse(req.body);
   const result = await loginService(parsed);
+
+  // Set secure HttpOnly cookie
+  res.cookie("auth_token", result.token, COOKIE_OPTIONS);
 
   return successResponse(
     res,
@@ -53,6 +64,13 @@ export const login = catchAsync(async (req: Request, res: Response) => {
 export const logout = catchAsync(async (req: Request, res: Response) => {
   const { refreshToken } = req.body;
   await logoutService(refreshToken);
+
+  // Bersihkan HttpOnly cookie
+  res.clearCookie("auth_token", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: (process.env.NODE_ENV === "production" ? "none" : "lax") as "none" | "lax",
+  });
 
   return successResponse(
     res,

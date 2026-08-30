@@ -34,10 +34,10 @@ export default function Antrian() {
   const [error, setError] = useState<string | null>(null);
 
   const statusColor: Record<string, string> = {
-    ANTRI: "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20",
-    DIPROSES: "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20",
-    SELESAI: "bg-green-500/10 text-green-400 border border-green-500/20 shadow-[0_0_10px_rgba(34,197,94,0.2)]",
-    DIBATALKAN: "bg-red-500/10 text-red-400 border border-red-500/20",
+    ANTRI: "bg-amber-950/40 text-amber-300 border border-amber-800/60",
+    DIPROSES: "bg-blue-950/40 text-blue-300 border border-blue-800/60",
+    SELESAI: "bg-emerald-950/40 text-emerald-300 border border-emerald-800/60",
+    DIBATALKAN: "bg-red-950/40 text-red-300 border border-red-800/60",
   };
 
   // ================= FETCH ORDERS =================
@@ -82,19 +82,19 @@ export default function Antrian() {
   // ================= RENDER =================
   return (
     <ProtectedRoute allowedRole="admin">
-      <div className="min-h-screen flex flex-col md:flex-row bg-[#09090b] text-zinc-50 font-poppins selection:bg-blue-500/30">
+      <div className="min-h-screen flex flex-col md:flex-row bg-zinc-950 text-zinc-100 font-poppins selection:bg-zinc-800">
         <Sidebar type="admin" />
 
       {/* MAIN */}
       <main className="flex-1 p-4 md:p-8 lg:p-12 pb-24 md:pb-12 overflow-y-auto w-full">
         <div className="mb-8 md:mb-12 max-w-6xl mx-auto pt-4 md:pt-0">
-          <div className="inline-block px-3 py-1 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-full mb-4">
-            <span className="text-xs font-bold tracking-wider uppercase flex items-center gap-2">
-              <FeatherIcon icon="shield" className="w-3 h-3" />
+          <div className="inline-block px-3 py-1 bg-zinc-900 border border-zinc-800 text-zinc-300 rounded-md mb-4">
+            <span className="text-xs font-semibold tracking-wider uppercase flex items-center gap-2">
+              <FeatherIcon icon="shield" className="w-3.5 h-3.5 text-zinc-400" />
               Admin Dashboard
             </span>
           </div>
-          <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-zinc-400 mb-2">
+          <h1 className="text-3xl lg:text-4xl font-bold tracking-tight text-zinc-100 mb-2">
             Pesanan Aktif
           </h1>
           <p className="text-sm text-zinc-400 max-w-md">
@@ -105,25 +105,25 @@ export default function Antrian() {
         <div className="max-w-6xl mx-auto">
           {isLoading && (
             <div className="flex items-center gap-3 text-zinc-400 mb-8">
-              <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-              <p>Memuat data pesanan...</p>
+              <div className="w-4 h-4 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-xs">Memuat data pesanan...</p>
             </div>
           )}
           
           {error && (
-            <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl mb-8 flex items-center gap-3">
-              <FeatherIcon icon="alert-circle" className="w-5 h-5" />
+            <div className="bg-red-950/40 border border-red-800/60 text-red-300 px-4 py-3 rounded-lg mb-8 flex items-center gap-3 text-xs">
+              <FeatherIcon icon="alert-circle" className="w-4 h-4" />
               <p>{error}</p>
             </div>
           )}
 
           {!isLoading && orders.length === 0 && !error && (
-            <div className="text-center py-24 px-4 bg-white/[0.02] border border-white/5 rounded-3xl border-dashed">
-              <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6">
-                <FeatherIcon icon="inbox" className="w-8 h-8 text-zinc-500" />
+            <div className="text-center py-20 px-4 bg-zinc-900 border border-zinc-800 rounded-xl border-dashed">
+              <div className="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center mx-auto mb-4 border border-zinc-700">
+                <FeatherIcon icon="inbox" className="w-6 h-6 text-zinc-400" />
               </div>
-              <h2 className="text-xl font-bold text-zinc-300 mb-2">Belum ada pesanan aktif</h2>
-              <p className="text-zinc-500 text-sm">Pesanan baru akan muncul di sini.</p>
+              <h2 className="text-base font-semibold text-zinc-200 mb-1">Belum ada pesanan aktif</h2>
+              <p className="text-zinc-500 text-xs">Pesanan baru akan muncul di sini.</p>
             </div>
           )}
 
@@ -136,48 +136,39 @@ export default function Antrian() {
               return (
                 <div
                   key={order.id}
-                  className="bg-white/[0.02] rounded-3xl border border-white/5 p-6 hover:-translate-y-1.5 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.3)] hover:border-white/10 transition-all duration-500 group flex flex-col relative overflow-hidden"
+                  className="bg-zinc-900 rounded-xl border border-zinc-800 p-5 hover:border-zinc-700 transition-colors flex flex-col relative overflow-hidden"
                 >
-                  {/* Status Indicator Bar */}
-                  <div 
-                    className={`absolute top-0 left-0 w-full h-1 ${
-                      order.statusPesanan === "SELESAI" ? "bg-green-500" :
-                      order.statusPesanan === "DIPROSES" ? "bg-indigo-500" :
-                      order.statusPesanan === "ANTRI" ? "bg-yellow-500" : "bg-red-500"
-                    }`}
-                  ></div>
-
                   {/* Header */}
-                  <div className="flex justify-between items-start mb-6">
+                  <div className="flex justify-between items-start mb-4">
                     <div>
-                      <h2 className="font-bold text-lg text-zinc-100 flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-sm">
+                      <h2 className="font-semibold text-base text-zinc-100 flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-200 flex items-center justify-center text-xs font-bold">
                           {order.namaUser?.charAt(0).toUpperCase() || "U"}
                         </div>
                         {order.namaUser}
                       </h2>
-                      <p className="text-xs text-zinc-500 mt-2 flex items-center gap-1.5 font-mono">
+                      <p className="text-xs text-zinc-500 mt-1 flex items-center gap-1.5 font-mono">
                         <FeatherIcon icon="hash" className="w-3 h-3" />
                         {order.id.slice(0, 8)} • {new Date(order.createdAt).toLocaleTimeString("id-ID", {hour: '2-digit', minute:'2-digit'})}
                       </p>
                     </div>
                     <span
-                      className={`px-3 py-1 text-[10px] rounded-full font-bold uppercase tracking-wider ${statusColor[order.statusPesanan] || statusColor["ANTRI"]}`}
+                      className={`px-2.5 py-0.5 text-[10px] rounded font-semibold uppercase tracking-wider ${statusColor[order.statusPesanan] || statusColor["ANTRI"]}`}
                     >
                       {order.statusPesanan}
                     </span>
                   </div>
 
                   {/* Items */}
-                  <div className="space-y-4 border-t border-white/5 pt-5 flex-1">
+                  <div className="space-y-3 border-t border-zinc-800 pt-4 flex-1">
                     {order.items.map((item) => {
                       return (
                         <div
                           key={item.produkId}
-                          className="flex justify-between items-center text-sm"
+                          className="flex justify-between items-center text-xs"
                         >
-                          <div className="flex items-center gap-4 flex-1 min-w-0 pr-4">
-                            <div className="w-12 h-12 bg-zinc-900 relative rounded-xl overflow-hidden border border-white/5 flex-shrink-0">
+                          <div className="flex items-center gap-3 flex-1 min-w-0 pr-3">
+                            <div className="w-10 h-10 bg-zinc-950 relative rounded-lg overflow-hidden border border-zinc-800 flex-shrink-0">
                               {item.image ? (
                                 <Image
                                   src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${item?.image}`}
@@ -187,18 +178,18 @@ export default function Antrian() {
                                 />
                               ) : (
                                 <div className="flex h-full items-center justify-center">
-                                  <FeatherIcon icon="image" className="w-4 h-4 text-zinc-600" />
+                                  <FeatherIcon icon="image" className="w-3.5 h-3.5 text-zinc-600" />
                                 </div>
                               )}
                             </div>
                             <div className="truncate">
-                              <p className="font-semibold text-zinc-200 truncate">{item.nama}</p>
-                              <p className="text-xs text-zinc-500 mt-0.5">
+                              <p className="font-medium text-zinc-200 truncate">{item.nama}</p>
+                              <p className="text-[11px] text-zinc-500 mt-0.5 font-mono">
                                 {item.quantity} x Rp {item.harga.toLocaleString("id-ID")}
                               </p>
                             </div>
                           </div>
-                          <p className="font-bold text-zinc-300">
+                          <p className="font-semibold text-zinc-300 font-mono">
                             Rp {(item.harga * item.quantity).toLocaleString("id-ID")}
                           </p>
                         </div>
@@ -207,12 +198,12 @@ export default function Antrian() {
                   </div>
 
                   {/* Footer */}
-                  <div className="border-t border-white/5 mt-5 pt-5 flex justify-between items-center bg-white/[0.01] -mx-6 -mb-6 px-6 pb-6 rounded-b-3xl">
+                  <div className="border-t border-zinc-800 mt-4 pt-4 flex justify-between items-center bg-zinc-850 -mx-5 -mb-5 px-5 py-3.5 rounded-b-xl">
                     <div>
-                      <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold mb-1">
+                      <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold mb-0.5">
                         Total ({order.items.reduce((acc, item) => acc + item.quantity, 0)} Item)
                       </p>
-                      <p className="font-bold text-xl text-blue-400">
+                      <p className="font-bold text-base text-zinc-100 font-mono">
                         Rp {Number(order.totalPrice).toLocaleString("id-ID")}
                       </p>
                     </div>
@@ -223,26 +214,26 @@ export default function Antrian() {
                         <button
                           onClick={() => handleCancel(order.id)}
                           disabled={actionLoading === order.id}
-                          className="w-10 h-10 flex items-center justify-center rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 transition-all shadow-sm"
+                          className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-800/60 transition-colors"
                           title="Batalkan Pesanan"
                         >
                           {actionLoading === order.id ? (
-                            <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+                            <div className="w-3.5 h-3.5 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
                           ) : (
-                            <FeatherIcon icon="x" className="w-5 h-5" />
+                            <FeatherIcon icon="x" className="w-4 h-4" />
                           )}
                         </button>
                         <button
                           onClick={() => handleDone(order.id)}
                           disabled={actionLoading === order.id}
-                          className="px-4 h-10 flex items-center justify-center gap-2 rounded-xl font-bold bg-blue-500 hover:bg-blue-400 text-zinc-950 transition-all shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:shadow-[0_0_20px_rgba(59,130,246,0.5)] transform hover:-translate-y-0.5"
+                          className="px-3 h-8 flex items-center justify-center gap-1.5 rounded-lg text-xs font-semibold bg-zinc-100 hover:bg-zinc-200 text-zinc-900 transition-all shadow-sm active:scale-[0.98]"
                         >
                           {actionLoading === order.id ? (
-                            <div className="w-4 h-4 border-2 border-zinc-900 border-t-transparent rounded-full animate-spin"></div>
+                            <div className="w-3.5 h-3.5 border-2 border-zinc-900 border-t-transparent rounded-full animate-spin"></div>
                           ) : (
                             <>
                               Selesai
-                              <FeatherIcon icon="check" className="w-4 h-4" />
+                              <FeatherIcon icon="check" className="w-3.5 h-3.5" />
                             </>
                           )}
                         </button>

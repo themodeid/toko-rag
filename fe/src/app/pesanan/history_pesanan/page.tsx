@@ -29,11 +29,10 @@ export default function HistoryPesanan() {
   const [pesanan, setPesanan] = useState<Order[]>([]);
 
   const statusColor: Record<string, string> = {
-    ANTRI: "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20",
-    DIPROSES: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
-    SELESAI:
-      "bg-green-500/10 text-green-400 border border-green-500/20 shadow-[0_0_10px_rgba(34,197,94,0.2)]",
-    DIBATALKAN: "bg-red-500/10 text-red-400 border border-red-500/20",
+    ANTRI: "bg-amber-950/40 text-amber-300 border border-amber-800/60",
+    DIPROSES: "bg-blue-950/40 text-blue-300 border border-blue-800/60",
+    SELESAI: "bg-emerald-950/40 text-emerald-300 border border-emerald-800/60",
+    DIBATALKAN: "bg-red-950/40 text-red-300 border border-red-800/60",
   };
 
   async function fetchHistory() {
@@ -95,19 +94,19 @@ export default function HistoryPesanan() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen flex flex-col md:flex-row bg-[#09090b] text-zinc-50 font-poppins selection:bg-green-500/30">
+      <div className="min-h-screen flex flex-col md:flex-row bg-zinc-950 text-zinc-100 font-poppins selection:bg-zinc-800">
         <Sidebar />
 
       {/* ================= MAIN CONTENT ================= */}
       <main className="flex-1 p-4 md:p-8 lg:p-12 pb-24 md:pb-12 overflow-y-auto w-full">
         {/* Header */}
         <div className="mb-8 md:mb-12 max-w-5xl mx-auto pt-4 md:pt-0">
-          <div className="inline-block px-3 py-1 bg-white/5 border border-white/10 rounded-full mb-4">
-            <span className="text-xs font-medium text-green-400 tracking-wider uppercase">
+          <div className="inline-block px-3 py-1 bg-zinc-900 border border-zinc-800 rounded-md mb-4">
+            <span className="text-xs font-semibold text-zinc-300 tracking-wider uppercase">
               Pesanan saya
             </span>
           </div>
-          <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-zinc-400 mb-2">
+          <h1 className="text-3xl lg:text-4xl font-bold tracking-tight text-zinc-100 mb-2">
             Daftar Pesanan Saya
           </h1>
           <p className="text-sm text-zinc-400 max-w-md">
@@ -118,7 +117,7 @@ export default function HistoryPesanan() {
 
         {/* Active Orders Section */}
         {pesanan.length > 0 && (
-          <div className="mt-10 pt-10 border-t border-white/5">
+          <div className="mt-8 pt-8 border-t border-zinc-800 max-w-5xl mx-auto">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-bold flex items-center gap-2 text-zinc-100">
                 <FeatherIcon icon="clock" className="w-5 h-5 text-zinc-400" />
@@ -140,29 +139,26 @@ export default function HistoryPesanan() {
                 return (
                   <div
                     key={order.id}
-                    className="relative overflow-hidden bg-white/[0.03] p-5 rounded-2xl border border-white/10 hover:bg-white/[0.05] transition-colors"
+                    className="relative overflow-hidden bg-zinc-900 p-5 rounded-xl border border-zinc-800 transition-colors"
                   >
-                    {/* Left Indicator */}
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-yellow-500" />
-
                     {/* Header */}
-                    <div className="flex justify-between items-start mb-4 pl-2">
+                    <div className="flex justify-between items-start mb-4">
                       <div>
-                        <p className="flex items-center gap-2 font-mono font-bold text-lg text-zinc-100">
+                        <p className="flex items-center gap-2 font-mono font-bold text-base text-zinc-100">
                           <FeatherIcon
                             icon="hash"
-                            className="w-4 h-4 text-zinc-500"
+                            className="w-4 h-4 text-zinc-400"
                           />
                           {queueNumber}
                         </p>
                       </div>
 
                       <div className="text-right">
-                        <span className="inline-block px-2.5 py-1 bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 rounded-full text-[10px] font-bold tracking-wider mb-1">
+                        <span className={`inline-block px-2.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider mb-1 ${statusColor[order.statusPesanan] || statusColor["ANTRI"]}`}>
                           {order.statusPesanan || "ANTRI"}
                         </span>
 
-                        <p className="text-[10px] text-zinc-500 font-medium">
+                        <p className="text-[10px] text-zinc-500 font-mono">
                           {new Date(order.createdAt).toLocaleTimeString(
                             "id-ID",
                             {
@@ -175,14 +171,14 @@ export default function HistoryPesanan() {
                     </div>
 
                     {/* Items */}
-                    <div className="space-y-2 mb-4 pl-2">
+                    <div className="space-y-2 mb-4">
                       {order.items?.map((item, index) => (
                         <div
                           key={index}
-                          className="flex justify-between items-center text-sm gap-3"
+                          className="flex justify-between items-center text-xs gap-3"
                         >
                           {/* Image */}
-                          <div className="relative w-10 h-10 rounded-md overflow-hidden bg-zinc-800 flex-shrink-0">
+                          <div className="relative w-9 h-9 rounded-lg overflow-hidden bg-zinc-950 border border-zinc-800 flex-shrink-0">
                             {item.image ? (
                               <Image
                                 src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${item.image}`}
@@ -194,22 +190,22 @@ export default function HistoryPesanan() {
                               <div className="flex h-full items-center justify-center">
                                 <FeatherIcon
                                   icon="image"
-                                  className="w-4 h-4 text-zinc-600"
+                                  className="w-3.5 h-3.5 text-zinc-600"
                                 />
                               </div>
                             )}
                           </div>
 
                           {/* Name */}
-                          <p className="flex-1 text-zinc-300 truncate font-medium">
-                            <span className="text-zinc-500 mr-2 text-xs">
+                          <p className="flex-1 text-zinc-200 truncate font-medium">
+                            <span className="text-zinc-500 mr-2 text-xs font-mono">
                               {item.quantity}x
                             </span>
                             {item.nama}
                           </p>
 
                           {/* Price */}
-                          <p className="text-zinc-300 font-semibold text-xs whitespace-nowrap">
+                          <p className="text-zinc-300 font-semibold text-xs whitespace-nowrap font-mono">
                             Rp{" "}
                             {(item.harga * item.quantity).toLocaleString(
                               "id-ID",
@@ -220,12 +216,12 @@ export default function HistoryPesanan() {
                     </div>
 
                     {/* Footer */}
-                    <div className="pt-4 border-t border-white/5 flex justify-between items-center pl-2">
+                    <div className="pt-3 border-t border-zinc-800 flex justify-between items-center">
                       <div>
-                        <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-0.5">
+                        <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mb-0.5">
                           Total Bayar
                         </p>
-                        <p className="font-bold text-green-400 text-sm">
+                        <p className="font-bold text-zinc-100 text-sm font-mono">
                           Rp{" "}
                           {Number(order.totalPrice ?? 0).toLocaleString(
                             "id-ID",
@@ -236,9 +232,7 @@ export default function HistoryPesanan() {
                       {order.statusPesanan === "ANTRI" && (
                         <button
                           onClick={() => handleCancel(order.id)}
-                          className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-300
-                       bg-red-500/10 text-red-400 border border-red-500/20
-                       hover:bg-red-500 hover:text-white"
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors bg-red-950/40 text-red-300 border border-red-800/60 hover:bg-red-900/60"
                         >
                           Batalkan
                         </button>
@@ -252,13 +246,13 @@ export default function HistoryPesanan() {
         )}
 
         {/* daftar pesanan */}
-        <div className="mb-8 md:mb-12 max-w-5xl mx-auto pt-4 md:pt-0 mt-6">
-          <div className="inline-block px-3 py-1 bg-white/5 border border-white/10 rounded-full mb-4">
-            <span className="text-xs font-medium text-green-400 tracking-wider uppercase">
+        <div className="mb-8 md:mb-12 max-w-5xl mx-auto pt-4 md:pt-0 mt-8">
+          <div className="inline-block px-3 py-1 bg-zinc-900 border border-zinc-800 rounded-md mb-4">
+            <span className="text-xs font-semibold text-zinc-300 tracking-wider uppercase">
               Histori
             </span>
           </div>
-          <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-zinc-400 mb-2">
+          <h1 className="text-3xl lg:text-4xl font-bold tracking-tight text-zinc-100 mb-2">
             Riwayat Pesanan
           </h1>
           <p className="text-sm text-zinc-400 max-w-md">
@@ -270,33 +264,33 @@ export default function HistoryPesanan() {
         <div className="max-w-5xl mx-auto">
           {loading && (
             <div className="flex items-center gap-3 text-zinc-400 mb-8">
-              <div className="w-5 h-5 border-2 border-green-500 border-t-transparent rounded-full animate-spin"></div>
-              <p>Memuat riwayat...</p>
+              <div className="w-4 h-4 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-xs">Memuat riwayat...</p>
             </div>
           )}
 
           {error && (
-            <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl mb-8 flex items-center gap-3">
-              <FeatherIcon icon="alert-circle" className="w-5 h-5" />
+            <div className="bg-red-950/40 border border-red-800/60 text-red-300 px-4 py-3 rounded-lg mb-8 flex items-center gap-3 text-xs">
+              <FeatherIcon icon="alert-circle" className="w-4 h-4" />
               <p>{error}</p>
             </div>
           )}
 
           {!loading && history.length === 0 && !error && (
-            <div className="text-center py-24 px-4 bg-white/[0.02] border border-white/5 rounded-3xl border-dashed">
-              <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6">
-                <FeatherIcon icon="inbox" className="w-8 h-8 text-zinc-500" />
+            <div className="text-center py-20 px-4 bg-zinc-900 border border-zinc-800 rounded-xl border-dashed">
+              <div className="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center mx-auto mb-4 border border-zinc-700">
+                <FeatherIcon icon="inbox" className="w-6 h-6 text-zinc-500" />
               </div>
-              <h2 className="text-xl font-bold text-zinc-300 mb-2">
+              <h2 className="text-base font-semibold text-zinc-200 mb-1">
                 Belum ada riwayat pesanan
               </h2>
-              <p className="text-zinc-500 text-sm max-w-xs mx-auto mb-6">
+              <p className="text-zinc-400 text-xs max-w-xs mx-auto mb-6">
                 Kamu belum pernah membuat pesanan di kafe kami. Yuk, pesan menu
                 favoritmu sekarang!
               </p>
               <button
                 onClick={() => router.push("/")}
-                className="bg-green-500 hover:bg-green-400 text-zinc-950 font-bold px-6 py-3 rounded-xl transition-all duration-300 shadow-[0_0_15px_rgba(34,197,94,0.3)] hover:shadow-[0_0_25px_rgba(34,197,94,0.5)] transform hover:-translate-y-0.5"
+                className="bg-zinc-100 hover:bg-zinc-200 text-zinc-900 font-semibold px-5 py-2.5 rounded-lg text-xs transition-all shadow-sm active:scale-[0.98]"
               >
                 Kembali ke Menu
               </button>
@@ -308,28 +302,15 @@ export default function HistoryPesanan() {
             {history.map((order) => (
               <div
                 key={order.id}
-                className="bg-white/[0.02] rounded-3xl border border-white/5 p-6 hover:-translate-y-1.5 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.3)] hover:border-white/10 transition-all duration-500 group flex flex-col relative overflow-hidden"
+                className="bg-zinc-900 rounded-xl border border-zinc-800 p-5 hover:border-zinc-700 transition-colors flex flex-col relative overflow-hidden"
               >
-                {/* Status Indicator Bar */}
-                <div
-                  className={`absolute top-0 left-0 w-full h-1 ${
-                    order.statusPesanan === "SELESAI"
-                      ? "bg-green-500"
-                      : order.statusPesanan === "DIPROSES"
-                        ? "bg-blue-500"
-                        : order.statusPesanan === "ANTRI"
-                          ? "bg-yellow-500"
-                          : "bg-red-500"
-                  }`}
-                ></div>
-
                 {/* Header */}
-                <div className="flex justify-between items-start mb-6">
+                <div className="flex justify-between items-start mb-4">
                   <div>
-                    <p className="font-mono font-bold text-lg text-zinc-100 flex items-center gap-2">
+                    <p className="font-mono font-bold text-base text-zinc-100 flex items-center gap-2">
                       <FeatherIcon
                         icon="hash"
-                        className="w-4 h-4 text-zinc-500"
+                        className="w-4 h-4 text-zinc-400"
                       />
 
                       {(order.statusPesanan === "ANTRI" ||
@@ -338,28 +319,28 @@ export default function HistoryPesanan() {
                         ? `Antrian Ke = ${order.items[0].queue}`
                         : "—"}
                     </p>
-                    <p className="text-xs text-zinc-500 mt-1 flex items-center gap-1.5">
+                    <p className="text-xs text-zinc-500 mt-1 flex items-center gap-1.5 font-mono">
                       <FeatherIcon icon="calendar" className="w-3 h-3" />
                       {new Date(order.createdAt).toLocaleString("id-ID")}
                     </p>
                   </div>
 
                   <span
-                    className={`px-3 py-1 text-[10px] rounded-full font-bold uppercase tracking-wider ${statusColor[order.statusPesanan] || statusColor["ANTRI"]}`}
+                    className={`px-2.5 py-0.5 text-[10px] rounded font-semibold uppercase tracking-wider ${statusColor[order.statusPesanan] || statusColor["ANTRI"]}`}
                   >
                     {order.statusPesanan || "ANTRI"}
                   </span>
                 </div>
 
                 {/* Items */}
-                <div className="space-y-4 border-t border-white/5 pt-5 flex-1">
+                <div className="space-y-3 border-t border-zinc-800 pt-4 flex-1">
                   {order.items.map((item) => (
                     <div
                       key={`${order.id}-${item.produkId}`}
-                      className="flex justify-between items-center text-sm"
+                      className="flex justify-between items-center text-xs"
                     >
-                      <div className="flex items-center gap-4 flex-1 min-w-0 pr-4">
-                        <div className="w-12 h-12 bg-zinc-900 relative rounded-xl overflow-hidden border border-white/5 flex-shrink-0 group-hover:border-white/10 transition-colors">
+                      <div className="flex items-center gap-3 flex-1 min-w-0 pr-3">
+                        <div className="w-10 h-10 bg-zinc-950 relative rounded-lg overflow-hidden border border-zinc-800 flex-shrink-0">
                           {item.image ? (
                             <Image
                               src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${item.image}`}
@@ -371,25 +352,25 @@ export default function HistoryPesanan() {
                             <div className="flex h-full items-center justify-center">
                               <FeatherIcon
                                 icon="image"
-                                className="w-4 h-4 text-zinc-600"
+                                className="w-3.5 h-3.5 text-zinc-600"
                               />
                             </div>
                           )}
                         </div>
 
                         <div className="truncate">
-                          <p className="font-semibold text-zinc-200 truncate">
+                          <p className="font-medium text-zinc-200 truncate">
                             {item.nama}
                           </p>
 
-                          <p className="text-xs text-zinc-500 mt-0.5">
+                          <p className="text-[11px] text-zinc-500 mt-0.5 font-mono">
                             {item.quantity} x Rp{" "}
                             {Number(item.harga).toLocaleString("id-ID")}
                           </p>
                         </div>
                       </div>
 
-                      <p className="font-bold text-zinc-300">
+                      <p className="font-semibold text-zinc-300 font-mono">
                         Rp{" "}
                         {(Number(item.harga) * item.quantity).toLocaleString(
                           "id-ID",
@@ -400,9 +381,9 @@ export default function HistoryPesanan() {
                 </div>
 
                 {/* Footer */}
-                <div className="border-t border-white/5 mt-5 pt-5 flex justify-between items-center bg-white/[0.01] -mx-6 -mb-6 px-6 pb-6 rounded-b-3xl">
+                <div className="border-t border-zinc-800 mt-4 pt-4 flex justify-between items-center bg-zinc-850 -mx-5 -mb-5 px-5 py-3.5 rounded-b-xl">
                   <div>
-                    <p className="text-xs text-zinc-500 uppercase tracking-wider font-medium mb-1">
+                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold mb-0.5">
                       Total (
                       {order.items.reduce(
                         (acc, item) => acc + item.quantity,
@@ -411,7 +392,7 @@ export default function HistoryPesanan() {
                       Item)
                     </p>
                   </div>
-                  <p className="font-bold text-xl text-zinc-100">
+                  <p className="font-bold text-base text-zinc-100 font-mono">
                     Rp {Number(order.totalPrice).toLocaleString("id-ID")}
                   </p>
                 </div>

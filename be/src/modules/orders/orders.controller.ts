@@ -43,7 +43,7 @@ export const checkout = catchAsync(async (req: Request, res: Response) => {
 
 // ===================== CANCEL ORDER =====================
 export const cancelOrder = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const id = req.params.id as string;
   const userId = req.user?.id;
   const userRole = req.user?.role || "user";
 
@@ -68,7 +68,7 @@ export const cancelOrder = catchAsync(async (req: Request, res: Response) => {
 
 // ===================== DONE ORDERS (ADMIN) =====================
 export const doneOrders = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const id = req.params.id as string;
 
   await doneOrderService(id);
 
@@ -103,7 +103,7 @@ export const getMyOrdersActive = catchAsync(
 // ===================== GET ORDER ITEMS =====================
 export const getOrdersItems = catchAsync(
   async (req: Request, res: Response) => {
-    const orderId = req.params.id;
+    const orderId = req.params.id as string;
     const items = await getOrderItemsService(orderId);
 
     return res.status(200).json({

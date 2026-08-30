@@ -27,36 +27,31 @@ export default function Sidebar({ type }: SidebarProps) {
     router.push(isAdminMode ? "/login_admin" : "/login");
   };
 
-  const activeColor = isAdminMode
-    ? "bg-blue-500 text-zinc-950 shadow-[0_0_15px_rgba(59,130,246,0.5)] scale-110"
-    : "bg-green-500 text-zinc-950 shadow-[0_0_15px_rgba(34,197,94,0.5)] scale-110";
-
-  const hoverColor = isAdminMode
-    ? "text-zinc-400 hover:text-blue-400 hover:bg-white/5 hover:scale-105"
-    : "text-zinc-400 hover:text-green-400 hover:bg-white/5 hover:scale-105";
+  const activeColor = "bg-zinc-100 text-zinc-900 font-semibold shadow-sm";
+  const hoverColor = "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60";
 
   const navClass = (path: string) =>
-    `flex items-center justify-center w-12 h-12 rounded-xl cursor-pointer transition-all duration-300 ${
+    `flex items-center justify-center w-10 h-10 rounded-lg cursor-pointer transition-colors ${
       pathname === path ? activeColor : hoverColor
     }`;
 
   if (isAdminMode) {
     return (
-      <aside className="w-full md:w-24 h-20 md:h-screen fixed bottom-0 md:sticky md:top-0 bg-zinc-950/80 md:bg-white/[0.02] backdrop-blur-xl border-t md:border-t-0 md:border-r border-white/5 flex flex-row md:flex-col items-center justify-around md:justify-start py-0 md:py-8 gap-0 md:gap-8 shadow-[0_-4px_24px_rgba(0,0,0,0.5)] md:shadow-[4px_0_24px_rgba(0,0,0,0.2)] z-50">
+      <aside className="w-full md:w-20 h-16 md:h-screen fixed bottom-0 md:sticky md:top-0 bg-zinc-900 border-t md:border-t-0 md:border-r border-zinc-800 flex flex-row md:flex-col items-center justify-around md:justify-start py-0 md:py-6 gap-0 md:gap-6 z-50">
         <div
-          className="hidden md:flex w-12 h-12 bg-gradient-to-br from-blue-400 to-indigo-600 rounded-xl items-center justify-center shadow-lg shadow-blue-500/30 mb-8 cursor-pointer hover:scale-105 transition-transform"
+          className="hidden md:flex w-10 h-10 bg-zinc-800 border border-zinc-700 rounded-lg items-center justify-center mb-4 cursor-pointer hover:bg-zinc-700/80 transition-colors"
           onClick={() => router.push("/pesanan/daftar_pesanan")}
         >
-          <FeatherIcon icon="shield" className="w-6 h-6 text-zinc-950" />
+          <FeatherIcon icon="shield" className="w-5 h-5 text-zinc-200" />
         </div>
 
-        <div className="flex flex-row md:flex-col gap-2 md:gap-6 w-full items-center justify-evenly md:justify-start px-4 md:px-0">
+        <div className="flex flex-row md:flex-col gap-2 md:gap-4 w-full items-center justify-evenly md:justify-start px-4 md:px-0">
           <div
             className={navClass("/pesanan/daftar_pesanan")}
             onClick={() => router.push("/pesanan/daftar_pesanan")}
             title="Pesanan Aktif"
           >
-            <FeatherIcon icon="list" className="w-5 h-5" />
+            <FeatherIcon icon="list" className="w-4 h-4" />
           </div>
 
           <div
@@ -64,7 +59,7 @@ export default function Sidebar({ type }: SidebarProps) {
             onClick={() => router.push("/menu/add_menu")}
             title="Manajemen Menu"
           >
-            <FeatherIcon icon="plus" className="w-5 h-5" />
+            <FeatherIcon icon="plus" className="w-4 h-4" />
           </div>
 
           <div
@@ -72,16 +67,16 @@ export default function Sidebar({ type }: SidebarProps) {
             onClick={() => router.push("/login_admin")}
             title="Admin Login"
           >
-            <FeatherIcon icon="user" className="w-5 h-5" />
+            <FeatherIcon icon="user" className="w-4 h-4" />
           </div>
 
           {isAuthenticated && (
             <div
-              className="flex items-center justify-center w-12 h-12 rounded-xl cursor-pointer text-zinc-400 hover:text-red-400 hover:bg-white/5 hover:scale-105 transition-all duration-300"
+              className="flex items-center justify-center w-10 h-10 rounded-lg cursor-pointer text-zinc-400 hover:text-red-400 hover:bg-zinc-800/60 transition-colors"
               onClick={handleLogout}
               title="Logout"
             >
-              <FeatherIcon icon="log-out" className="w-5 h-5" />
+              <FeatherIcon icon="log-out" className="w-4 h-4" />
             </div>
           )}
         </div>
@@ -90,21 +85,21 @@ export default function Sidebar({ type }: SidebarProps) {
   }
 
   return (
-    <aside className="w-full md:w-24 h-20 md:h-screen fixed bottom-0 md:sticky md:top-0 bg-zinc-950/80 md:bg-white/[0.02] backdrop-blur-xl border-t md:border-t-0 md:border-r border-white/5 flex flex-row md:flex-col items-center justify-around md:justify-start py-0 md:py-8 gap-0 md:gap-8 shadow-[0_-4px_24px_rgba(0,0,0,0.5)] md:shadow-[4px_0_24px_rgba(0,0,0,0.2)] z-50">
+    <aside className="w-full md:w-20 h-16 md:h-screen fixed bottom-0 md:sticky md:top-0 bg-zinc-900 border-t md:border-t-0 md:border-r border-zinc-800 flex flex-row md:flex-col items-center justify-around md:justify-start py-0 md:py-6 gap-0 md:gap-6 z-50">
       <div
-        className="hidden md:flex w-12 h-12 bg-gradient-to-br from-green-400 to-green-600 rounded-xl items-center justify-center shadow-lg shadow-green-500/30 mb-8 cursor-pointer hover:scale-105 transition-transform"
+        className="hidden md:flex w-10 h-10 bg-zinc-800 border border-zinc-700 rounded-lg items-center justify-center mb-4 cursor-pointer hover:bg-zinc-700/80 transition-colors"
         onClick={() => router.push("/")}
       >
-        <FeatherIcon icon="coffee" className="w-6 h-6 text-zinc-950" />
+        <FeatherIcon icon="coffee" className="w-5 h-5 text-zinc-200" />
       </div>
 
-      <div className="flex flex-row md:flex-col gap-2 md:gap-6 w-full items-center justify-evenly md:justify-start px-4 md:px-0">
+      <div className="flex flex-row md:flex-col gap-2 md:gap-4 w-full items-center justify-evenly md:justify-start px-4 md:px-0">
         <div
           className={navClass("/")}
           onClick={() => router.push("/")}
           title="Menu"
         >
-          <FeatherIcon icon="home" className="w-5 h-5" />
+          <FeatherIcon icon="home" className="w-4 h-4" />
         </div>
 
         <div
@@ -112,7 +107,7 @@ export default function Sidebar({ type }: SidebarProps) {
           onClick={() => router.push("/pesanan/history_pesanan")}
           title="Riwayat Pesanan"
         >
-          <FeatherIcon icon="file-text" className="w-5 h-5" />
+          <FeatherIcon icon="file-text" className="w-4 h-4" />
         </div>
 
         <div
@@ -120,16 +115,16 @@ export default function Sidebar({ type }: SidebarProps) {
           onClick={() => router.push("/login")}
           title="Profil / Login"
         >
-          <FeatherIcon icon="user" className="w-5 h-5" />
+          <FeatherIcon icon="user" className="w-4 h-4" />
         </div>
 
         {isAuthenticated && (
           <div
-            className="flex items-center justify-center w-12 h-12 rounded-xl cursor-pointer text-zinc-400 hover:text-red-400 hover:bg-white/5 hover:scale-105 transition-all duration-300"
+            className="flex items-center justify-center w-10 h-10 rounded-lg cursor-pointer text-zinc-400 hover:text-red-400 hover:bg-zinc-800/60 transition-colors"
             onClick={handleLogout}
             title="Logout"
           >
-            <FeatherIcon icon="log-out" className="w-5 h-5" />
+            <FeatherIcon icon="log-out" className="w-4 h-4" />
           </div>
         )}
       </div>

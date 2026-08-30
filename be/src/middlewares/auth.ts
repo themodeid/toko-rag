@@ -5,13 +5,20 @@ import { ENV } from "../config/env";
 import type { JwtPayloadUser } from "../types/express";
 
 export const authGuard = (req: Request, _res: Response, next: NextFunction) => {
-  const authHeader = req.headers.authorization;
+  let token: string | undefined;
 
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    throw new AppError("Unauthorized: Token otentikasi diperlukan", 401);
+  // 1. Cek dari HttpOnly Cookie
+  if (req.cookies && req.cookies.auth_token) {
+    token = req.cookies.auth_token;
+  }
+  // 2. Fallback ke Header Authorization: Bearer <token>
+  else if (req.headers.authorization && req.headers.authorization.startsWith("Bearer ")) {
+    token = req.headers.authorization.split(" ")[1];
   }
 
-  const token = authHeader.split(" ")[1];
+  if (!token) {
+    throw new AppError("Unauthorized: Sesi tidak valid atau token otentikasi diperlukan", 401);
+  }
 
   try {
     const payload = jwt.verify(
@@ -24,6 +31,6 @@ export const authGuard = (req: Request, _res: Response, next: NextFunction) => {
 
     next();
   } catch (error) {
-    throw new AppError("Invalid or expired token", 401);
+    throw new AppError("Sesi telah kedaluwarsa atau token tidak valid", 401);
   }
 };

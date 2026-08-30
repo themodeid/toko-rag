@@ -4,7 +4,7 @@ type AsyncFn = (
   req: Request,
   res: Response,
   next: NextFunction
-) => Promise<void>;
+) => Promise<any>;
 
 export const catchAsync =
   (fn: AsyncFn) =>

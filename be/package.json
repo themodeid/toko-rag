@@ -12,10 +12,17 @@
     "db:make": "ts-node src/database/cli.ts make",
     "db:seed": "ts-node src/database/cli.ts seed"
   },
-  "keywords": ["ecommerce", "pos", "antrian", "redis", "postgresql"],
+  "keywords": [
+    "ecommerce",
+    "pos",
+    "antrian",
+    "redis",
+    "postgresql"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@google/genai": "^2.18.0",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",

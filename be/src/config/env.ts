@@ -3,6 +3,9 @@ import path from "path";
 
 // Memastikan file .env dibaca dengan aman dari root project maupun direktori be
 dotenv.config({ path: path.resolve(process.cwd(), ".env") });
+dotenv.config({ path: path.resolve(process.cwd(), "../.env") });
+dotenv.config({ path: path.resolve(__dirname, "../../.env") });
+dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
 dotenv.config();
 
 function getEnv(name: string, defaultValue?: string): string {
@@ -47,4 +50,7 @@ export const ENV = {
   STARTUP_RETRIES: getEnvInt("STARTUP_RETRIES", 30),
   STARTUP_DELAY_MS: getEnvInt("STARTUP_DELAY_MS", 2000),
   DB_WAIT_ATTEMPTS: getEnvInt("DB_WAIT_ATTEMPTS", 30),
+  // RAG / AI Configuration
+  GEMINI_API_KEY: getEnv("GEMINI_API_KEY", ""),
+  GEMINI_MODEL: getEnv("GEMINI_MODEL", "gemini-2.0-flash"),
 } as const;

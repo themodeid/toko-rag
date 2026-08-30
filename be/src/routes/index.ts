@@ -3,6 +3,7 @@ import authRoutes from "../modules/auth/auth.route";
 import produkRoutes from "../modules/produk/produk.route";
 import ordersRoutes from "../modules/orders/orders.routes";
 import userRoutes from "../modules/users/users.routes";
+import ragRoutes from "../modules/rag/rag.route";
 import { upload } from "../middlewares/upload";
 import { authGuard } from "../middlewares/auth";
 import { AppError } from "../utils/appError";
@@ -27,6 +28,8 @@ router.use("/auth", authRoutes);
 router.use("/produk", produkRoutes);
 router.use("/orders", ordersRoutes);
 router.use("/users", userRoutes);
+router.use("/rag", ragRoutes);
+
 
 // General file upload helper
 router.post("/upload-avatar", authGuard, upload.single("photo"), (req, res) => {

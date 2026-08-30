@@ -3,7 +3,6 @@ import {
   Produk,
   CreateProdukPayload,
   UpdateProdukPayload,
-  ProdukResponse,
 } from "@/features/produk/types";
 
 /* =======================
@@ -18,6 +17,9 @@ export async function createProduk(data: CreateProdukPayload): Promise<Produk> {
     formData.append("harga", String(data.harga));
     formData.append("stock", String(data.stock));
     formData.append("status", String(data.status));
+    if (data.kategori) formData.append("kategori", data.kategori);
+    if (data.deskripsi) formData.append("deskripsi", data.deskripsi);
+    if (data.ingredients) formData.append("ingredients", data.ingredients);
 
     const res = await api.post("/api/produk", formData, {
       headers: {
@@ -34,10 +36,9 @@ export async function createProduk(data: CreateProdukPayload): Promise<Produk> {
 /* =======================
    GET ALL
 ======================= */
-
 export async function getAllProduk(): Promise<{ produk: Produk[] }> {
   try {
-    const res = await api.get("/api/produk");
+    const res = await api.get("/api/produk?limit=100");
     return {
       produk: res.data.produk ?? [],
     };
@@ -85,10 +86,13 @@ export async function updateProduk(
     if (data.image instanceof File) {
       const formData = new FormData();
       formData.append("image", data.image);
-      formData.append("nama", data.nama || "");
-      formData.append("harga", String(data.harga || 0));
-      formData.append("stock", String(data.stock || 0));
-      formData.append("status", String(data.status || false));
+      if (data.nama !== undefined) formData.append("nama", data.nama);
+      if (data.harga !== undefined) formData.append("harga", String(data.harga));
+      if (data.stock !== undefined) formData.append("stock", String(data.stock));
+      if (data.status !== undefined) formData.append("status", String(data.status));
+      if (data.kategori !== undefined) formData.append("kategori", data.kategori);
+      if (data.deskripsi !== undefined) formData.append("deskripsi", data.deskripsi);
+      if (data.ingredients !== undefined) formData.append("ingredients", data.ingredients);
 
       const res = await api.patch(`/api/produk/${id}`, formData, {
         headers: {
