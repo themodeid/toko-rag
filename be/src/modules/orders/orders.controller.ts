@@ -4,6 +4,8 @@ import { catchAsync } from "../../utils/catchAsync";
 import { delCache, delCachePattern, getCache, setCache } from "../../config/redis";
 import {
   checkoutService,
+  handleMidtransWebhookService,
+  simulatePaymentSuccessService,
   cancelOrderService,
   doneOrderService,
   getMyOrdersActiveService,
@@ -33,10 +35,51 @@ export const checkout = catchAsync(async (req: Request, res: Response) => {
 
   return res.status(201).json({
     status: "success",
-    message: "Checkout berhasil",
+    message: "Checkout berhasil dibuat. Silakan selesaikan pembayaran.",
     order_id: result.orderId,
-    no_antrian: result.queueNumber,
+    snap_token: result.snapToken,
+    redirect_url: result.redirectUrl,
     total_price: result.totalPrice,
+    data: result,
+  });
+});
+
+// ===================== MIDTRANS WEBHOOK / NOTIFICATION =====================
+export const midtransWebhook = catchAsync(async (req: Request, res: Response) => {
+  const notification = req.body;
+
+  const result = await handleMidtransWebhookService(notification);
+
+  // Invalidate caches
+  await Promise.all([
+    delCache("orders:active"),
+    delCachePattern("orders:active:*"),
+    delCachePattern("produk:*"),
+  ]);
+
+  return res.status(200).json({
+    status: "success",
+    message: "Notifikasi Midtrans berhasil diproses",
+    data: result,
+  });
+});
+
+// ===================== SIMULATE PAYMENT (SANDBOX TEST) =====================
+export const simulatePayment = catchAsync(async (req: Request, res: Response) => {
+  const id = req.params.id as string;
+
+  const result = await simulatePaymentSuccessService(id);
+
+  // Invalidate caches
+  await Promise.all([
+    delCache("orders:active"),
+    delCachePattern("orders:active:*"),
+    delCachePattern("produk:*"),
+  ]);
+
+  return res.status(200).json({
+    status: "success",
+    message: "Simulasi pembayaran Midtrans berhasil diselesaikan",
     data: result,
   });
 });

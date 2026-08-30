@@ -53,4 +53,8 @@ export const ENV = {
   // RAG / AI Configuration
   GEMINI_API_KEY: getEnv("GEMINI_API_KEY", ""),
   GEMINI_MODEL: getEnv("GEMINI_MODEL", "gemini-2.0-flash"),
+  // Midtrans Payment Gateway
+  MIDTRANS_SERVER_KEY: getEnv("MIDTRANS_SERVER_KEY", "SB-Mid-server-test-key"),
+  MIDTRANS_CLIENT_KEY: getEnv("MIDTRANS_CLIENT_KEY", "SB-Mid-client-test-key"),
+  MIDTRANS_IS_PRODUCTION: getEnvBool("MIDTRANS_IS_PRODUCTION", false),
 } as const;

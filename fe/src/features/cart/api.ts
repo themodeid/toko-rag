@@ -4,18 +4,24 @@ import {
   Order,
   GetOrdersResponse,
   GetActiveOrdersWithItemsResponse,
+  CheckoutResponse,
 } from "@/features/cart/types";
 import { imageConfigDefault } from "next/dist/shared/lib/image-config";
 
 // ================= CREATE ORDER =================
-export async function createOrder(items: CartItem[]) {
+export async function createOrder(items: CartItem[]): Promise<CheckoutResponse> {
   const payload = {
     items: items.map((item) => ({
       produk_id: item.produkId,
       quantity: item.quantity,
     })),
   };
-  const res = await api.post("/api/orders", payload);
+  const res = await api.post<CheckoutResponse>("/api/orders", payload);
+  return res.data;
+}
+
+export async function simulatePayment(orderId: string) {
+  const res = await api.post(`/api/orders/${orderId}/simulate-payment`);
   return res.data;
 }
 

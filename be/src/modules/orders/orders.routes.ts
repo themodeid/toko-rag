@@ -9,10 +9,17 @@ const router = Router();
 
 /**
  * ================================
+ * MIDTRANS WEBHOOK (PUBLIC)
+ * ================================
+ */
+router.post("/midtrans-webhook", controller.midtransWebhook);
+
+/**
+ * ================================
  * CREATE
  * ================================
  */
-// Membuat pesanan baru
+// Membuat pesanan baru (Mendapatkan Snap Token)
 router.post("/", authGuard, validateBody(CheckoutSchema), controller.checkout);
 
 /**
@@ -20,7 +27,6 @@ router.post("/", authGuard, validateBody(CheckoutSchema), controller.checkout);
  * READ
  * ================================
  */
-
 // Ambil semua order aktif beserta item
 router.get("/activeItems", authGuard, controller.getOrdersActiveWithItems);
 
@@ -35,9 +41,12 @@ router.get("/:id/items", authGuard, controller.getOrdersItems);
 
 /**
  * ================================
- * UPDATE
+ * UPDATE & ACTIONS
  * ================================
  */
+// Simulasi pembayaran sukses (Sandbox testing)
+router.post("/:id/simulate-payment", authGuard, controller.simulatePayment);
+
 // Tandai order selesai
 router.patch("/:id/selesai", authGuard, controller.doneOrders);
 

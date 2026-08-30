@@ -375,10 +375,12 @@ export default function AddMenuPage() {
                     </h3>
 
                     {item.ingredients && (
-                      <p className="text-[11px] text-zinc-400 line-clamp-2 my-1 bg-zinc-950 p-2 rounded-lg border border-zinc-800">
-                        <span className="text-zinc-500 font-semibold">Bahan: </span>
-                        {item.ingredients}
-                      </p>
+                      <div className="text-[11px] text-zinc-300 my-2 bg-zinc-950 p-2.5 rounded-lg border border-zinc-800 break-words leading-relaxed">
+                        <span className="text-zinc-500 font-semibold block text-[10px] uppercase tracking-wider mb-0.5">
+                          Komposisi / Bahan:
+                        </span>
+                        <span className="text-zinc-300">{item.ingredients}</span>
+                      </div>
                     )}
 
                     <div className="flex items-end justify-between mt-2 mb-3">

@@ -16,6 +16,7 @@ import {
   getAllMyOrders,
   getMyOrdersActiveWithItems,
   cancelOrder,
+  simulatePayment,
 } from "@/features/cart/api";
 
 export default function HistoryPesanan() {
@@ -30,8 +31,9 @@ export default function HistoryPesanan() {
   const [pesanan, setPesanan] = useState<Order[]>([]);
 
   const statusColor: Record<string, string> = {
-    ANTRI: "bg-amber-950/40 text-amber-300 border border-amber-800/60",
-    DIPROSES: "bg-blue-950/40 text-blue-300 border border-blue-800/60",
+    MENUNGGU_PEMBAYARAN: "bg-amber-950/50 text-amber-300 border border-amber-800/60",
+    ANTRI: "bg-blue-950/40 text-blue-300 border border-blue-800/60",
+    DIPROSES: "bg-purple-950/40 text-purple-300 border border-purple-800/60",
     SELESAI: "bg-emerald-950/40 text-emerald-300 border border-emerald-800/60",
     DIBATALKAN: "bg-red-950/40 text-red-300 border border-red-800/60",
   };
@@ -94,7 +96,7 @@ export default function HistoryPesanan() {
   }, []);
 
   return (
-    <ProtectedRoute>
+    <ProtectedRoute allowedRole="user">
       <div className="min-h-screen flex flex-col md:flex-row bg-zinc-950 text-zinc-100 font-poppins selection:bg-zinc-800">
         <Sidebar />
 
@@ -230,14 +232,34 @@ export default function HistoryPesanan() {
                         </p>
                       </div>
 
-                      {order.statusPesanan === "ANTRI" && (
-                        <button
-                          onClick={() => handleCancel(order.id)}
-                          className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors bg-red-950/40 text-red-300 border border-red-800/60 hover:bg-red-900/60"
-                        >
-                          Batalkan
-                        </button>
-                      )}
+                      <div className="flex gap-2 items-center">
+                        {order.statusPesanan === "MENUNGGU_PEMBAYARAN" && (
+                          <button
+                            onClick={async () => {
+                              try {
+                                await simulatePayment(order.id);
+                                await fetchPesanan();
+                                await fetchHistory();
+                              } catch (e) {
+                                alert("Gagal memproses pembayaran");
+                              }
+                            }}
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-100 hover:bg-emerald-200 text-emerald-950 transition-all shadow-sm flex items-center gap-1.5"
+                          >
+                            <FeatherIcon icon="credit-card" className="w-3.5 h-3.5" />
+                            <span>Konfirmasi Bayar</span>
+                          </button>
+                        )}
+
+                        {(order.statusPesanan === "ANTRI" || order.statusPesanan === "MENUNGGU_PEMBAYARAN") && (
+                          <button
+                            onClick={() => handleCancel(order.id)}
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors bg-red-950/40 text-red-300 border border-red-800/60 hover:bg-red-900/60"
+                          >
+                            Batalkan
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );

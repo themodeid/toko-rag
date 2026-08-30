@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import AiChatWidget from "@/components/AiChatWidget";
@@ -15,6 +16,19 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="id">
+      <head>
+        <Script
+          src={
+            process.env.NEXT_PUBLIC_MIDTRANS_SNAP_URL ||
+            "https://app.sandbox.midtrans.com/snap/snap.js"
+          }
+          data-client-key={
+            process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY ||
+            "SB-Mid-client-demo-key-123"
+          }
+          strategy="lazyOnload"
+        />
+      </head>
       <body className="antialiased">
         <AuthProvider>
           {children}

@@ -78,3 +78,19 @@ export interface GetAllMyOrdersResponse {
   message: string;
   data: OrderWithItemsFromApi[];
 }
+
+export interface CheckoutResponse {
+  status: string;
+  message: string;
+  order_id: string;
+  snap_token?: string;
+  redirect_url?: string;
+  total_price: number;
+  data: {
+    orderId: string;
+    snapToken?: string;
+    redirectUrl?: string;
+    totalPrice: number;
+    statusPesanan: string;
+  };
+}

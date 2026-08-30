@@ -1,5 +1,10 @@
 import { pool } from "../../config/database";
 import { AppError } from "../../utils/appError";
+import {
+  createSnapTransaction,
+  verifyMidtransSignature,
+  MidtransNotificationPayload,
+} from "../../config/midtrans";
 
 export interface CheckoutItemInput {
   produk_id: string;
@@ -30,7 +35,11 @@ export const checkoutService = async (
   try {
     await client.query("BEGIN");
 
-    // 1. Ambil produk dan lock untuk update stok
+    // 1. Ambil data user pembeli
+    const userRes = await client.query("SELECT username FROM auth WHERE id = $1", [userId]);
+    const username = userRes.rows[0]?.username || "Pelanggan";
+
+    // 2. Ambil produk dan lock untuk update stok
     const produkResult = await client.query(
       `
       SELECT id, nama, harga, stock, status
@@ -67,6 +76,7 @@ export const checkoutService = async (
 
       return {
         produk_id: produk.id,
+        nama: produk.nama,
         harga: produk.harga,
         quantity: item.quantity,
         subtotal: produk.harga * item.quantity,
@@ -75,49 +85,19 @@ export const checkoutService = async (
 
     const totalPrice = orderItems.reduce((acc, item) => acc + item.subtotal, 0);
 
-    // 2. Hitung tanggal & nomor antrian harian
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    // 3. Insert order
+    // 3. Insert order dengan status awal MENUNGGU_PEMBAYARAN
     const orderResult = await client.query(
       `
-      INSERT INTO orders (auth_id, total_price, status_pesanan)
-      VALUES ($1, $2, 'ANTRI')
-      RETURNING id, auth_id, total_price, status_pesanan, created_at
+      INSERT INTO orders (auth_id, total_price, status_pesanan, status_pembayaran)
+      VALUES ($1, $2, 'MENUNGGU_PEMBAYARAN', 'PENDING')
+      RETURNING id, auth_id, total_price, status_pesanan, status_pembayaran, created_at
       `,
       [userId, totalPrice]
     );
 
     const orderId = orderResult.rows[0].id;
 
-    // 4. Hitung antrian hari ini dengan row lock
-    const queueResult = await client.query(
-      `
-      SELECT queue_number
-      FROM daily_queue
-      WHERE queue_date = $1
-      ORDER BY queue_number DESC
-      LIMIT 1
-      FOR UPDATE
-      `,
-      [today]
-    );
-
-    let queueNumber = 1;
-    if (queueResult.rows.length > 0) {
-      queueNumber = queueResult.rows[0].queue_number + 1;
-    }
-
-    await client.query(
-      `
-      INSERT INTO daily_queue (order_id, queue_number, queue_date)
-      VALUES ($1, $2, $3)
-      `,
-      [orderId, queueNumber, today]
-    );
-
-    // 5. Insert order items
+    // 4. Insert order items
     const itemsQuery = `
       INSERT INTO order_items (order_id, produk_id, harga_barang, quantity, subtotal)
       VALUES ${orderItems
@@ -138,7 +118,7 @@ export const checkoutService = async (
 
     await client.query(itemsQuery, values);
 
-    // 6. Update stok produk
+    // 5. Reserve / kurangi stok produk
     for (const item of orderItems) {
       await client.query(
         "UPDATE produk SET stock = stock - $1 WHERE id = $2",
@@ -146,13 +126,39 @@ export const checkoutService = async (
       );
     }
 
+    // 6. Buat transaksi Midtrans Snap Token
+    const snapResponse = await createSnapTransaction({
+      orderId,
+      grossAmount: totalPrice,
+      customerDetails: {
+        first_name: username,
+      },
+      itemDetails: orderItems.map((item) => ({
+        id: item.produk_id,
+        price: item.harga,
+        quantity: item.quantity,
+        name: item.nama.slice(0, 50),
+      })),
+    });
+
+    // 7. Simpan Snap Token ke database
+    await client.query(
+      "UPDATE orders SET snap_token = $1 WHERE id = $2",
+      [snapResponse.token, orderId]
+    );
+
     await client.query("COMMIT");
 
     return {
       orderId,
-      queueNumber,
+      snapToken: snapResponse.token,
+      redirectUrl: snapResponse.redirect_url,
       totalPrice,
-      order: orderResult.rows[0],
+      statusPesanan: "MENUNGGU_PEMBAYARAN",
+      order: {
+        ...orderResult.rows[0],
+        snap_token: snapResponse.token,
+      },
     };
   } catch (error) {
     await client.query("ROLLBACK");
@@ -160,6 +166,164 @@ export const checkoutService = async (
   } finally {
     client.release();
   }
+};
+
+/**
+ * Handle Webhook Notifikasi dari Midtrans (Settlement, Expire, Cancel, Deny)
+ */
+export const handleMidtransWebhookService = async (
+  notification: MidtransNotificationPayload
+) => {
+  const {
+    order_id: orderId,
+    transaction_status: transactionStatus,
+    fraud_status: fraudStatus,
+    payment_type: paymentType,
+    transaction_id: transactionId,
+    status_code: statusCode,
+    gross_amount: grossAmount,
+    signature_key: signatureKey,
+  } = notification;
+
+  if (!orderId) {
+    throw new AppError("Order ID tidak valid dalam webhook", 400);
+  }
+
+  // Verifikasi Signature jika signatureKey disertakan
+  if (signatureKey && statusCode && grossAmount) {
+    const isValid = verifyMidtransSignature(
+      orderId,
+      statusCode,
+      grossAmount,
+      signatureKey
+    );
+    if (!isValid) {
+      console.warn("⚠️ Midtrans Signature Mismatch for Order:", orderId);
+    }
+  }
+
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const orderRes = await client.query(
+      "SELECT * FROM orders WHERE id = $1 FOR UPDATE",
+      [orderId]
+    );
+
+    const order = orderRes.rows[0];
+    if (!order) {
+      console.warn("⚠️ Webhook received for non-existent order:", orderId);
+      await client.query("ROLLBACK");
+      return { success: false, message: "Order not found" };
+    }
+
+    const isPaid =
+      transactionStatus === "settlement" ||
+      (transactionStatus === "capture" && (fraudStatus === "accept" || !fraudStatus));
+
+    const isFailed =
+      transactionStatus === "cancel" ||
+      transactionStatus === "expire" ||
+      transactionStatus === "deny";
+
+    if (isPaid) {
+      // 1. Update status pembayaran jadi PAID dan status pesanan jadi ANTRI
+      await client.query(
+        `UPDATE orders
+         SET status_pembayaran = 'PAID',
+             status_pesanan = 'ANTRI',
+             payment_type = $1,
+             midtrans_transaction_id = $2
+         WHERE id = $3`,
+        [paymentType || "qris", transactionId || null, orderId]
+      );
+
+      // 2. Terbitkan nomor antrian jika belum terdaftar di daily_queue
+      const existingQueue = await client.query(
+        "SELECT id, queue_number FROM daily_queue WHERE order_id = $1",
+        [orderId]
+      );
+
+      if (existingQueue.rowCount === 0) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const queueResult = await client.query(
+          `SELECT queue_number
+           FROM daily_queue
+           WHERE queue_date = $1
+           ORDER BY queue_number DESC
+           LIMIT 1
+           FOR UPDATE`,
+          [today]
+        );
+
+        let queueNumber = 1;
+        if (queueResult.rows.length > 0) {
+          queueNumber = queueResult.rows[0].queue_number + 1;
+        }
+
+        await client.query(
+          `INSERT INTO daily_queue (order_id, queue_number, queue_date)
+           VALUES ($1, $2, $3)`,
+          [orderId, queueNumber, today]
+        );
+        console.log(`✅ Payment SUCCESS for Order ${orderId}. Queue #${queueNumber} issued!`);
+      }
+    } else if (isFailed) {
+      if (order.status_pembayaran !== "EXPIRED" && order.status_pembayaran !== "CANCELLED") {
+        // Kembalikan stok produk jika pembayaran gagal/expired
+        const itemsResult = await client.query(
+          `SELECT produk_id, quantity FROM order_items WHERE order_id = $1`,
+          [orderId]
+        );
+
+        for (const item of itemsResult.rows) {
+          await client.query(
+            `UPDATE produk SET stock = stock + $1 WHERE id = $2`,
+            [item.quantity, item.produk_id]
+          );
+        }
+
+        const failStatus = transactionStatus === "expire" ? "EXPIRED" : "CANCELLED";
+        await client.query(
+          `UPDATE orders
+           SET status_pembayaran = $1,
+               status_pesanan = 'DIBATALKAN',
+               payment_type = $2,
+               midtrans_transaction_id = $3
+           WHERE id = $4`,
+          [failStatus, paymentType || null, transactionId || null, orderId]
+        );
+        console.log(`❌ Payment ${failStatus} for Order ${orderId}. Stock restored.`);
+      }
+    }
+
+    await client.query("COMMIT");
+    return { success: true, orderId, status: isPaid ? "PAID" : isFailed ? "FAILED" : "PENDING" };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+/**
+ * Simulasi Pembayaran Sukses Instan (Untuk Pengujian Sandbox Lokal)
+ */
+export const simulatePaymentSuccessService = async (orderId: string) => {
+  return await handleMidtransWebhookService({
+    order_id: orderId,
+    transaction_status: "settlement",
+    payment_type: "qris",
+    transaction_id: `SIMULATED-${Date.now()}`,
+    status_code: "200",
+    gross_amount: "0",
+    signature_key: "",
+  });
 };
 
 export const cancelOrderService = async (
@@ -197,27 +361,29 @@ export const cancelOrderService = async (
       throw new AppError("Order yang sudah selesai tidak dapat dibatalkan", 400);
     }
 
-    // Batasan user biasa: hanya status ANTRI dan bukan 3 antrian teratas
+    // Batasan user biasa: hanya status ANTRI atau MENUNGGU_PEMBAYARAN
     if (normalizedRole !== "ADMIN") {
-      if (order.status_pesanan !== "ANTRI") {
+      if (order.status_pesanan !== "ANTRI" && order.status_pesanan !== "MENUNGGU_PEMBAYARAN") {
         throw new AppError("Order sedang diproses dan tidak bisa dibatalkan", 400);
       }
 
-      const topThree = await client.query(`
-        SELECT id
-        FROM orders
-        WHERE status_pesanan = 'ANTRI'
-        ORDER BY created_at ASC
-        LIMIT 3
-        FOR UPDATE
-      `);
+      if (order.status_pesanan === "ANTRI") {
+        const topThree = await client.query(`
+          SELECT id
+          FROM orders
+          WHERE status_pesanan = 'ANTRI'
+          ORDER BY created_at ASC
+          LIMIT 3
+          FOR UPDATE
+        `);
 
-      const topThreeIds = topThree.rows.map((row) => row.id);
-      if (topThreeIds.includes(orderId)) {
-        throw new AppError(
-          "Order masuk dalam antrian prioritas yang sedang disiapkan dan tidak bisa dibatalkan",
-          400
-        );
+        const topThreeIds = topThree.rows.map((row) => row.id);
+        if (topThreeIds.includes(orderId)) {
+          throw new AppError(
+            "Order masuk dalam antrian prioritas yang sedang disiapkan dan tidak bisa dibatalkan",
+            400
+          );
+        }
       }
     }
 
@@ -236,7 +402,7 @@ export const cancelOrderService = async (
 
     // Update status order
     await client.query(
-      `UPDATE orders SET status_pesanan = 'DIBATALKAN' WHERE id = $1`,
+      `UPDATE orders SET status_pesanan = 'DIBATALKAN', status_pembayaran = 'CANCELLED' WHERE id = $1`,
       [orderId]
     );
 
@@ -290,7 +456,7 @@ export const getMyOrdersActiveService = async (userId: string) => {
     SELECT *
     FROM orders
     WHERE auth_id = $1
-      AND status_pesanan IN ('ANTRI', 'DIPROSES', 'SELESAI')
+      AND status_pesanan IN ('MENUNGGU_PEMBAYARAN', 'ANTRI', 'DIPROSES', 'SELESAI')
     ORDER BY created_at DESC
   `;
   const result = await pool.query(query, [userId]);
@@ -321,6 +487,8 @@ export const getOrdersActiveWithItemsService = async () => {
       u.username,
       o.total_price,
       o.status_pesanan,
+      o.status_pembayaran,
+      o.payment_type,
       o.created_at,
       COALESCE(
         json_agg(
@@ -356,6 +524,9 @@ export const getMyOrdersActiveWithItemsService = async (userId: string) => {
       o.auth_id,
       o.total_price,
       o.status_pesanan,
+      o.status_pembayaran,
+      o.payment_type,
+      o.snap_token,
       o.created_at,
       COALESCE(
         json_agg(
@@ -375,7 +546,7 @@ export const getMyOrdersActiveWithItemsService = async (userId: string) => {
     LEFT JOIN produk p ON oi.produk_id = p.id
     LEFT JOIN daily_queue dq ON dq.order_id = o.id
     WHERE o.auth_id = $1
-      AND o.status_pesanan IN ('ANTRI', 'DIPROSES')
+      AND o.status_pesanan IN ('MENUNGGU_PEMBAYARAN', 'ANTRI', 'DIPROSES')
     GROUP BY o.id
     ORDER BY o.created_at DESC
   `;
@@ -390,6 +561,9 @@ export const getMyAllOrdersWithItemsService = async (userId: string) => {
       o.auth_id,
       o.total_price,
       o.status_pesanan,
+      o.status_pembayaran,
+      o.payment_type,
+      o.snap_token,
       o.created_at,
       COALESCE(
         json_agg(

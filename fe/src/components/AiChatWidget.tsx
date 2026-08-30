@@ -25,40 +25,40 @@ export default function AiChatWidget() {
 
   const categorizedSuggestions: Record<string, string[]> = {
     Semua: [
-      "Berapa stok Matcha Latte Uji Kyoto?",
-      "Komposisi Authentic Thai Tea apa saja?",
-      "Apakah Iced Americano bebas susu (dairy-free)?",
-      "Jam berapa toko buka & bisa bayar QRIS?",
+      "Berapa stok Matcha Latte?",
+      "Komposisi Thai Tea apa saja?",
+      "Apakah ada menu bebas susu (dairy-free)?",
+      "Jam berapa toko buka & metode pembayaran apa saja?",
     ],
-    "Top 3 Menu": [
+    "Menu Favorit": [
+      "Rekomendasi menu kopi paling laris?",
       "Ceritakan rasa Matcha Latte Uji Kyoto?",
-      "Apakah Thai Tea ready stok?",
-      "Berapa harga dan kalori Iced Americano?",
+      "Berapa harga dan stok Iced Americano?",
     ],
-    Stok: [
-      "Berapa stok Matcha Latte dan Thai Tea?",
-      "Apakah Iced Americano ready?",
-      "Pastry apa saja yang stoknya tersedia?",
+    "Cek Stok": [
+      "Berapa sisa stok Matcha Latte saat ini?",
+      "Apakah pastry masih tersedia?",
+      "Menu apa saja yang saat ini ready?",
     ],
-    "Komposisi & Alergen": [
-      "Komposisi Matcha Latte Uji Kyoto apa saja?",
+    "Bahan & Alergen": [
+      "Komposisi Matcha Latte apa saja?",
       "Apakah Thai Tea mengandung susu sapi?",
-      "Menu kopi apa yang 100% vegan & 0 gula?",
+      "Menu apa yang cocok untuk vegan?",
     ],
-    "Layanan & Promo": [
-      "Bagaimana kebijakan garansi retur produk?",
-      "Apakah menerima pembayaran QRIS / Cashless?",
-      "Ada promo atau diskon apa hari ini?",
+    "Info Toko": [
+      "Apakah menerima pembayaran QRIS?",
+      "Jam operasional toko buka sampai jam berapa?",
+      "Bagaimana info garansi dan layanan toko?",
     ],
   };
 
-  // Load initial welcome message
+  // Initial welcome message
   useEffect(() => {
     const welcomeMsg: ChatMessage = {
       id: "welcome",
       role: "assistant",
       content:
-        "Halo! 👋 Selamat datang di **Toko Online & Coffee Bar** kami.\n\nSaya adalah **Production-Ready RAG Assistant** cerdas toko kami. Anda dapat menanyakan:\n• 📦 **Ketersediaan stok barang live**\n• 🧪 **Komposisi, bahan (*ingredients*), & alergen (vegan/dairy-free)**\n• 🕒 **Jam operasional, lokasi, & kebijakan garansi toko**\n• 💳 **Metode pembayaran (QRIS) & promo menarik**",
+        "Hai! 👋 Selamat datang di **Toko Online & Coffee Bar** kami.\n\nSaya adalah asisten AI toko yang siap membantu Anda mencari info menu, memeriksa **ketersediaan stok live**, menanyakan **bahan & alergen**, hingga jam operasional toko. Ada yang bisa saya bantu hari ini?",
       timestamp: new Date().toLocaleTimeString("id-ID", {
         hour: "2-digit",
         minute: "2-digit",
@@ -73,14 +73,14 @@ export default function AiChatWidget() {
     });
   }, []);
 
-  // Auto-scroll to bottom on new messages or stream chunks
+  // Auto-scroll
   useEffect(() => {
     if (isOpen && !isMinimized) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages, isOpen, isMinimized, loading]);
 
-  // Focus input when opened
+  // Auto focus input on open
   useEffect(() => {
     if (isOpen && !isMinimized) {
       setTimeout(() => inputRef.current?.focus(), 150);
@@ -92,7 +92,6 @@ export default function AiChatWidget() {
     const text = (textToSend || inputValue).trim();
     if (!text || loading) return;
 
-    // Abort previous streaming if any
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
@@ -172,14 +171,14 @@ export default function AiChatWidget() {
             setLoading(false);
             if (!isOpen) setHasNewMessage(true);
           },
-          onError: (err) => {
+          onError: () => {
             setMessages((prev) =>
               prev.map((msg) =>
                 msg.id === aiMsgId && !msg.content
                   ? {
                       ...msg,
                       content:
-                        "⚠️ Maaf, ada kendala koneksi ke server RAG. Silakan coba sesaat lagi.",
+                        "Maaf, terjadi kendala saat menghubungkan ke asisten AI. Silakan coba kembali sesaat lagi.",
                     }
                   : msg
               )
@@ -197,7 +196,7 @@ export default function AiChatWidget() {
               ? {
                   ...msg,
                   content:
-                    "⚠️ Maaf, ada gangguan saat memproses jawaban. Silakan coba kembali.",
+                    "Maaf, respon AI terganggu. Silakan coba lagi.",
                 }
               : msg
           )
@@ -216,7 +215,7 @@ export default function AiChatWidget() {
       id: "welcome-reset-" + Date.now(),
       role: "assistant",
       content:
-        "Sesi percakapan telah direset.\nSilakan tanyakan stok produk live, rincian bahan/komposisi (*ingredients*), atau info operasional toko kami! 😊",
+        "Obrolan telah diperbarui. Silakan tanyakan informasi menu, ketersediaan stok produk, atau komposisi bahan! 😊",
       timestamp: new Date().toLocaleTimeString("id-ID", {
         hour: "2-digit",
         minute: "2-digit",
@@ -225,76 +224,87 @@ export default function AiChatWidget() {
     setMessages([welcomeMsg]);
   };
 
-  // Helper renderer Markdown
+  // Formatted markdown renderer
   const renderFormattedContent = (content: string) => {
     const lines = content.split("\n");
-    return lines.map((line, idx) => {
-      const parts = line.split(/(\*\*.*?\*\*)/g);
-      const formattedParts = parts.map((part, pIdx) => {
-        if (part.startsWith("**") && part.endsWith("**")) {
+    return (
+      <div className="space-y-1.5 text-[13px] leading-relaxed">
+        {lines.map((line, idx) => {
+          if (line.trim() === "") {
+            return <div key={idx} className="h-1.5" />;
+          }
+
+          const isBullet = line.startsWith("• ") || line.startsWith("- ") || line.startsWith("* ");
+          const cleanLine = isBullet ? line.replace(/^[•\-*]\s*/, "") : line;
+
+          // Parse bold and italic
+          const parts = cleanLine.split(/(\*\*.*?\*\*|\*.*?\*|_.*?_)/g);
+          const formattedParts = parts.map((part, pIdx) => {
+            if (part.startsWith("**") && part.endsWith("**")) {
+              return (
+                <strong key={pIdx} className="font-semibold text-zinc-100">
+                  {part.slice(2, -2)}
+                </strong>
+              );
+            }
+            if ((part.startsWith("*") && part.endsWith("*")) || (part.startsWith("_") && part.endsWith("_"))) {
+              return (
+                <em key={pIdx} className="italic text-zinc-300">
+                  {part.slice(1, -1)}
+                </em>
+              );
+            }
+            return part;
+          });
+
+          if (isBullet) {
+            return (
+              <div key={idx} className="flex items-start gap-2 pl-1">
+                <span className="text-zinc-400 mt-1 text-[10px]">•</span>
+                <span className="flex-1 text-zinc-200">{formattedParts}</span>
+              </div>
+            );
+          }
+
           return (
-            <strong key={pIdx} className="font-semibold text-emerald-300">
-              {part.slice(2, -2)}
-            </strong>
+            <p key={idx} className="text-zinc-200">
+              {formattedParts}
+            </p>
           );
-        }
-        if (part.startsWith("_") && part.endsWith("_")) {
-          return (
-            <em key={pIdx} className="italic text-zinc-300">
-              {part.slice(1, -1)}
-            </em>
-          );
-        }
-        return part;
-      });
-
-      if (line.startsWith("• ") || line.startsWith("- ")) {
-        return (
-          <li key={idx} className="ml-4 list-disc mb-1 leading-relaxed text-zinc-200">
-            {formattedParts}
-          </li>
-        );
-      }
-
-      if (line.trim() === "") {
-        return <div key={idx} className="h-2" />;
-      }
-
-      return (
-        <p key={idx} className="mb-1 leading-relaxed text-zinc-200">
-          {formattedParts}
-        </p>
-      );
-    });
+        })}
+      </div>
+    );
   };
 
   return (
-    <div className="fixed bottom-24 md:bottom-6 right-4 md:right-8 z-50 flex flex-col items-end pointer-events-auto font-poppins">
+    <div className="fixed bottom-20 md:bottom-6 right-4 md:right-8 z-50 flex flex-col items-end pointer-events-auto font-poppins">
       {/* CHAT WINDOW */}
       {isOpen && (
         <div
-          className={`w-[92vw] sm:w-[440px] bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl backdrop-blur-xl flex flex-col overflow-hidden transition-all duration-300 mb-4 ${
-            isMinimized ? "h-16" : "h-[620px] max-h-[85vh]"
+          className={`w-[92vw] sm:w-[420px] bg-zinc-900/95 border border-zinc-800/90 rounded-2xl shadow-2xl backdrop-blur-2xl flex flex-col overflow-hidden transition-all duration-300 mb-4 animate-in fade-in slide-in-from-bottom-5 ${
+            isMinimized ? "h-16" : "h-[600px] max-h-[82vh]"
           }`}
         >
           {/* Header */}
-          <div className="bg-zinc-850 p-3.5 border-b border-zinc-800 flex items-center justify-between">
+          <div className="bg-zinc-900/90 px-4 py-3.5 border-b border-zinc-800 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="relative">
-                <div className="w-9 h-9 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center">
-                  <FeatherIcon icon="cpu" className="w-4 h-4 text-zinc-200" />
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-zinc-800 to-zinc-700 border border-zinc-600/50 flex items-center justify-center shadow-inner">
+                  <FeatherIcon icon="message-circle" className="w-4 h-4 text-zinc-100" />
                 </div>
-                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-400 border-2 border-zinc-900 rounded-full"></span>
+                <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-zinc-900 rounded-full animate-pulse"></span>
               </div>
               <div>
-                <h3 className="font-semibold text-sm text-zinc-100 flex items-center gap-1.5">
-                  Toko RAG Assistant
-                  <span className="text-[9px] uppercase font-semibold bg-emerald-950/40 text-emerald-300 px-2 py-0.5 rounded border border-emerald-800/60 flex items-center gap-1">
-                    Live RAG
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-sm text-zinc-100">
+                    AI Assistant Toko
+                  </h3>
+                  <span className="text-[10px] font-semibold bg-emerald-950/60 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-800/50">
+                    Online
                   </span>
-                </h3>
-                <p className="text-[10px] text-zinc-400 flex items-center gap-1">
-                  <span>Hybrid Search</span> • <span>Redis Cache</span> • <span>SSE Stream</span>
+                </div>
+                <p className="text-[11px] text-zinc-400">
+                  Tanya stok menu & bahan secara realtime
                 </p>
               </div>
             </div>
@@ -302,42 +312,42 @@ export default function AiChatWidget() {
             <div className="flex items-center gap-1">
               <button
                 onClick={handleResetChat}
-                title="Reset Obrolan"
-                className="p-1.5 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 rounded-lg transition-colors"
+                title="Reset Percakapan"
+                className="w-8 h-8 flex items-center justify-center text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 rounded-lg transition-colors"
               >
-                <FeatherIcon icon="rotate-ccw" className="w-4 h-4" />
+                <FeatherIcon icon="rotate-ccw" className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={() => setIsMinimized(!isMinimized)}
                 title={isMinimized ? "Perbesar" : "Perkecil"}
-                className="p-1.5 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 rounded-lg transition-colors"
+                className="w-8 h-8 flex items-center justify-center text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 rounded-lg transition-colors"
               >
                 <FeatherIcon
                   icon={isMinimized ? "maximize-2" : "minus"}
-                  className="w-4 h-4"
+                  className="w-3.5 h-3.5"
                 />
               </button>
               <button
                 onClick={() => setIsOpen(false)}
-                title="Tutup"
-                className="p-1.5 text-zinc-400 hover:text-red-400 hover:bg-zinc-800 rounded-lg transition-colors"
+                title="Tutup Chat"
+                className="w-8 h-8 flex items-center justify-center text-zinc-400 hover:text-red-400 hover:bg-zinc-800 rounded-lg transition-colors"
               >
                 <FeatherIcon icon="x" className="w-4 h-4" />
               </button>
             </div>
           </div>
 
-          {/* Category Tabs */}
+          {/* Quick Categories Bar */}
           {!isMinimized && (
-            <div className="px-3 py-1.5 bg-zinc-900 border-b border-zinc-800 flex gap-1 overflow-x-auto scrollbar-none">
+            <div className="px-3.5 py-2 bg-zinc-950/60 border-b border-zinc-800/80 flex gap-1.5 overflow-x-auto scrollbar-none">
               {Object.keys(categorizedSuggestions).map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
-                  className={`text-[10px] px-2.5 py-1 rounded-md transition-colors font-medium whitespace-nowrap ${
+                  className={`text-[11px] px-3 py-1 rounded-full transition-all font-medium whitespace-nowrap ${
                     activeCategory === cat
-                      ? "bg-zinc-800 text-zinc-100 border border-zinc-700"
-                      : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-850 border border-transparent"
+                      ? "bg-zinc-100 text-zinc-900 font-semibold shadow-sm"
+                      : "bg-zinc-900 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 border border-zinc-800"
                   }`}
                 >
                   {cat}
@@ -349,7 +359,7 @@ export default function AiChatWidget() {
           {/* Messages Body */}
           {!isMinimized && (
             <>
-              <div className="flex-1 p-4 overflow-y-auto space-y-4 text-xs bg-zinc-950 scrollbar-thin scrollbar-thumb-zinc-800">
+              <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-zinc-950/80 scrollbar-thin scrollbar-thumb-zinc-800">
                 {messages.map((msg) => (
                   <div
                     key={msg.id}
@@ -358,91 +368,72 @@ export default function AiChatWidget() {
                     }`}
                   >
                     <div
-                      className={`max-w-[90%] p-3.5 rounded-xl ${
+                      className={`max-w-[88%] p-3.5 rounded-2xl ${
                         msg.role === "user"
-                          ? "bg-zinc-100 text-zinc-900 font-medium rounded-br-none shadow-sm"
-                          : "bg-zinc-900 text-zinc-200 border border-zinc-800 rounded-bl-none shadow-sm"
+                          ? "bg-zinc-100 text-zinc-900 font-medium rounded-br-xs shadow-md"
+                          : "bg-zinc-900 text-zinc-200 border border-zinc-800 rounded-bl-xs shadow-md"
                       }`}
                     >
-                      {/* Cache Indicator Badge */}
-                      {msg.isFromCache && (
-                        <div className="mb-1.5 flex items-center gap-1 text-[9px] font-semibold text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2 py-0.5 rounded-md w-fit">
-                          <FeatherIcon icon="zap" className="w-2.5 h-2.5" />
-                          <span>Instan dari Redis Cache (&lt;10ms)</span>
-                        </div>
-                      )}
-
                       {/* Message Content */}
                       {msg.content ? (
-                        renderFormattedContent(msg.content)
-                      ) : (
-                        <div className="flex items-center gap-2 py-1">
-                          <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce"></span>
-                          <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce [animation-delay:0.2s]"></span>
-                          <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce [animation-delay:0.4s]"></span>
-                          <span className="text-[11px] text-zinc-400 ml-1">
-                            Mencari data & merangkum jawaban...
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Knowledge Base Matching Card (FAQ/SOP) */}
-                      {msg.matchedKnowledge && msg.matchedKnowledge.length > 0 && (
-                        <div className="mt-3 pt-2.5 border-t border-zinc-800 space-y-1.5">
-                          <p className="text-[9px] font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1">
-                            <FeatherIcon icon="book-open" className="w-3 h-3 text-zinc-400" />
-                            Dokumen Informasi Toko:
+                        msg.role === "user" ? (
+                          <p className="text-[13px] text-zinc-900 leading-relaxed font-medium">
+                            {msg.content}
                           </p>
-                          {msg.matchedKnowledge.map((kb: KnowledgeMatch) => (
-                            <div
-                              key={kb.id}
-                              className="bg-zinc-950 p-2 rounded-lg border border-zinc-800 text-[10px]"
-                            >
-                              <span className="font-semibold text-zinc-200 block mb-0.5">
-                                {kb.title}
-                              </span>
-                              <p className="text-zinc-400 line-clamp-2">{kb.content}</p>
-                            </div>
-                          ))}
+                        ) : (
+                          renderFormattedContent(msg.content)
+                        )
+                      ) : (
+                        <div className="flex items-center gap-2 py-1.5 px-1">
+                          <span className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce"></span>
+                          <span className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce [animation-delay:0.2s]"></span>
+                          <span className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce [animation-delay:0.4s]"></span>
+                          <span className="text-xs text-zinc-400 ml-1">
+                            Sedang merespon...
+                          </span>
                         </div>
                       )}
 
                       {/* Matched Product Cards */}
                       {msg.matchedProducts && msg.matchedProducts.length > 0 && (
-                        <div className="mt-3 pt-2.5 border-t border-zinc-800 space-y-2">
-                          <p className="text-[9px] font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1">
-                            <FeatherIcon icon="package" className="w-3 h-3 text-zinc-400" />
-                            Produk Terkait (Live Stock):
+                        <div className="mt-3.5 pt-3 border-t border-zinc-800/80 space-y-2">
+                          <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <FeatherIcon icon="shopping-bag" className="w-3 h-3 text-zinc-400" />
+                            Produk Terkait:
                           </p>
                           <div className="grid grid-cols-1 gap-2">
                             {msg.matchedProducts.map((prod: Produk) => (
                               <div
                                 key={prod.id}
-                                className="flex items-center gap-2.5 bg-zinc-950 p-2 rounded-lg border border-zinc-800 hover:border-zinc-700 transition-colors group"
+                                className="flex items-center gap-3 bg-zinc-950/90 p-2.5 rounded-xl border border-zinc-800 hover:border-zinc-700 transition-all group"
                               >
-                                {prod.image && (
+                                {prod.image ? (
                                   <div className="relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-zinc-900 border border-zinc-800">
                                     <Image
                                       src={getProductImageUrl(prod.image)}
                                       alt={prod.nama}
                                       fill
-                                      className="object-cover"
+                                      className="object-cover group-hover:scale-105 transition-transform"
                                     />
+                                  </div>
+                                ) : (
+                                  <div className="w-12 h-12 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-600 flex-shrink-0">
+                                    <FeatherIcon icon="coffee" className="w-5 h-5" />
                                   </div>
                                 )}
                                 <div className="flex-1 min-w-0">
-                                  <h4 className="font-semibold text-zinc-100 truncate text-[11px]">
+                                  <h4 className="font-semibold text-zinc-100 truncate text-xs">
                                     {prod.nama}
                                   </h4>
-                                  <div className="flex items-center gap-2 mt-0.5">
-                                    <span className="text-emerald-400 font-semibold text-[11px]">
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <span className="text-zinc-200 font-bold text-xs font-mono">
                                       Rp {Number(prod.harga).toLocaleString("id-ID")}
                                     </span>
                                     <span
-                                      className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${
+                                      className={`text-[9px] px-2 py-0.5 rounded-md font-semibold ${
                                         prod.stock > 0
-                                          ? "bg-emerald-950/40 text-emerald-300 border border-emerald-800/60"
-                                          : "bg-red-950/40 text-red-300 border border-red-800/60"
+                                          ? "bg-emerald-950/70 text-emerald-300 border border-emerald-800/50"
+                                          : "bg-red-950/70 text-red-300 border border-red-800/50"
                                       }`}
                                     >
                                       {prod.stock > 0 ? `Stok: ${prod.stock}` : "Habis"}
@@ -451,8 +442,8 @@ export default function AiChatWidget() {
                                 </div>
                                 <Link
                                   href={`/menu/profil_produk/${prod.id}`}
-                                  className="p-1.5 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition-colors"
-                                  title="Lihat Menu"
+                                  className="w-8 h-8 rounded-lg bg-zinc-850 hover:bg-zinc-700 text-zinc-200 flex items-center justify-center transition-colors flex-shrink-0 border border-zinc-750"
+                                  title="Lihat Detail Menu"
                                 >
                                   <FeatherIcon icon="arrow-right" className="w-3.5 h-3.5" />
                                 </Link>
@@ -462,7 +453,34 @@ export default function AiChatWidget() {
                         </div>
                       )}
 
-                      <span className={`block text-[9px] mt-1 ${msg.role === "user" ? "text-zinc-600 text-right" : "text-zinc-500 text-right"}`}>
+                      {/* Knowledge Base Note */}
+                      {msg.matchedKnowledge && msg.matchedKnowledge.length > 0 && (
+                        <div className="mt-3 pt-2.5 border-t border-zinc-800/80 space-y-1.5">
+                          <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <FeatherIcon icon="info" className="w-3 h-3 text-zinc-400" />
+                            Catatan Toko:
+                          </p>
+                          {msg.matchedKnowledge.map((kb: KnowledgeMatch) => (
+                            <div
+                              key={kb.id}
+                              className="bg-zinc-950/90 p-2.5 rounded-lg border border-zinc-800 text-[11px]"
+                            >
+                              <span className="font-semibold text-zinc-200 block mb-0.5">
+                                {kb.title}
+                              </span>
+                              <p className="text-zinc-400 leading-relaxed">{kb.content}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <span
+                        className={`block text-[9px] mt-1.5 ${
+                          msg.role === "user"
+                            ? "text-zinc-500 text-right"
+                            : "text-zinc-500 text-right"
+                        }`}
+                      >
                         {msg.timestamp}
                       </span>
                     </div>
@@ -472,20 +490,20 @@ export default function AiChatWidget() {
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Quick suggestion chips based on active category */}
-              <div className="px-3 py-2 border-t border-zinc-800 bg-zinc-900 flex gap-1.5 overflow-x-auto scrollbar-none">
+              {/* Quick suggestion chips */}
+              <div className="px-3.5 py-2 border-t border-zinc-800/80 bg-zinc-900/95 flex gap-1.5 overflow-x-auto scrollbar-none">
                 {(categorizedSuggestions[activeCategory] || suggestions).map((sug, i) => (
                   <button
                     key={i}
                     onClick={() => handleSendMessage(sug)}
-                    className="whitespace-nowrap text-[10px] bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white border border-zinc-700 px-2.5 py-1 rounded-full transition-colors flex-shrink-0"
+                    className="whitespace-nowrap text-[11px] bg-zinc-950 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-800 hover:border-zinc-700 px-3 py-1.5 rounded-full transition-all flex-shrink-0"
                   >
                     {sug}
                   </button>
                 ))}
               </div>
 
-              {/* Footer / Input */}
+              {/* Input Bar */}
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -498,20 +516,21 @@ export default function AiChatWidget() {
                   type="text"
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
-                  placeholder="Tanyakan stok, bahan/alergen, jam operasional..."
+                  placeholder="Ketik pertanyaan terkait menu, stok, atau toko..."
                   disabled={loading}
-                  className="flex-1 bg-zinc-950 border border-zinc-700 rounded-lg px-3.5 py-2 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-400"
+                  className="flex-1 bg-zinc-950 border border-zinc-750 focus:border-zinc-500 rounded-xl px-4 py-2.5 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none transition-colors"
                 />
                 <button
                   type="submit"
                   disabled={loading || !inputValue.trim()}
-                  className={`p-2 rounded-lg flex items-center justify-center transition-colors ${
+                  className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
                     inputValue.trim() && !loading
-                      ? "bg-zinc-100 hover:bg-zinc-200 text-zinc-900 shadow-sm cursor-pointer active:scale-[0.98]"
+                      ? "bg-zinc-100 hover:bg-zinc-200 text-zinc-900 shadow-md cursor-pointer active:scale-95"
                       : "bg-zinc-800 text-zinc-600 cursor-not-allowed"
                   }`}
+                  title="Kirim Pesan"
                 >
-                  <FeatherIcon icon="send" className="w-4 h-4" />
+                  <FeatherIcon icon="arrow-up" className="w-4 h-4" />
                 </button>
               </form>
             </>
@@ -523,18 +542,20 @@ export default function AiChatWidget() {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="flex items-center gap-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-900 font-semibold px-4 py-3 rounded-full shadow-lg transition active:scale-[0.98] cursor-pointer"
+          className="group flex items-center gap-2.5 bg-zinc-900 hover:bg-zinc-850 text-zinc-100 border border-zinc-700/80 px-4 py-3 rounded-full shadow-2xl transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md"
         >
           <div className="relative">
-            <FeatherIcon icon="message-square" className="w-4 h-4 text-zinc-900" />
+            <div className="w-6 h-6 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center">
+              <FeatherIcon icon="message-circle" className="w-3.5 h-3.5 text-zinc-200" />
+            </div>
             {hasNewMessage && (
-              <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-zinc-900 animate-ping"></span>
             )}
           </div>
-          <span className="text-xs font-semibold tracking-wide pr-1">
-            Tanya AI Toko (RAG)
+          <span className="text-xs font-semibold tracking-wide pr-1 text-zinc-200 group-hover:text-white">
+            Tanya AI Toko
           </span>
-          <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+          <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
         </button>
       )}
     </div>

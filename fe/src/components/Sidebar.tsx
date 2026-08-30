@@ -58,14 +58,6 @@ export default function Sidebar({ type }: SidebarProps) {
             <FeatherIcon icon="plus" className="w-4 h-4" />
           </div>
 
-          <div
-            className={navClass("/")}
-            onClick={() => router.push("/")}
-            title="Lihat Tampilan Toko (POS)"
-          >
-            <FeatherIcon icon="shopping-bag" className="w-4 h-4" />
-          </div>
-
           {isAuthenticated && (
             <div
               className="flex items-center justify-center w-10 h-10 rounded-lg cursor-pointer text-zinc-400 hover:text-red-400 hover:bg-zinc-800/60 transition-colors"

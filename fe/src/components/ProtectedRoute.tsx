@@ -22,8 +22,8 @@ export default function ProtectedRoute({ children, allowedRole }: ProtectedRoute
           router.replace("/login");
         }
       } else if (allowedRole && user?.role !== allowedRole) {
-        // Redirect to customer menu if not authorized
-        router.replace("/");
+        // Redirect based on role if not authorized
+        router.replace(user?.role === "admin" ? "/pesanan/daftar_pesanan" : "/");
       }
     }
   }, [loading, isAuthenticated, user, allowedRole, router]);

@@ -43,6 +43,12 @@ export default function MenuPage() {
   }
 
   useEffect(() => {
+    if (isAuthenticated && user?.role === "admin") {
+      router.replace("/pesanan/daftar_pesanan");
+    }
+  }, [isAuthenticated, user, router]);
+
+  useEffect(() => {
     getProduk();
   }, []);
 
@@ -84,19 +90,68 @@ export default function MenuPage() {
     });
   };
 
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+
   const handleCheckout = async () => {
     if (cart.length === 0) {
-      alert("Cart masih kosong!");
+      alert("Keranjang masih kosong!");
+      return;
+    }
+
+    if (!isAuthenticated) {
+      alert("Silakan login terlebih dahulu untuk melakukan pemesanan.");
+      router.push("/login");
       return;
     }
 
     try {
-      await createOrder(cart);
-      setCart([]);
+      setCheckoutLoading(true);
+      const res = await createOrder(cart);
+      const snapToken = res.snap_token || res.data?.snapToken;
+      const orderId = res.order_id || res.data?.orderId;
 
-      router.push("/pesanan/history_pesanan");
-    } catch (error) {
-      alert("Order gagal");
+      const isRealSnapToken = snapToken && !snapToken.startsWith("mock_snap_token_");
+
+      if (isRealSnapToken && typeof window !== "undefined" && (window as any).snap) {
+        (window as any).snap.pay(snapToken, {
+          onSuccess: async () => {
+            try {
+              await simulatePayment(orderId);
+            } catch (e) {
+              console.log("Simulate payment callback:", e);
+            }
+            setCart([]);
+            setIsCartOpen(false);
+            router.push("/pesanan/history_pesanan");
+          },
+          onPending: () => {
+            setCart([]);
+            setIsCartOpen(false);
+            router.push("/pesanan/history_pesanan");
+          },
+          onError: () => {
+            alert("Pembayaran gagal atau dibatalkan.");
+          },
+          onClose: () => {
+            setCart([]);
+            setIsCartOpen(false);
+            router.push("/pesanan/history_pesanan");
+          },
+        });
+      } else {
+        // Fallback untuk mode development / jika belum memasukkan Midtrans Key asli
+        try {
+          await simulatePayment(orderId);
+        } catch (e) {}
+        alert("✅ Pesanan berhasil dibuat dan masuk antrean kasir!");
+        setCart([]);
+        setIsCartOpen(false);
+        router.push("/pesanan/history_pesanan");
+      }
+    } catch (error: any) {
+      alert(error.response?.data?.message || "Checkout gagal. Silakan coba lagi.");
+    } finally {
+      setCheckoutLoading(false);
     }
   };
 
@@ -242,14 +297,16 @@ export default function MenuPage() {
                     </h3>
 
                     {item.ingredients && (
-                      <p className="text-[11px] text-zinc-400 line-clamp-2 mt-1 mb-2 bg-zinc-950 p-2 rounded-lg border border-zinc-800">
-                        <span className="text-zinc-500 font-medium">Bahan: </span>
-                        {item.ingredients}
-                      </p>
+                      <div className="text-[11px] text-zinc-300 mt-2 mb-2 bg-zinc-950 p-2.5 rounded-lg border border-zinc-800 break-words leading-relaxed">
+                        <span className="text-zinc-500 font-semibold block text-[10px] uppercase tracking-wider mb-0.5">
+                          Komposisi / Bahan:
+                        </span>
+                        <span className="text-zinc-300">{item.ingredients}</span>
+                      </div>
                     )}
 
                     {item.deskripsi && !item.ingredients && (
-                      <p className="text-xs text-zinc-400 line-clamp-2 mt-1 mb-2">
+                      <p className="text-xs text-zinc-400 mt-1 mb-2 break-words leading-relaxed">
                         {item.deskripsi}
                       </p>
                     )}
@@ -418,10 +475,24 @@ export default function MenuPage() {
 
                 <button
                   onClick={handleCheckout}
-                  className="w-full py-2.5 rounded-lg font-semibold transition-all bg-zinc-100 hover:bg-zinc-200 text-zinc-900 shadow-sm active:scale-[0.98] flex items-center justify-center gap-2 text-xs"
+                  disabled={checkoutLoading}
+                  className={`w-full py-2.5 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 text-xs shadow-sm active:scale-[0.98] ${
+                    checkoutLoading
+                      ? "bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-750"
+                      : "bg-zinc-100 hover:bg-zinc-200 text-zinc-900"
+                  }`}
                 >
-                  Checkout Sekarang
-                  <FeatherIcon icon="arrow-right" className="w-3.5 h-3.5" />
+                  {checkoutLoading ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-zinc-500 border-t-transparent rounded-full animate-spin"></div>
+                      <span>Menyiapkan Pembayaran...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Bayar dengan Midtrans (QRIS / VA)</span>
+                      <FeatherIcon icon="arrow-right" className="w-3.5 h-3.5" />
+                    </>
+                  )}
                 </button>
               </div>
             )}
