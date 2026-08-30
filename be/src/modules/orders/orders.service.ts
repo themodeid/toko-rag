@@ -1,5 +1,6 @@
 import { pool } from "../../config/database";
 import { AppError } from "../../utils/appError";
+import { createXenditInvoice } from "../../config/xendit";
 import {
   createSnapTransaction,
   verifyMidtransSignature,
@@ -126,38 +127,43 @@ export const checkoutService = async (
       );
     }
 
-    // 6. Buat transaksi Midtrans Snap Token
-    const snapResponse = await createSnapTransaction({
-      orderId,
-      grossAmount: totalPrice,
-      customerDetails: {
-        first_name: username,
-      },
-      itemDetails: orderItems.map((item) => ({
-        id: item.produk_id,
-        price: item.harga,
-        quantity: item.quantity,
-        name: item.nama.slice(0, 50),
-      })),
-    });
+    // 6. Buat transaksi Xendit Invoice (Mendukung QRIS, VA, E-Wallet)
+    let invoiceUrl = "";
+    try {
+      const xenditInvoice = await createXenditInvoice({
+        orderId,
+        amount: totalPrice,
+        customerName: username,
+        items: orderItems.map((item) => ({
+          name: item.nama.slice(0, 50),
+          quantity: item.quantity,
+          price: item.harga,
+        })),
+      });
+      invoiceUrl = xenditInvoice.invoice_url;
+      console.log(`✅ Xendit Invoice created for Order #${orderId.slice(0, 8)}:`, invoiceUrl);
+    } catch (xenditErr) {
+      console.warn("⚠️ Xendit invoice generation fallback:", xenditErr);
+    }
 
-    // 7. Simpan Snap Token ke database
+    // 7. Simpan Invoice URL / Snap Token ke database
     await client.query(
       "UPDATE orders SET snap_token = $1 WHERE id = $2",
-      [snapResponse.token, orderId]
+      [invoiceUrl || `xendit_${orderId}`, orderId]
     );
 
     await client.query("COMMIT");
 
     return {
       orderId,
-      snapToken: snapResponse.token,
-      redirectUrl: snapResponse.redirect_url,
+      invoiceUrl,
+      redirectUrl: invoiceUrl,
+      snapToken: invoiceUrl,
       totalPrice,
       statusPesanan: "MENUNGGU_PEMBAYARAN",
       order: {
         ...orderResult.rows[0],
-        snap_token: snapResponse.token,
+        snap_token: invoiceUrl,
       },
     };
   } catch (error) {
@@ -589,3 +595,78 @@ export const getMyAllOrdersWithItemsService = async (userId: string) => {
   const result = await pool.query(query, [userId]);
   return result.rows;
 };
+
+export interface XenditWebhookPayload {
+  id?: string;
+  external_id: string;
+  user_id?: string;
+  status: string; // 'PAID', 'SETTLED', 'EXPIRED'
+  payment_method?: string;
+  payment_channel?: string;
+  paid_amount?: number;
+  paid_at?: string;
+}
+
+export const handleXenditWebhookService = async (payload: XenditWebhookPayload) => {
+  const { external_id, status, payment_method, payment_channel } = payload;
+
+  if (!external_id) {
+    throw new AppError("Invalid external_id in webhook payload", 400);
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    if (status === "PAID" || status === "SETTLED") {
+      const orderRes = await client.query(
+        "SELECT id, status_pesanan FROM orders WHERE id = $1 FOR UPDATE",
+        [external_id]
+      );
+
+      if (orderRes.rowCount === 0) {
+        throw new AppError("Order not found", 404);
+      }
+
+      await client.query(
+        `UPDATE orders
+         SET status_pembayaran = 'PAID',
+             status_pesanan = 'ANTRI',
+             payment_type = $1
+         WHERE id = $2`,
+        [`${payment_method || "QRIS"}_${payment_channel || "XENDIT"}`, external_id]
+      );
+
+      const queueCheck = await client.query(
+        "SELECT id FROM daily_queue WHERE order_id = $1",
+        [external_id]
+      );
+
+      if (queueCheck.rowCount === 0) {
+        const queueRes = await client.query(
+          "SELECT COALESCE(MAX(queue_number), 0) + 1 AS next_queue FROM daily_queue WHERE created_at::date = CURRENT_DATE"
+        );
+        const nextQueue = queueRes.rows[0].next_queue;
+
+        await client.query(
+          "INSERT INTO daily_queue (order_id, queue_number) VALUES ($1, $2)",
+          [external_id, nextQueue]
+        );
+      }
+    } else if (status === "EXPIRED") {
+      await client.query(
+        "UPDATE orders SET status_pembayaran = 'EXPIRED', status_pesanan = 'DIBATALKAN' WHERE id = $1",
+        [external_id]
+      );
+    }
+
+    await client.query("COMMIT");
+    return { success: true, message: `Order ${external_id} updated to ${status}` };
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
+};
+

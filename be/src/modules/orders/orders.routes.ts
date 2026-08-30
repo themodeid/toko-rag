@@ -9,10 +9,11 @@ const router = Router();
 
 /**
  * ================================
- * MIDTRANS WEBHOOK (PUBLIC)
+ * PAYMENT WEBHOOKS (PUBLIC)
  * ================================
  */
 router.post("/midtrans-webhook", controller.midtransWebhook);
+router.post("/xendit-webhook", controller.xenditWebhookNotification);
 
 /**
  * ================================

@@ -107,9 +107,20 @@ export default function MenuPage() {
     try {
       setCheckoutLoading(true);
       const res = await createOrder(cart);
+      const invoiceUrl = res.invoiceUrl || res.data?.invoiceUrl || res.redirectUrl || res.data?.redirectUrl;
       const snapToken = res.snap_token || res.data?.snapToken;
       const orderId = res.order_id || res.data?.orderId;
 
+      // 1. Jika ada Invoice URL dari Xendit (QRIS Dinamis & VA)
+      if (invoiceUrl && invoiceUrl.startsWith("http") && !invoiceUrl.includes("mock_")) {
+        setCart([]);
+        setIsCartOpen(false);
+        // Buka halaman pembayaran resmi Xendit
+        window.location.href = invoiceUrl;
+        return;
+      }
+
+      // 2. Jika ada Snap Token Midtrans
       const isRealSnapToken = snapToken && !snapToken.startsWith("mock_snap_token_");
 
       if (isRealSnapToken && typeof window !== "undefined" && (window as any).snap) {
@@ -139,7 +150,7 @@ export default function MenuPage() {
           },
         });
       } else {
-        // Fallback untuk mode development / jika belum memasukkan Midtrans Key asli
+        // Fallback untuk mode development / mock
         try {
           await simulatePayment(orderId);
         } catch (e) {}

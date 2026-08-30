@@ -13,6 +13,7 @@ import {
   getOrdersActiveWithItemsService,
   getMyOrdersActiveWithItemsService,
   getMyAllOrdersWithItemsService,
+  handleXenditWebhookService,
 } from "./orders.service";
 
 // ===================== CHECKOUT =====================
@@ -229,6 +230,28 @@ export const getMyAllOrdersWithItems = catchAsync(
       message: "Berhasil mengambil semua pesanan anda",
       total: orders.length,
       data: orders,
+    });
+  }
+);
+
+// ===================== XENDIT WEBHOOK CALLBACK =====================
+export const xenditWebhookNotification = catchAsync(
+  async (req: Request, res: Response) => {
+    const payload = req.body;
+    console.log("📥 Received Xendit Webhook:", JSON.stringify(payload));
+
+    const result = await handleXenditWebhookService(payload);
+
+    // Invalidate caches
+    await Promise.all([
+      delCache("orders:active"),
+      delCachePattern("orders:active:*"),
+    ]);
+
+    return res.status(200).json({
+      status: "success",
+      message: "Webhook Xendit berhasil diproses",
+      data: result,
     });
   }
 );
