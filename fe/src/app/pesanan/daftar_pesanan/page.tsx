@@ -6,6 +6,7 @@ import Image from "next/image";
 import FeatherIcon from "feather-icons-react";
 import Sidebar from "@/components/Sidebar";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { getProductImageUrl } from "@/lib/imageHelper";
 
 // Types
 import { Order } from "@/features/cart/types";
@@ -171,7 +172,7 @@ export default function Antrian() {
                             <div className="w-10 h-10 bg-zinc-950 relative rounded-lg overflow-hidden border border-zinc-800 flex-shrink-0">
                               {item.image ? (
                                 <Image
-                                  src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${item?.image}`}
+                                  src={getProductImageUrl(item?.image)}
                                   alt={item.nama}
                                   fill
                                   className="object-cover"

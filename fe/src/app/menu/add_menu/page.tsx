@@ -6,6 +6,7 @@ import Image from "next/image";
 import FeatherIcon from "feather-icons-react";
 import Sidebar from "@/components/Sidebar";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { getProductImageUrl } from "@/lib/imageHelper";
 
 // Types
 import { Produk } from "@/features/produk/types";
@@ -335,7 +336,7 @@ export default function AddMenuPage() {
                   <div className="relative h-36 bg-zinc-950 overflow-hidden border-b border-zinc-800">
                     {item.image ? (
                       <Image
-                        src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${item.image}`}
+                        src={getProductImageUrl(item.image)}
                         alt={item.nama}
                         fill
                         className="object-cover group-hover:scale-105 transition-transform duration-300"
