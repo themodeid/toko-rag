@@ -34,3 +34,25 @@ export const authGuard = (req: Request, _res: Response, next: NextFunction) => {
     throw new AppError("Sesi telah kedaluwarsa atau token tidak valid", 401);
   }
 };
+
+export const optionalAuthGuard = (req: Request, _res: Response, next: NextFunction) => {
+  let token: string | undefined;
+
+  if (req.cookies && req.cookies.auth_token) {
+    token = req.cookies.auth_token;
+  } else if (req.headers.authorization && req.headers.authorization.startsWith("Bearer ")) {
+    token = req.headers.authorization.split(" ")[1];
+  }
+
+  if (token) {
+    try {
+      const payload = jwt.verify(token, ENV.JWT_SECRET) as JwtPayloadUser;
+      req.user = payload;
+    } catch {
+      // Sesi tamu / guest checkout
+    }
+  }
+
+  next();
+};
+

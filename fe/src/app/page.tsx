@@ -91,30 +91,83 @@ export default function MenuPage() {
   };
 
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
+  const [customerName, setCustomerName] = useState("");
+  const [orderType, setOrderType] = useState<"DINE_IN" | "TAKE_AWAY">("DINE_IN");
+  const [tableNumber, setTableNumber] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
 
-  const handleCheckout = async () => {
+  // Deteksi nomor meja dari URL query parameter (?meja=04 atau ?table=04)
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const mejaParam = params.get("meja") || params.get("table");
+      if (mejaParam) {
+        setTableNumber(mejaParam);
+        setOrderType("DINE_IN");
+      }
+      if (user?.username) {
+        setCustomerName(user.username);
+      }
+    }
+  }, [user]);
+
+  const handleOpenCheckoutModal = () => {
     if (cart.length === 0) {
       alert("Keranjang masih kosong!");
       return;
     }
+    if (user?.username && !customerName) {
+      setCustomerName(user.username);
+    }
+    setIsCheckoutModalOpen(true);
+  };
 
-    if (!isAuthenticated) {
-      alert("Silakan login terlebih dahulu untuk melakukan pemesanan.");
-      router.push("/login");
+  const handleProcessCheckout = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!customerName.trim()) {
+      alert("Silakan masukkan nama pemesan.");
+      return;
+    }
+
+    if (orderType === "DINE_IN" && !tableNumber.trim()) {
+      alert("Silakan masukkan nomor meja untuk pesanan makan/minum di tempat.");
       return;
     }
 
     try {
       setCheckoutLoading(true);
-      const res = await createOrder(cart);
+      const res = await createOrder({
+        items: cart,
+        customer_name: customerName.trim(),
+        order_type: orderType,
+        table_number: orderType === "DINE_IN" ? tableNumber.trim() : null,
+        customer_phone: customerPhone.trim() || null,
+      });
+
       const invoiceUrl = res.invoiceUrl || res.data?.invoiceUrl || res.redirectUrl || res.data?.redirectUrl;
       const snapToken = res.snap_token || res.data?.snapToken;
       const orderId = res.order_id || res.data?.orderId;
+
+      // Simpan riwayat ID pesanan ke localStorage (untuk Guest Checkout)
+      if (orderId && typeof window !== "undefined") {
+        try {
+          const savedOrders = JSON.parse(localStorage.getItem("guest_orders") || "[]");
+          if (!savedOrders.includes(orderId)) {
+            savedOrders.unshift(orderId);
+            localStorage.setItem("guest_orders", JSON.stringify(savedOrders));
+          }
+        } catch (storageErr) {
+          console.warn("Storage error:", storageErr);
+        }
+      }
 
       // 1. Jika ada Invoice URL dari Xendit (QRIS Dinamis & VA)
       if (invoiceUrl && invoiceUrl.startsWith("http") && !invoiceUrl.includes("mock_")) {
         setCart([]);
         setIsCartOpen(false);
+        setIsCheckoutModalOpen(false);
         // Buka halaman pembayaran resmi Xendit
         window.location.href = invoiceUrl;
         return;
@@ -133,11 +186,13 @@ export default function MenuPage() {
             }
             setCart([]);
             setIsCartOpen(false);
+            setIsCheckoutModalOpen(false);
             router.push("/pesanan/history_pesanan");
           },
           onPending: () => {
             setCart([]);
             setIsCartOpen(false);
+            setIsCheckoutModalOpen(false);
             router.push("/pesanan/history_pesanan");
           },
           onError: () => {
@@ -146,17 +201,19 @@ export default function MenuPage() {
           onClose: () => {
             setCart([]);
             setIsCartOpen(false);
+            setIsCheckoutModalOpen(false);
             router.push("/pesanan/history_pesanan");
           },
         });
       } else {
-        // Fallback untuk mode development / mock
+        // Fallback untuk mode development / mock testing
         try {
           await simulatePayment(orderId);
         } catch (e) {}
-        alert("✅ Pesanan berhasil dibuat dan masuk antrean kasir!");
+        alert(`✅ Pesanan #${orderId.slice(0, 8)} atas nama ${customerName} berhasil dibuat dan masuk antrean!`);
         setCart([]);
         setIsCartOpen(false);
+        setIsCheckoutModalOpen(false);
         router.push("/pesanan/history_pesanan");
       }
     } catch (error: any) {
@@ -485,31 +542,159 @@ export default function MenuPage() {
                 </div>
 
                 <button
-                  onClick={handleCheckout}
+                  onClick={handleOpenCheckoutModal}
                   disabled={checkoutLoading}
-                  className={`w-full py-2.5 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 text-xs shadow-sm active:scale-[0.98] ${
-                    checkoutLoading
-                      ? "bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-750"
-                      : "bg-zinc-100 hover:bg-zinc-200 text-zinc-900"
-                  }`}
+                  className="w-full py-2.5 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 text-xs shadow-sm active:scale-[0.98] bg-zinc-100 hover:bg-zinc-200 text-zinc-900"
                 >
-                  {checkoutLoading ? (
-                    <>
-                      <div className="w-3.5 h-3.5 border-2 border-zinc-500 border-t-transparent rounded-full animate-spin"></div>
-                      <span>Menyiapkan Pembayaran...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Bayar dengan Midtrans (QRIS / VA)</span>
-                      <FeatherIcon icon="arrow-right" className="w-3.5 h-3.5" />
-                    </>
-                  )}
+                  <span>Lanjut ke Pembayaran</span>
+                  <FeatherIcon icon="arrow-right" className="w-3.5 h-3.5" />
                 </button>
               </div>
             )}
           </div>
         </aside>
       </div>
+
+      {/* ================= MODAL CHECKOUT PELANGGAN / GUEST ================= */}
+      {isCheckoutModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-zinc-900 border border-zinc-800 w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-5 text-zinc-100">
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center text-zinc-200">
+                  <FeatherIcon icon="shopping-bag" className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-zinc-100">Konfirmasi Pemesanan</h3>
+                  <p className="text-[11px] text-zinc-400">Silakan lengkapi data pemesan</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsCheckoutModalOpen(false)}
+                className="text-zinc-400 hover:text-zinc-100 p-1 rounded-lg hover:bg-zinc-800 transition-colors"
+              >
+                <FeatherIcon icon="x" className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleProcessCheckout} className="space-y-4">
+              {/* Nama Pemesan */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-zinc-300 flex items-center gap-1">
+                  <span>Nama Pemesan</span>
+                  <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: Adam / Kak Budi"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-500 transition-colors"
+                />
+              </div>
+
+              {/* Tipe Pesanan: Dine In vs Take Away */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-zinc-300">Tipe Pesanan</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setOrderType("DINE_IN")}
+                    className={`py-2 px-3 rounded-xl text-xs font-medium border flex items-center justify-center gap-1.5 transition-all ${
+                      orderType === "DINE_IN"
+                        ? "bg-zinc-100 text-zinc-950 border-zinc-100 font-semibold"
+                        : "bg-zinc-950 text-zinc-400 border-zinc-800 hover:text-zinc-200"
+                    }`}
+                  >
+                    <FeatherIcon icon="coffee" className="w-3.5 h-3.5" />
+                    <span>Makan di Tempat</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOrderType("TAKE_AWAY")}
+                    className={`py-2 px-3 rounded-xl text-xs font-medium border flex items-center justify-center gap-1.5 transition-all ${
+                      orderType === "TAKE_AWAY"
+                        ? "bg-zinc-100 text-zinc-950 border-zinc-100 font-semibold"
+                        : "bg-zinc-950 text-zinc-400 border-zinc-800 hover:text-zinc-200"
+                    }`}
+                  >
+                    <FeatherIcon icon="package" className="w-3.5 h-3.5" />
+                    <span>Bungkus / Bawa Pulang</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Nomor Meja (Jika Dine In) */}
+              {orderType === "DINE_IN" && (
+                <div className="space-y-1.5 animate-in fade-in duration-150">
+                  <label className="text-xs font-semibold text-zinc-300 flex items-center justify-between">
+                    <span>Nomor Meja</span>
+                    <span className="text-[10px] text-zinc-500">(Wajib jika di tempat)</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Contoh: 04 / Meja Bar Depan"
+                    value={tableNumber}
+                    onChange={(e) => setTableNumber(e.target.value)}
+                    className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-500 transition-colors"
+                  />
+                </div>
+              )}
+
+              {/* Nomor WhatsApp (Opsional) */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-zinc-300 flex items-center justify-between">
+                  <span>No. WhatsApp</span>
+                  <span className="text-[10px] text-zinc-500">(Opsional untuk notifikasi)</span>
+                </label>
+                <input
+                  type="tel"
+                  placeholder="Contoh: 08123456789"
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-500 transition-colors"
+                />
+              </div>
+
+              {/* Ringkasan Total */}
+              <div className="p-3 bg-zinc-950 rounded-xl border border-zinc-800/80 flex items-center justify-between">
+                <span className="text-xs text-zinc-400">Total Pembayaran ({cart.reduce((a, b) => a + b.quantity, 0)} item)</span>
+                <span className="text-sm font-bold font-mono text-zinc-100">Rp {total.toLocaleString("id-ID")}</span>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsCheckoutModalOpen(false)}
+                  className="w-1/3 py-2.5 rounded-xl border border-zinc-800 text-xs font-semibold text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={checkoutLoading}
+                  className="flex-1 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-500/10 active:scale-[0.98]"
+                >
+                  {checkoutLoading ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-zinc-950 border-t-transparent rounded-full animate-spin"></div>
+                      <span>Menyiapkan QRIS...</span>
+                    </>
+                  ) : (
+                    <>
+                      <FeatherIcon icon="credit-card" className="w-3.5 h-3.5" />
+                      <span>Bayar Sekarang via QRIS</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

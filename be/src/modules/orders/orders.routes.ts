@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { authGuard } from "../../middlewares/auth";
+import { authGuard, optionalAuthGuard } from "../../middlewares/auth";
 import { roleGuard } from "../../middlewares/roleGuard";
 import { validateBody } from "../../middlewares/validateBody";
 import * as controller from "./orders.controller";
@@ -17,11 +17,14 @@ router.post("/xendit-webhook", controller.xenditWebhookNotification);
 
 /**
  * ================================
- * CREATE
+ * CREATE (SUPPORT GUEST & USER)
  * ================================
  */
-// Membuat pesanan baru (Mendapatkan Snap Token)
-router.post("/", authGuard, validateBody(CheckoutSchema), controller.checkout);
+// Membuat pesanan baru (Mendukung Guest Checkout & User Login)
+router.post("/", optionalAuthGuard, validateBody(CheckoutSchema), controller.checkout);
+
+// Mengambil riwayat pesanan untuk Guest Checkout berdasarkan ID pesanan
+router.post("/guest-orders", controller.getGuestOrders);
 
 /**
  * ================================
@@ -46,12 +49,12 @@ router.get("/:id/items", authGuard, controller.getOrdersItems);
  * ================================
  */
 // Simulasi pembayaran sukses (Sandbox testing)
-router.post("/:id/simulate-payment", authGuard, controller.simulatePayment);
+router.post("/:id/simulate-payment", optionalAuthGuard, controller.simulatePayment);
 
 // Tandai order selesai
 router.patch("/:id/selesai", authGuard, controller.doneOrders);
 
 // Cancel order
-router.patch("/:id/cancel", authGuard, controller.cancelOrder);
+router.patch("/:id/cancel", optionalAuthGuard, controller.cancelOrder);
 
 export default router;

@@ -1,6 +1,11 @@
 import { z } from "zod";
 
 export const CheckoutSchema = z.object({
+  customer_name: z.string().min(1).max(100).optional().default("Pelanggan"),
+  order_type: z.enum(["DINE_IN", "TAKE_AWAY", "DELIVERY"]).optional().default("DINE_IN"),
+  table_number: z.string().max(20).optional().nullable(),
+  customer_phone: z.string().max(30).optional().nullable(),
+  guest_token: z.string().max(100).optional().nullable(),
   items: z
     .array(
       z.object({

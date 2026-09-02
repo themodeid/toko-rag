@@ -12,10 +12,28 @@ export interface CheckoutItemInput {
   quantity: number;
 }
 
+export interface CheckoutInput {
+  items: CheckoutItemInput[];
+  customer_name?: string;
+  order_type?: "DINE_IN" | "TAKE_AWAY" | "DELIVERY";
+  table_number?: string | null;
+  customer_phone?: string | null;
+  guest_token?: string | null;
+}
+
 export const checkoutService = async (
-  userId: string,
-  items: CheckoutItemInput[]
+  userId: string | null | undefined,
+  input: CheckoutInput
 ) => {
+  const {
+    items,
+    customer_name,
+    order_type = "DINE_IN",
+    table_number,
+    customer_phone,
+    guest_token,
+  } = input;
+
   if (!items || items.length === 0) {
     throw new AppError("Item order tidak boleh kosong", 400);
   }
@@ -36,9 +54,14 @@ export const checkoutService = async (
   try {
     await client.query("BEGIN");
 
-    // 1. Ambil data user pembeli
-    const userRes = await client.query("SELECT username FROM auth WHERE id = $1", [userId]);
-    const username = userRes.rows[0]?.username || "Pelanggan";
+    // 1. Ambil data nama pemesan (dari user login atau input guest)
+    let username = customer_name?.trim() || "Pelanggan";
+    if (userId) {
+      const userRes = await client.query("SELECT username FROM auth WHERE id = $1", [userId]);
+      if (userRes.rows[0]?.username) {
+        username = userRes.rows[0].username;
+      }
+    }
 
     // 2. Ambil produk dan lock untuk update stok
     const produkResult = await client.query(
@@ -86,14 +109,24 @@ export const checkoutService = async (
 
     const totalPrice = orderItems.reduce((acc, item) => acc + item.subtotal, 0);
 
-    // 3. Insert order dengan status awal MENUNGGU_PEMBAYARAN
+    // 3. Insert order dengan status awal MENUNGGU_PEMBAYARAN & guest fields
     const orderResult = await client.query(
       `
-      INSERT INTO orders (auth_id, total_price, status_pesanan, status_pembayaran)
-      VALUES ($1, $2, 'MENUNGGU_PEMBAYARAN', 'PENDING')
-      RETURNING id, auth_id, total_price, status_pesanan, status_pembayaran, created_at
+      INSERT INTO orders (
+        auth_id, customer_name, order_type, table_number, customer_phone, guest_token, total_price, status_pesanan, status_pembayaran
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, 'MENUNGGU_PEMBAYARAN', 'PENDING')
+      RETURNING id, auth_id, customer_name, order_type, table_number, total_price, status_pesanan, status_pembayaran, created_at
       `,
-      [userId, totalPrice]
+      [
+        userId || null,
+        username,
+        order_type,
+        table_number || null,
+        customer_phone || null,
+        guest_token || null,
+        totalPrice,
+      ]
     );
 
     const orderId = orderResult.rows[0].id;
@@ -490,7 +523,11 @@ export const getOrdersActiveWithItemsService = async () => {
     SELECT 
       o.id,
       o.auth_id,
-      u.username,
+      COALESCE(o.customer_name, u.username, 'Pelanggan') AS username,
+      o.customer_name,
+      o.order_type,
+      o.table_number,
+      o.customer_phone,
       o.total_price,
       o.status_pesanan,
       o.status_pembayaran,
@@ -511,7 +548,7 @@ export const getOrdersActiveWithItemsService = async () => {
         '[]'
       ) AS items
     FROM orders o
-    INNER JOIN auth u ON o.auth_id = u.id
+    LEFT JOIN auth u ON o.auth_id = u.id
     LEFT JOIN order_items oi ON o.id = oi.order_id
     LEFT JOIN produk p ON oi.produk_id = p.id
     LEFT JOIN daily_queue dq ON dq.order_id = o.id
@@ -520,6 +557,58 @@ export const getOrdersActiveWithItemsService = async () => {
     ORDER BY o.created_at ASC
   `;
   const result = await pool.query(query);
+  return result.rows;
+};
+
+export const getGuestOrdersWithItemsService = async (orderIds: string[]) => {
+  if (!orderIds || !Array.isArray(orderIds) || orderIds.length === 0) {
+    return [];
+  }
+
+  // Filter valid UUIDs
+  const validIds = orderIds.filter((id) =>
+    typeof id === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id.trim())
+  );
+
+  if (validIds.length === 0) return [];
+
+  const query = `
+    SELECT 
+      o.id,
+      o.auth_id,
+      o.customer_name,
+      o.order_type,
+      o.table_number,
+      o.total_price,
+      o.status_pesanan,
+      o.status_pembayaran,
+      o.payment_type,
+      o.snap_token,
+      o.created_at,
+      COALESCE(
+        json_agg(
+          json_build_object(
+            'produk_id', oi.produk_id,
+            'nama_produk', p.nama,
+            'harga_barang', oi.harga_barang,
+            'quantity', oi.quantity,
+            'subtotal', oi.subtotal,
+            'image', p.image,
+            'queue_number', dq.queue_number
+          )
+        ) FILTER (WHERE oi.id IS NOT NULL),
+        '[]'
+      ) AS items
+    FROM orders o
+    LEFT JOIN order_items oi ON o.id = oi.order_id
+    LEFT JOIN produk p ON oi.produk_id = p.id
+    LEFT JOIN daily_queue dq ON dq.order_id = o.id
+    WHERE o.id = ANY($1::uuid[])
+    GROUP BY o.id
+    ORDER BY o.created_at DESC
+  `;
+  const result = await pool.query(query, [validIds]);
   return result.rows;
 };
 

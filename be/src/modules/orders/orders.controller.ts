@@ -13,24 +13,28 @@ import {
   getOrdersActiveWithItemsService,
   getMyOrdersActiveWithItemsService,
   getMyAllOrdersWithItemsService,
+  getGuestOrdersWithItemsService,
   handleXenditWebhookService,
 } from "./orders.service";
 
-// ===================== CHECKOUT =====================
+// ===================== CHECKOUT (SUPPORT GUEST & DINE-IN / TAKE-AWAY) =====================
 export const checkout = catchAsync(async (req: Request, res: Response) => {
-  const { items } = req.body;
-  const userId = req.user?.id;
+  const { items, customer_name, order_type, table_number, customer_phone, guest_token } = req.body;
+  const userId = req.user?.id; // Optional (bisa undefined jika guest checkout)
 
-  if (!userId) {
-    throw new AppError("Unauthorized", 401);
-  }
-
-  const result = await checkoutService(userId, items);
+  const result = await checkoutService(userId, {
+    items,
+    customer_name,
+    order_type,
+    table_number,
+    customer_phone,
+    guest_token,
+  });
 
   // Invalidate caches
   await Promise.all([
     delCache("orders:active"),
-    delCache(`orders:active:${userId}`),
+    userId ? delCache(`orders:active:${userId}`) : Promise.resolve(),
     delCachePattern("produk:*"),
   ]);
 
@@ -39,9 +43,32 @@ export const checkout = catchAsync(async (req: Request, res: Response) => {
     message: "Checkout berhasil dibuat. Silakan selesaikan pembayaran.",
     order_id: result.orderId,
     snap_token: result.snapToken,
+    invoice_url: result.invoiceUrl,
     redirect_url: result.redirectUrl,
     total_price: result.totalPrice,
     data: result,
+  });
+});
+
+// ===================== GET GUEST ORDERS =====================
+export const getGuestOrders = catchAsync(async (req: Request, res: Response) => {
+  const { order_ids } = req.body;
+
+  if (!order_ids || !Array.isArray(order_ids) || order_ids.length === 0) {
+    return res.status(200).json({
+      status: "success",
+      total: 0,
+      data: [],
+    });
+  }
+
+  const orders = await getGuestOrdersWithItemsService(order_ids);
+
+  return res.status(200).json({
+    status: "success",
+    message: "Berhasil mengambil riwayat pesanan",
+    total: orders.length,
+    data: orders,
   });
 });
 

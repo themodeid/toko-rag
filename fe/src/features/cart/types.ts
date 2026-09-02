@@ -24,8 +24,12 @@ export interface OrderItem {
 
 export interface Order {
   id: string;
-  userId: string;
+  userId?: string;
   namaUser: string;
+  customerName?: string;
+  orderType?: "DINE_IN" | "TAKE_AWAY" | "DELIVERY";
+  tableNumber?: string | null;
+  customerPhone?: string | null;
   totalPrice: string;
   statusPesanan: string;
   createdAt: string;
@@ -38,8 +42,13 @@ export interface Order {
 
 interface BaseOrderFromApi {
   id: string;
-  user_id: string;
-  username: string;
+  user_id?: string;
+  auth_id?: string;
+  username?: string;
+  customer_name?: string;
+  order_type?: "DINE_IN" | "TAKE_AWAY" | "DELIVERY";
+  table_number?: string | null;
+  customer_phone?: string | null;
   total_price: string;
   status_pesanan: string;
   created_at: string;

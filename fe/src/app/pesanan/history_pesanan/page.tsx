@@ -15,6 +15,7 @@ import { Produk } from "@/features/produk/types";
 import {
   getAllMyOrders,
   getMyOrdersActiveWithItems,
+  getGuestOrders,
   cancelOrder,
   simulatePayment,
 } from "@/features/cart/api";
@@ -62,13 +63,45 @@ export default function HistoryPesanan() {
     }
   }
 
+  async function fetchGuestOrdersData() {
+    try {
+      setLoading(true);
+      const savedOrdersStr = localStorage.getItem("guest_orders");
+      const orderIds: string[] = savedOrdersStr ? JSON.parse(savedOrdersStr) : [];
+
+      if (orderIds.length === 0) {
+        setHistory([]);
+        setPesanan([]);
+        return;
+      }
+
+      const allOrders = await getGuestOrders(orderIds);
+      setHistory(allOrders);
+
+      // Filter yang masih aktif
+      const active = allOrders.filter((o) =>
+        ["MENUNGGU_PEMBAYARAN", "ANTRI", "DIPROSES"].includes(o.statusPesanan)
+      );
+      setPesanan(active);
+    } catch (err) {
+      console.error("Gagal load guest orders:", err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   const handleCancel = async (orderId: string) => {
     try {
       await cancelOrder(orderId);
-      alert("order berhasil dibatalkan");
-      fetchPesanan();
+      alert("Pesanan berhasil dibatalkan");
+      const token = localStorage.getItem("token");
+      if (token) {
+        fetchPesanan();
+      } else {
+        fetchGuestOrdersData();
+      }
     } catch (error) {
-      setError("gagal membatalkan pesanan");
+      setError("Gagal membatalkan pesanan");
     }
   };
 
@@ -76,15 +109,13 @@ export default function HistoryPesanan() {
     const loadData = async () => {
       try {
         setLoading(true);
-
         const token = localStorage.getItem("token");
 
-        if (!token) {
-          router.push("/login");
-          return;
+        if (token) {
+          await Promise.all([fetchHistory(), fetchPesanan()]);
+        } else {
+          await fetchGuestOrdersData();
         }
-
-        await Promise.all([fetchHistory(), fetchPesanan()]);
       } catch (error) {
         console.error("Gagal load data:", error);
       } finally {
@@ -96,9 +127,8 @@ export default function HistoryPesanan() {
   }, []);
 
   return (
-    <ProtectedRoute allowedRole="user">
-      <div className="min-h-screen flex flex-col md:flex-row bg-zinc-950 text-zinc-100 font-poppins selection:bg-zinc-800">
-        <Sidebar />
+    <div className="min-h-screen flex flex-col md:flex-row bg-zinc-950 text-zinc-100 font-poppins selection:bg-zinc-800">
+      <Sidebar />
 
       {/* ================= MAIN CONTENT ================= */}
       <main className="flex-1 p-4 md:p-8 lg:p-12 pb-24 md:pb-12 overflow-y-auto w-full">
@@ -425,6 +455,5 @@ export default function HistoryPesanan() {
         </div>
       </main>
     </div>
-    </ProtectedRoute>
   );
 }

@@ -144,9 +144,18 @@ export default function Antrian() {
                     <div>
                       <h2 className="font-semibold text-base text-zinc-100 flex items-center gap-2">
                         <div className="w-7 h-7 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-200 flex items-center justify-center text-xs font-bold">
-                          {order.namaUser?.charAt(0).toUpperCase() || "U"}
+                          {order.namaUser?.charAt(0).toUpperCase() || "P"}
                         </div>
-                        {order.namaUser}
+                        <span>{order.namaUser}</span>
+                        {order.orderType === "DINE_IN" ? (
+                          <span className="px-2 py-0.5 text-[10px] font-bold bg-amber-950/60 text-amber-300 border border-amber-800/60 rounded-md">
+                            Meja {order.tableNumber || "-"}
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 text-[10px] font-bold bg-blue-950/60 text-blue-300 border border-blue-800/60 rounded-md">
+                            Take Away
+                          </span>
+                        )}
                       </h2>
                       <p className="text-xs text-zinc-500 mt-1 flex items-center gap-1.5 font-mono">
                         <FeatherIcon icon="hash" className="w-3 h-3" />
