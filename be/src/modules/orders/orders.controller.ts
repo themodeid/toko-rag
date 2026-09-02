@@ -265,8 +265,17 @@ export const getMyAllOrdersWithItems = catchAsync(
 // ===================== XENDIT WEBHOOK CALLBACK =====================
 export const xenditWebhookNotification = catchAsync(
   async (req: Request, res: Response) => {
+    // 1. Verifikasi Header Token Xendit (jika dikonfigurasi)
+    const webhookToken = ENV.XENDIT_WEBHOOK_VERIFICATION_TOKEN;
+    const callbackToken = req.headers["x-callback-token"];
+
+    if (webhookToken && callbackToken !== webhookToken) {
+      console.warn("⚠️ Unauthorized Xendit Webhook attempt detected! Invalid x-callback-token.");
+      throw new AppError("Invalid verification token", 403);
+    }
+
     const payload = req.body;
-    console.log("📥 Received Xendit Webhook:", JSON.stringify(payload));
+    console.log("📥 Received Verified Xendit Webhook:", JSON.stringify(payload));
 
     const result = await handleXenditWebhookService(payload);
 
@@ -278,7 +287,7 @@ export const xenditWebhookNotification = catchAsync(
 
     return res.status(200).json({
       status: "success",
-      message: "Webhook Xendit berhasil diproses",
+      message: "Webhook Xendit berhasil diverifikasi dan diproses",
       data: result,
     });
   }

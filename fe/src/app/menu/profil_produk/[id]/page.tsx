@@ -25,12 +25,16 @@ export default function MenuPage() {
 
   // Data state
   const [produk, setProduk] = useState<Produk | null>(null);
+  const [hargaVal, setHargaVal] = useState<number | "">("");
+  const [hppVal, setHppVal] = useState<number | "">("");
 
   async function getProduk() {
     try {
       setLoading(true);
       const data = await getProdukById(id);
       setProduk(data.produk);
+      setHargaVal(data.produk.harga ?? "");
+      setHppVal(data.produk.hpp ?? "");
     } catch {
       setError("Gagal mengambil produk");
     } finally {
@@ -67,6 +71,7 @@ export default function MenuPage() {
     const formData = new FormData(e.currentTarget);
 
     const hargaValue = formData.get("harga");
+    const hppValue = formData.get("hpp");
     const stockValue = formData.get("stock");
     const imageValue = formData.get("image");
     const kategoriValue = formData.get("kategori")?.toString();
@@ -77,6 +82,7 @@ export default function MenuPage() {
     const payload: UpdateProdukPayload = {
       nama: formData.get("nama")?.toString(),
       harga: hargaValue !== null && hargaValue !== "" ? Number(hargaValue) : undefined,
+      hpp: hppValue !== null && hppValue !== "" ? Number(hppValue) : undefined,
       stock: stockValue !== null && stockValue !== "" ? Number(stockValue) : undefined,
       status: formData.get("status") !== null,
       kategori: kategoriValue,
@@ -267,20 +273,56 @@ export default function MenuPage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                  {/* Harga */}
+                  {/* Harga Jual */}
                   <div>
                     <label className="block font-semibold uppercase tracking-wider mb-1 text-zinc-400 text-[11px]">
-                      Harga Jual (Rp)
+                      Harga Jual (Rp) *
                     </label>
                     <input
                       type="number"
                       name="harga"
-                      defaultValue={produk?.harga}
+                      value={hargaVal}
+                      onChange={(e) => setHargaVal(e.target.value ? Number(e.target.value) : "")}
                       className="w-full bg-zinc-950 border border-zinc-700 rounded-lg py-2 px-3 text-xs focus:outline-none focus:border-zinc-400 transition-colors placeholder-zinc-600 text-zinc-100 font-medium font-mono"
                       required
                     />
                   </div>
 
+                  {/* Harga Modal / HPP */}
+                  <div>
+                    <label className="block font-semibold uppercase tracking-wider mb-1 text-zinc-400 text-[11px] flex items-center justify-between">
+                      <span>Harga Modal / HPP (Rp)</span>
+                      <span className="text-[10px] text-zinc-500 lowercase">opsional</span>
+                    </label>
+                    <input
+                      type="number"
+                      name="hpp"
+                      placeholder="Contoh: 10000"
+                      value={hppVal}
+                      onChange={(e) => setHppVal(e.target.value ? Number(e.target.value) : "")}
+                      className="w-full bg-zinc-950 border border-zinc-700 rounded-lg py-2 px-3 text-xs focus:outline-none focus:border-zinc-400 transition-colors placeholder-zinc-600 text-zinc-100 font-medium font-mono"
+                    />
+                  </div>
+                </div>
+
+                {/* Live Margin Calculation Preview */}
+                {Number(hargaVal) > 0 && Number(hppVal) > 0 && (
+                  <div className="bg-emerald-950/40 border border-emerald-800/60 p-2.5 rounded-lg flex items-center justify-between text-xs animate-in fade-in">
+                    <div>
+                      <span className="text-emerald-400 font-semibold block text-[11px]">Kalkulasi Margin & Laba:</span>
+                      <span className="text-zinc-300 text-[11px]">
+                        Laba Kotor: <b>Rp {(Number(hargaVal) - Number(hppVal)).toLocaleString("id-ID")}</b> / cup
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-emerald-500 text-zinc-950">
+                        Margin {Math.round(((Number(hargaVal) - Number(hppVal)) / Number(hargaVal)) * 100)}%
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-3">
                   {/* Stock */}
                   <div>
                     <label className="block font-semibold uppercase tracking-wider mb-1 text-zinc-400 text-[11px]">
@@ -290,6 +332,20 @@ export default function MenuPage() {
                       type="number"
                       name="stock"
                       defaultValue={produk?.stock}
+                      className="w-full bg-zinc-950 border border-zinc-700 rounded-lg py-2 px-3 text-xs focus:outline-none focus:border-zinc-400 transition-colors placeholder-zinc-600 text-zinc-100 font-medium font-mono"
+                    />
+                  </div>
+
+                  {/* Estimasi Menit */}
+                  <div>
+                    <label className="block font-semibold uppercase tracking-wider mb-1 text-zinc-400 text-[11px]">
+                      Estimasi Masak (Menit) ⏱️
+                    </label>
+                    <input
+                      type="number"
+                      name="estimasi_menit"
+                      defaultValue={produk?.estimasi_menit || 5}
+                      min={1}
                       className="w-full bg-zinc-950 border border-zinc-700 rounded-lg py-2 px-3 text-xs focus:outline-none focus:border-zinc-400 transition-colors placeholder-zinc-600 text-zinc-100 font-medium font-mono"
                     />
                   </div>

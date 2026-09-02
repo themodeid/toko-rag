@@ -55,6 +55,7 @@ export const ENV = {
   GEMINI_MODEL: getEnv("GEMINI_MODEL", "gemini-2.0-flash"),
   // Payment Gateways
   XENDIT_SECRET_KEY: getEnv("XENDIT_SECRET_KEY", "xnd_development_oP9dwP1nCG5CsdQ2uK7HxTgtY94YSgj50EKxdrPoo6NgMs7joJ1PhWO9TaU"),
+  XENDIT_WEBHOOK_VERIFICATION_TOKEN: getEnv("XENDIT_WEBHOOK_VERIFICATION_TOKEN", ""),
   MIDTRANS_SERVER_KEY: getEnv("MIDTRANS_SERVER_KEY", "SB-Mid-server-test-key"),
   MIDTRANS_CLIENT_KEY: getEnv("MIDTRANS_CLIENT_KEY", "SB-Mid-client-test-key"),
   MIDTRANS_IS_PRODUCTION: getEnvBool("MIDTRANS_IS_PRODUCTION", false),

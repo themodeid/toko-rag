@@ -3,6 +3,7 @@ export type Produk = {
   id: string;
   nama: string;
   harga: number;
+  hpp?: number;
   stock: number;
   status: boolean;
   image: string;
@@ -22,6 +23,7 @@ export type ProdukImage = {
 export type CreateProdukPayload = {
   nama: string;
   harga: number;
+  hpp?: number;
   stock: number;
   status: boolean;
   image: File;
@@ -35,6 +37,7 @@ export type CreateProdukPayload = {
 export type UpdateProdukPayload = {
   nama?: string;
   harga?: number;
+  hpp?: number;
   stock?: number;
   status?: boolean;
   image?: File;

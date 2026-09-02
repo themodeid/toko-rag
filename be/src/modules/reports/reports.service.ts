@@ -11,8 +11,27 @@ export interface AnalyticsSummary {
   marginPercentage: number;
   totalExpenses: number;
   netProfit: number;
+  netMarginPercentage: number;
   totalOrders: number;
   averageOrderValue: number;
+  paymentMethods: Array<{
+    method: string;
+    totalCount: number;
+    totalAmount: number;
+    percentage: number;
+  }>;
+  orderTypes: Array<{
+    type: string;
+    totalCount: number;
+    totalAmount: number;
+    percentage: number;
+  }>;
+  expenseCategories: Array<{
+    kategori: string;
+    totalCount: number;
+    totalAmount: number;
+    percentage: number;
+  }>;
   chartData: Array<{
     label: string;
     omzet: number;
@@ -67,17 +86,27 @@ export const getFinancialAnalyticsService = async (
     chartLabelExpr = "TO_CHAR(o.created_at, 'Mon')";
   }
 
+  // Common order filter for valid non-canceled sales
+  const validOrderCondition = `
+    ${dateFilterOrder}
+    AND o.status_pesanan != 'DIBATALKAN'
+    AND (
+      o.status_pembayaran IN ('PAID', 'SETTLEMENT') 
+      OR o.status_pesanan IN ('ANTRI', 'DIPROSES', 'SELESAI')
+    )
+    AND o.status_pembayaran NOT IN ('FAILED', 'EXPIRED')
+  `;
+
   // 1. Query Total Omzet, HPP, Order Count
   const revenueQuery = `
     SELECT 
       COALESCE(COUNT(DISTINCT o.id), 0) AS total_orders,
       COALESCE(SUM(o.total_price), 0) AS total_omzet,
-      COALESCE(SUM(oi.quantity * COALESCE(oi.harga_modal, ROUND(oi.harga_barang * 0.4))), 0) AS total_hpp
+      COALESCE(SUM(oi.quantity * COALESCE(NULLIF(oi.harga_modal, 0), NULLIF(p.hpp, 0), ROUND(oi.harga_barang * 0.4))), 0) AS total_hpp
     FROM orders o
     LEFT JOIN order_items oi ON o.id = oi.order_id
-    WHERE ${dateFilterOrder}
-      AND o.status_pesanan IN ('ANTRI', 'DIPROSES', 'SELESAI')
-      AND o.status_pembayaran = 'PAID'
+    LEFT JOIN produk p ON oi.produk_id = p.id
+    WHERE ${validOrderCondition}
   `;
 
   // 2. Query Total Expenses
@@ -87,23 +116,58 @@ export const getFinancialAnalyticsService = async (
     WHERE ${dateFilterExpense}
   `;
 
-  // 3. Query Chart Timeline Breakdown
+  // 3. Query Payment Method Breakdown
+  const paymentMethodQuery = `
+    SELECT 
+      COALESCE(NULLIF(o.payment_type, ''), 'QRIS / Midtrans') AS method,
+      COUNT(o.id) AS total_count,
+      COALESCE(SUM(o.total_price), 0) AS total_amount
+    FROM orders o
+    WHERE ${validOrderCondition}
+    GROUP BY COALESCE(NULLIF(o.payment_type, ''), 'QRIS / Midtrans')
+    ORDER BY total_amount DESC
+  `;
+
+  // 4. Query Order Type Breakdown (Dine-in vs Take-away)
+  const orderTypeQuery = `
+    SELECT 
+      COALESCE(NULLIF(o.order_type, ''), 'DINE_IN') AS type,
+      COUNT(o.id) AS total_count,
+      COALESCE(SUM(o.total_price), 0) AS total_amount
+    FROM orders o
+    WHERE ${validOrderCondition}
+    GROUP BY COALESCE(NULLIF(o.order_type, ''), 'DINE_IN')
+    ORDER BY total_amount DESC
+  `;
+
+  // 5. Query Expense Categories Breakdown
+  const expenseCategoryQuery = `
+    SELECT 
+      COALESCE(e.kategori, 'OPERASIONAL') AS kategori,
+      COUNT(e.id) AS total_count,
+      COALESCE(SUM(e.jumlah), 0) AS total_amount
+    FROM expenses e
+    WHERE ${dateFilterExpense}
+    GROUP BY COALESCE(e.kategori, 'OPERASIONAL')
+    ORDER BY total_amount DESC
+  `;
+
+  // 6. Query Chart Timeline Breakdown
   const chartQuery = `
     SELECT 
       ${chartLabelExpr} AS label,
       COALESCE(SUM(oi.subtotal), 0) AS omzet,
-      COALESCE(SUM(oi.quantity * COALESCE(oi.harga_modal, ROUND(oi.harga_barang * 0.4))), 0) AS hpp,
-      COALESCE(SUM(oi.subtotal - (oi.quantity * COALESCE(oi.harga_modal, ROUND(oi.harga_barang * 0.4)))), 0) AS profit
+      COALESCE(SUM(oi.quantity * COALESCE(NULLIF(oi.harga_modal, 0), NULLIF(p.hpp, 0), ROUND(oi.harga_barang * 0.4))), 0) AS hpp,
+      COALESCE(SUM(oi.subtotal - (oi.quantity * COALESCE(NULLIF(oi.harga_modal, 0), NULLIF(p.hpp, 0), ROUND(oi.harga_barang * 0.4))))), 0) AS profit
     FROM orders o
     INNER JOIN order_items oi ON o.id = oi.order_id
-    WHERE ${dateFilterOrder}
-      AND o.status_pesanan IN ('ANTRI', 'DIPROSES', 'SELESAI')
-      AND o.status_pembayaran = 'PAID'
+    LEFT JOIN produk p ON oi.produk_id = p.id
+    WHERE ${validOrderCondition}
     GROUP BY ${chartGroupExpr}, ${chartLabelExpr}
     ORDER BY ${chartGroupExpr} ASC
   `;
 
-  // 4. Query Top Selling Products & Product Profitability
+  // 7. Query Top Selling Products & Product Profitability
   const topProductsQuery = `
     SELECT 
       p.id,
@@ -111,22 +175,23 @@ export const getFinancialAnalyticsService = async (
       COALESCE(p.kategori, 'Umum') AS kategori,
       SUM(oi.quantity) AS total_terjual,
       SUM(oi.subtotal) AS total_omzet,
-      SUM(oi.quantity * COALESCE(oi.harga_modal, ROUND(oi.harga_barang * 0.4))) AS total_hpp,
-      SUM(oi.subtotal - (oi.quantity * COALESCE(oi.harga_modal, ROUND(oi.harga_barang * 0.4)))) AS laba_kotor
+      SUM(oi.quantity * COALESCE(NULLIF(oi.harga_modal, 0), NULLIF(p.hpp, 0), ROUND(oi.harga_barang * 0.4))) AS total_hpp,
+      SUM(oi.subtotal - (oi.quantity * COALESCE(NULLIF(oi.harga_modal, 0), NULLIF(p.hpp, 0), ROUND(oi.harga_barang * 0.4)))) AS laba_kotor
     FROM order_items oi
     INNER JOIN orders o ON oi.order_id = o.id
     INNER JOIN produk p ON oi.produk_id = p.id
-    WHERE ${dateFilterOrder}
-      AND o.status_pesanan IN ('ANTRI', 'DIPROSES', 'SELESAI')
-      AND o.status_pembayaran = 'PAID'
+    WHERE ${validOrderCondition}
     GROUP BY p.id, p.nama, p.kategori
     ORDER BY total_omzet DESC
     LIMIT 10
   `;
 
-  const [revRes, expRes, chartRes, topProdRes] = await Promise.all([
+  const [revRes, expRes, payRes, ordTypeRes, expCatRes, chartRes, topProdRes] = await Promise.all([
     pool.query(revenueQuery, [formattedDate]),
     pool.query(expenseQuery, [formattedDate]),
+    pool.query(paymentMethodQuery, [formattedDate]),
+    pool.query(orderTypeQuery, [formattedDate]),
+    pool.query(expenseCategoryQuery, [formattedDate]),
     pool.query(chartQuery, [formattedDate]),
     pool.query(topProductsQuery, [formattedDate]),
   ]);
@@ -139,7 +204,29 @@ export const getFinancialAnalyticsService = async (
   const grossProfit = totalOmzet - totalHpp;
   const marginPercentage = totalOmzet > 0 ? Math.round((grossProfit / totalOmzet) * 1000) / 10 : 0;
   const netProfit = grossProfit - totalExpenses;
+  const netMarginPercentage = totalOmzet > 0 ? Math.round((netProfit / totalOmzet) * 1000) / 10 : 0;
   const averageOrderValue = totalOrders > 0 ? Math.round(totalOmzet / totalOrders) : 0;
+
+  const paymentMethods = payRes.rows.map((row) => ({
+    method: row.method,
+    totalCount: Number(row.total_count),
+    totalAmount: Number(row.total_amount),
+    percentage: totalOmzet > 0 ? Math.round((Number(row.total_amount) / totalOmzet) * 1000) / 10 : 0,
+  }));
+
+  const orderTypes = ordTypeRes.rows.map((row) => ({
+    type: row.type,
+    totalCount: Number(row.total_count),
+    totalAmount: Number(row.total_amount),
+    percentage: totalOmzet > 0 ? Math.round((Number(row.total_amount) / totalOmzet) * 1000) / 10 : 0,
+  }));
+
+  const expenseCategories = expCatRes.rows.map((row) => ({
+    kategori: row.kategori,
+    totalCount: Number(row.total_count),
+    totalAmount: Number(row.total_amount),
+    percentage: totalExpenses > 0 ? Math.round((Number(row.total_amount) / totalExpenses) * 1000) / 10 : 0,
+  }));
 
   const chartData = chartRes.rows.map((row) => ({
     label: row.label,
@@ -172,8 +259,12 @@ export const getFinancialAnalyticsService = async (
     marginPercentage,
     totalExpenses,
     netProfit,
+    netMarginPercentage,
     totalOrders,
     averageOrderValue,
+    paymentMethods,
+    orderTypes,
+    expenseCategories,
     chartData,
     topProducts,
   };

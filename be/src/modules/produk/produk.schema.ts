@@ -3,6 +3,7 @@ import { z } from "zod";
 export const produkSchema = z.object({
   nama: z.string().min(1).max(100),
   harga: z.coerce.number().min(0),
+  hpp: z.coerce.number().min(0).default(0).optional(),
   stock: z.coerce.number().min(0),
   status: z.coerce.boolean(),
   image: z.string().optional(),
@@ -23,6 +24,7 @@ export const produkImageSchema = z.object({
 export const updateProdukSchema = z.object({
   nama: z.string().min(1).max(100).optional(),
   harga: z.coerce.number().min(0).optional(),
+  hpp: z.coerce.number().min(0).optional(),
   stock: z.coerce.number().min(0).optional(),
   status: z.coerce.boolean().optional(),
   image: z.any().optional(), // multer

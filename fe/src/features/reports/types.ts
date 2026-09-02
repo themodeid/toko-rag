@@ -16,6 +16,27 @@ export interface TopProductAnalytics {
   margin: number;
 }
 
+export interface PaymentMethodBreakdown {
+  method: string;
+  totalCount: number;
+  totalAmount: number;
+  percentage: number;
+}
+
+export interface OrderTypeBreakdown {
+  type: string;
+  totalCount: number;
+  totalAmount: number;
+  percentage: number;
+}
+
+export interface ExpenseCategoryBreakdown {
+  kategori: string;
+  totalCount: number;
+  totalAmount: number;
+  percentage: number;
+}
+
 export interface FinancialAnalyticsData {
   period: "daily" | "monthly" | "yearly";
   selectedDate: string;
@@ -25,8 +46,12 @@ export interface FinancialAnalyticsData {
   marginPercentage: number;
   totalExpenses: number;
   netProfit: number;
+  netMarginPercentage: number;
   totalOrders: number;
   averageOrderValue: number;
+  paymentMethods: PaymentMethodBreakdown[];
+  orderTypes: OrderTypeBreakdown[];
+  expenseCategories: ExpenseCategoryBreakdown[];
   chartData: ChartDataPoint[];
   topProducts: TopProductAnalytics[];
 }

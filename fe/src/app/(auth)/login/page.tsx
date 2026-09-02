@@ -18,7 +18,7 @@ export default function AuthPage() {
   async function handleSubmit(formData: FormData) {
     const username = formData.get("nama") as string;
     const password = formData.get("password") as string;
-    const role = (formData.get("role") as string) || "user";
+    const role = "karyawan"; // Otomatis mendaftar sebagai Karyawan
 
     if (!username || !password) {
       setError("Username dan password wajib diisi");
@@ -32,11 +32,11 @@ export default function AuthPage() {
       if (mode === "login") {
         const user = await login({ username, password });
         await refreshUser();
-        const role = (user.role || "").toLowerCase();
+        const userRole = (user.role || "").toLowerCase();
 
-        if (role === "owner" || role === "admin") {
+        if (userRole === "owner" || userRole === "admin") {
           router.replace("/admin/analyst");
-        } else if (role === "karyawan") {
+        } else if (userRole === "karyawan") {
           router.replace("/pesanan/daftar_pesanan");
         } else {
           router.replace("/");
@@ -48,7 +48,7 @@ export default function AuthPage() {
       }
     } catch (err) {
       setError(
-        mode === "login" ? "Username atau password salah" : "Gagal mendaftar",
+        mode === "login" ? "Username atau password salah" : "Gagal mendaftar akun karyawan",
       );
     } finally {
       setLoading(false);
@@ -64,16 +64,16 @@ export default function AuthPage() {
         <div className="w-full max-w-md bg-zinc-900 p-8 sm:p-10 rounded-xl border border-zinc-800 shadow-2xl relative z-10">
           {/* Header */}
           <div className="mb-8 text-center">
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4 bg-zinc-800 border border-zinc-700 text-zinc-200">
-              <FeatherIcon icon={mode === "login" ? "log-in" : "user-plus"} className="w-5 h-5" />
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4 bg-zinc-800 border border-zinc-700 text-emerald-400">
+              <FeatherIcon icon={mode === "login" ? "coffee" : "user-plus"} className="w-5 h-5" />
             </div>
             <h1 className="text-2xl font-bold text-zinc-100">
-              {mode === "login" ? "Welcome Back" : "Create Account"}
+              {mode === "login" ? "Portal Karyawan & Staff" : "Daftar Akun Karyawan"}
             </h1>
             <p className="text-zinc-400 mt-1.5 text-xs">
               {mode === "login"
-                ? "Masuk untuk melanjutkan pesanan"
-                : "Daftar untuk mulai memesan"}
+                ? "Masuk untuk mengakses antrean pesanan & dapur (KDS)"
+                : "Daftarkan akun staf baru untuk operasional toko"}
             </p>
           </div>
 
@@ -98,7 +98,7 @@ export default function AuthPage() {
                 <input
                   type="text"
                   name="nama"
-                  placeholder="Masukkan username"
+                  placeholder="Masukkan username karyawan"
                   className="w-full bg-zinc-950 border border-zinc-700 rounded-lg py-2.5 pl-10 pr-3 text-xs focus:outline-none focus:border-zinc-400 transition-colors placeholder-zinc-600 text-zinc-100"
                   required
                 />
@@ -123,23 +123,6 @@ export default function AuthPage() {
               </div>
             </div>
 
-            {mode === "register" && (
-              <div className="animate-in fade-in duration-150">
-                <label className="block font-semibold uppercase tracking-wider mb-1 text-zinc-400 text-[11px]">
-                  Daftar Sebagai Role
-                </label>
-                <select
-                  name="role"
-                  defaultValue="user"
-                  className="w-full bg-zinc-950 border border-zinc-700 rounded-lg py-2.5 px-3 text-xs focus:outline-none focus:border-zinc-400 transition-colors text-zinc-100 cursor-pointer font-medium"
-                >
-                  <option value="owner">👑 Owner / Pemilik Bisnis</option>
-                  <option value="karyawan">☕ Karyawan (Barista / Kasir / Kitchen)</option>
-                  <option value="user">🛍️ Pelanggan / Customer</option>
-                </select>
-              </div>
-            )}
-
             <button
               type="submit"
               disabled={loading}
@@ -156,12 +139,12 @@ export default function AuthPage() {
                 </>
               ) : mode === "login" ? (
                 <>
-                  Masuk Sekarang
+                  Masuk ke Sistem
                   <FeatherIcon icon="arrow-right" className="w-3.5 h-3.5" />
                 </>
               ) : (
                 <>
-                  Daftar Sekarang
+                  Daftar Karyawan
                   <FeatherIcon icon="check" className="w-3.5 h-3.5" />
                 </>
               )}
@@ -172,7 +155,7 @@ export default function AuthPage() {
           <div className="mt-6 text-center text-xs text-zinc-400 border-t border-zinc-800 pt-4">
             {mode === "login" ? (
               <p>
-                Belum punya akun?{" "}
+                Karyawan baru?{" "}
                 <button
                   onClick={() => {
                     setMode("register");
@@ -180,12 +163,12 @@ export default function AuthPage() {
                   }}
                   className="text-zinc-200 font-semibold hover:underline underline-offset-4 ml-1"
                 >
-                  Daftar di sini
+                  Daftar akun staf di sini
                 </button>
               </p>
             ) : (
               <p>
-                Sudah punya akun?{" "}
+                Sudah punya akun staf?{" "}
                 <button
                   onClick={() => {
                     setMode("login");
@@ -193,7 +176,7 @@ export default function AuthPage() {
                   }}
                   className="text-zinc-200 font-semibold hover:underline underline-offset-4 ml-1"
                 >
-                  Login di sini
+                  Login staf di sini
                 </button>
               </p>
             )}

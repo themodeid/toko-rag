@@ -24,6 +24,8 @@ export default function AddMenuPage() {
   // Data state
   const [produk, setProduk] = useState<Produk[]>([]);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [hargaInput, setHargaInput] = useState<number | "">("");
+  const [hppInput, setHppInput] = useState<number | "">("");
 
   async function getProduk() {
     try {
@@ -70,6 +72,7 @@ export default function AddMenuPage() {
     const image = formData.get("image") as File;
     const nama = formData.get("nama") as string;
     const harga = Number(formData.get("harga"));
+    const hpp = formData.get("hpp") ? Number(formData.get("hpp")) : undefined;
     const stock = Number(formData.get("stock")) || 0;
     const status = formData.get("status") !== null;
     const kategori = (formData.get("kategori") as string) || "Umum";
@@ -97,6 +100,7 @@ export default function AddMenuPage() {
         image,
         nama,
         harga,
+        hpp,
         stock,
         status,
         kategori,
@@ -106,6 +110,8 @@ export default function AddMenuPage() {
       });
 
       setImagePreview(null);
+      setHargaInput("");
+      setHppInput("");
       getProduk();
       const form = document.querySelector("form") as HTMLFormElement | null;
       if (form) form.reset();
@@ -237,20 +243,56 @@ export default function AddMenuPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
                     <label className="block font-semibold uppercase tracking-wider mb-1 text-zinc-400 text-[11px]">
-                      Harga (Rp) *
+                      Harga Jual (Rp) *
                     </label>
                     <input
                       type="number"
                       name="harga"
                       placeholder="Contoh: 25000"
-                      className="w-full bg-zinc-950 border border-zinc-700 rounded-lg py-2 px-3 text-xs focus:outline-none focus:border-zinc-400 transition-colors placeholder-zinc-600 text-zinc-100"
+                      value={hargaInput}
+                      onChange={(e) => setHargaInput(e.target.value ? Number(e.target.value) : "")}
+                      className="w-full bg-zinc-950 border border-zinc-700 rounded-lg py-2 px-3 text-xs focus:outline-none focus:border-zinc-400 transition-colors placeholder-zinc-600 text-zinc-100 font-mono"
                       required
                     />
                   </div>
 
+                  <div>
+                    <label className="block font-semibold uppercase tracking-wider mb-1 text-zinc-400 text-[11px] flex items-center justify-between">
+                      <span>Harga Modal / HPP (Rp)</span>
+                      <span className="text-[10px] text-zinc-500 lowercase">opsional</span>
+                    </label>
+                    <input
+                      type="number"
+                      name="hpp"
+                      placeholder="Contoh: 10000"
+                      value={hppInput}
+                      onChange={(e) => setHppInput(e.target.value ? Number(e.target.value) : "")}
+                      className="w-full bg-zinc-950 border border-zinc-700 rounded-lg py-2 px-3 text-xs focus:outline-none focus:border-zinc-400 transition-colors placeholder-zinc-600 text-zinc-100 font-mono"
+                    />
+                  </div>
+                </div>
+
+                {/* Live Margin Calculation Preview */}
+                {Number(hargaInput) > 0 && Number(hppInput) > 0 && (
+                  <div className="bg-emerald-950/40 border border-emerald-800/60 p-2.5 rounded-lg flex items-center justify-between text-xs animate-in fade-in">
+                    <div>
+                      <span className="text-emerald-400 font-semibold block text-[11px]">Kalkulasi Margin & Laba:</span>
+                      <span className="text-zinc-300 text-[11px]">
+                        Laba Kotor: <b>Rp {(Number(hargaInput) - Number(hppInput)).toLocaleString("id-ID")}</b> / cup
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-emerald-500 text-zinc-950">
+                        Margin {Math.round(((Number(hargaInput) - Number(hppInput)) / Number(hargaInput)) * 100)}%
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
                     <label className="block font-semibold uppercase tracking-wider mb-1 text-zinc-400 text-[11px]">
                       Stok Awal
@@ -259,7 +301,7 @@ export default function AddMenuPage() {
                       type="number"
                       name="stock"
                       placeholder="Contoh: 50"
-                      className="w-full bg-zinc-950 border border-zinc-700 rounded-lg py-2 px-3 text-xs focus:outline-none focus:border-zinc-400 transition-colors placeholder-zinc-600 text-zinc-100"
+                      className="w-full bg-zinc-950 border border-zinc-700 rounded-lg py-2 px-3 text-xs focus:outline-none focus:border-zinc-400 transition-colors placeholder-zinc-600 text-zinc-100 font-mono"
                     />
                   </div>
 
@@ -273,7 +315,7 @@ export default function AddMenuPage() {
                       defaultValue={5}
                       min={1}
                       placeholder="Contoh: 5"
-                      className="w-full bg-zinc-950 border border-zinc-700 rounded-lg py-2 px-3 text-xs focus:outline-none focus:border-zinc-400 transition-colors placeholder-zinc-600 text-zinc-100"
+                      className="w-full bg-zinc-950 border border-zinc-700 rounded-lg py-2 px-3 text-xs focus:outline-none focus:border-zinc-400 transition-colors placeholder-zinc-600 text-zinc-100 font-mono"
                     />
                   </div>
                 </div>
@@ -343,12 +385,12 @@ export default function AddMenuPage() {
                   {loading ? (
                     <>
                       <div className="w-3.5 h-3.5 border-2 border-zinc-600 border-t-transparent rounded-full animate-spin"></div>
-                      Menyimpan...
+                      Membuat Menu...
                     </>
                   ) : (
                     <>
-                      Simpan Menu
-                      <FeatherIcon icon="check" className="w-3.5 h-3.5" />
+                      Simpan & Publikasikan Menu
+                      <FeatherIcon icon="plus" className="w-3.5 h-3.5" />
                     </>
                   )}
                 </button>
@@ -356,6 +398,7 @@ export default function AddMenuPage() {
             </div>
           </div>
 
+          {/* ================= RIGHT: LIST MENU ================= */}
           <div className="xl:col-span-7">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-zinc-100 flex items-center gap-2.5">
@@ -365,102 +408,113 @@ export default function AddMenuPage() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {produk.map((item) => (
-                <div
-                  key={item.id}
-                  className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden hover:border-zinc-700 transition-colors flex flex-col"
-                >
-                  <div className="relative h-36 bg-zinc-950 overflow-hidden border-b border-zinc-800">
-                    {item.image ? (
-                      <Image
-                        src={getProductImageUrl(item.image)}
-                        alt={item.nama}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-zinc-600">
-                        <FeatherIcon
-                          icon="image"
-                          className="w-6 h-6 opacity-50"
+              {produk.map((item) => {
+                const itemMargin = item.hpp && item.harga && item.harga > 0 
+                  ? Math.round(((item.harga - item.hpp) / item.harga) * 100) 
+                  : 0;
+
+                return (
+                  <div
+                    key={item.id}
+                    className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden hover:border-zinc-700 transition-colors flex flex-col"
+                  >
+                    <div className="relative h-36 bg-zinc-950 overflow-hidden border-b border-zinc-800">
+                      {item.image ? (
+                        <Image
+                          src={getProductImageUrl(item.image)}
+                          alt={item.nama}
+                          fill
+                          className="object-cover group-hover:scale-105 transition-transform duration-300"
                         />
-                      </div>
-                    )}
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-zinc-600">
+                          <FeatherIcon
+                            icon="image"
+                            className="w-6 h-6 opacity-50"
+                          />
+                        </div>
+                      )}
 
-                    <div className="absolute top-2 left-2 z-10">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-zinc-900/90 text-zinc-300 border border-zinc-700 backdrop-blur-sm">
-                        {item.kategori || "Menu"}
-                      </span>
-                    </div>
-
-                    <div className="absolute top-2 right-2 z-10">
-                      <span
-                        className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${
-                          item.status
-                            ? "bg-emerald-950/80 text-emerald-300 border-emerald-800/60"
-                            : "bg-red-950/80 text-red-300 border-red-800/60"
-                        }`}
-                      >
-                        {item.status ? "Aktif" : "Nonaktif"}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="p-4 flex-1 flex flex-col">
-                    <h3 className="font-semibold text-sm text-zinc-100 group-hover:text-white transition-colors mb-1 leading-tight">
-                      {item.nama}
-                    </h3>
-
-                    {item.ingredients && (
-                      <div className="text-[11px] text-zinc-300 my-2 bg-zinc-950 p-2.5 rounded-lg border border-zinc-800 break-words leading-relaxed">
-                        <span className="text-zinc-500 font-semibold block text-[10px] uppercase tracking-wider mb-0.5">
-                          Komposisi / Bahan:
+                      <div className="absolute top-2 left-2 z-10 flex gap-1">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-zinc-900/90 text-zinc-300 border border-zinc-700 backdrop-blur-sm">
+                          {item.kategori || "Menu"}
                         </span>
-                        <span className="text-zinc-300">{item.ingredients}</span>
-                      </div>
-                    )}
-
-                    <div className="flex items-end justify-between mt-2 mb-3">
-                      <div>
-                        <p className="text-[10px] text-zinc-500 mb-0.5">
-                          Harga
-                        </p>
-                        <p className="text-base font-bold text-zinc-100 font-mono">
-                          <span className="text-zinc-400 text-xs align-top mr-0.5">
-                            Rp
+                        {item.hpp ? (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950/90 text-emerald-300 border border-emerald-700 backdrop-blur-sm">
+                            Margin {itemMargin}%
                           </span>
-                          {Number(item.harga ?? 0).toLocaleString("id-ID")}
-                        </p>
+                        ) : null}
                       </div>
 
-                      <div className="text-right">
-                        <p className="text-[10px] text-zinc-500 mb-0.5">Stok</p>
-                        <p className="font-semibold text-xs text-zinc-200 bg-zinc-950 py-0.5 px-2 border border-zinc-800 rounded font-mono inline-block">
-                          {item.stock}
-                        </p>
+                      <div className="absolute top-2 right-2 z-10">
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${
+                            item.status
+                              ? "bg-emerald-950/80 text-emerald-300 border-emerald-800/60"
+                              : "bg-red-950/80 text-red-300 border-red-800/60"
+                          }`}
+                        >
+                          {item.status ? "Aktif" : "Nonaktif"}
+                        </span>
                       </div>
                     </div>
 
-                    <div className="mt-auto flex gap-2 pt-2 border-t border-zinc-800/80">
-                      <Link
-                        href={`/menu/profil_produk/${item.id}`}
-                        className="flex-1 text-center bg-zinc-800 hover:bg-zinc-700/80 border border-zinc-700 text-zinc-200 font-semibold py-2 px-3 rounded-lg transition-colors text-xs flex items-center justify-center gap-1.5"
-                      >
-                        <FeatherIcon icon="edit-2" className="w-3.5 h-3.5 text-zinc-400" />
-                        <span>Edit</span>
-                      </Link>
-                      <button
-                        onClick={() => handleDeleteProduk(item.id, item.nama)}
-                        disabled={loading}
-                        className="w-9 h-9 flex items-center justify-center rounded-lg bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-800/60 transition-colors"
-                        title="Hapus Menu"
-                      >
-                        <FeatherIcon icon="trash-2" className="w-3.5 h-3.5" />
-                      </button>
+                    <div className="p-4 flex-1 flex flex-col">
+                      <h3 className="font-semibold text-sm text-zinc-100 group-hover:text-white transition-colors mb-1 leading-tight">
+                        {item.nama}
+                      </h3>
+
+                      {item.ingredients && (
+                        <div className="text-[11px] text-zinc-300 my-2 bg-zinc-950 p-2.5 rounded-lg border border-zinc-800 break-words leading-relaxed">
+                          <span className="text-zinc-500 font-semibold block text-[10px] uppercase tracking-wider mb-0.5">
+                            Komposisi / Bahan:
+                          </span>
+                          <span className="text-zinc-300">{item.ingredients}</span>
+                        </div>
+                      )}
+
+                      <div className="flex items-end justify-between mt-2 mb-3">
+                        <div>
+                          <p className="text-[10px] text-zinc-500 mb-0.5">
+                            Harga Jual {item.hpp ? `(Modal: Rp ${item.hpp.toLocaleString("id-ID")})` : ""}
+                          </p>
+                          <p className="text-base font-bold text-zinc-100 font-mono">
+                            <span className="text-zinc-400 text-xs align-top mr-0.5">
+                              Rp
+                            </span>
+                            {Number(item.harga ?? 0).toLocaleString("id-ID")}
+                          </p>
+                        </div>
+
+                        <div className="text-right">
+                          <p className="text-[10px] text-zinc-500 mb-0.5">Stok</p>
+                          <p className="font-semibold text-xs text-zinc-200 bg-zinc-950 py-0.5 px-2 border border-zinc-800 rounded font-mono inline-block">
+                            {item.stock}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-auto flex gap-2 pt-2 border-t border-zinc-800/80">
+                        <Link
+                          href={`/menu/profil_produk/${item.id}`}
+                          className="flex-1 text-center bg-zinc-800 hover:bg-zinc-700/80 border border-zinc-700 text-zinc-200 font-semibold py-2 px-3 rounded-lg transition-colors text-xs flex items-center justify-center gap-1.5"
+                        >
+                          <FeatherIcon icon="edit-2" className="w-3.5 h-3.5 text-zinc-400" />
+                          <span>Edit & Margin</span>
+                        </Link>
+                        <button
+                          onClick={() => handleDeleteProduk(item.id, item.nama)}
+                          disabled={loading}
+                          className="w-9 h-9 flex items-center justify-center rounded-lg bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-800/60 transition-colors"
+                          title="Hapus Menu"
+                        >
+                          <FeatherIcon icon="trash-2" className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>

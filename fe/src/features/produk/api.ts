@@ -15,11 +15,13 @@ export async function createProduk(data: CreateProdukPayload): Promise<Produk> {
     formData.append("image", data.image);
     formData.append("nama", data.nama);
     formData.append("harga", String(data.harga));
+    if (data.hpp !== undefined) formData.append("hpp", String(data.hpp));
     formData.append("stock", String(data.stock));
     formData.append("status", String(data.status));
     if (data.kategori) formData.append("kategori", data.kategori);
     if (data.deskripsi) formData.append("deskripsi", data.deskripsi);
     if (data.ingredients) formData.append("ingredients", data.ingredients);
+    if (data.estimasi_menit !== undefined) formData.append("estimasi_menit", String(data.estimasi_menit));
 
     const res = await api.post("/api/produk", formData, {
       headers: {
@@ -88,6 +90,7 @@ export async function updateProduk(
       formData.append("image", data.image);
       if (data.nama !== undefined) formData.append("nama", data.nama);
       if (data.harga !== undefined) formData.append("harga", String(data.harga));
+      if (data.hpp !== undefined) formData.append("hpp", String(data.hpp));
       if (data.stock !== undefined) formData.append("stock", String(data.stock));
       if (data.status !== undefined) formData.append("status", String(data.status));
       if (data.kategori !== undefined) formData.append("kategori", data.kategori);

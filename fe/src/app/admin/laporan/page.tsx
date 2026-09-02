@@ -99,29 +99,87 @@ export default function LaporanKeuanganPage() {
   // Helper format rupiah
   const formatRp = (val: number) => `Rp ${Math.round(val || 0).toLocaleString("id-ID")}`;
 
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleExportCSV = () => {
+    if (!analytics) return;
+    const rows: string[][] = [
+      ["LAPORAN KEUANGAN KAFE TOKO RAG"],
+      ["Periode", period.toUpperCase()],
+      ["Tanggal/Bulan/Tahun", analytics.selectedDate],
+      [""],
+      ["RINGKASAN UTAMA", "NILAI"],
+      ["Pendapatan Kotor (Omzet)", String(analytics.totalOmzet)],
+      ["Total Transaksi", String(analytics.totalOrders)],
+      ["Rata-rata Nilai Order (AOV)", String(analytics.averageOrderValue)],
+      ["Total HPP (Modal Bahan)", String(analytics.totalHpp)],
+      ["Laba Kotor (Gross Profit)", String(analytics.grossProfit)],
+      ["Margin Keuntungan", `${analytics.marginPercentage}%`],
+      ["Total Pengeluaran Operasional", String(analytics.totalExpenses)],
+      ["Laba Bersih (Net Profit)", String(analytics.netProfit)],
+      [""],
+      ["PRODUK TERLARIS & KONTRIBUSI LABA"],
+      ["ID", "Nama Menu", "Kategori", "Terjual (Qty)", "Total Omzet", "Total HPP", "Laba Kotor", "Margin (%)"],
+      ...analytics.topProducts.map((p) => [
+        p.id,
+        `"${p.nama}"`,
+        p.kategori,
+        String(p.totalTerjual),
+        String(p.totalOmzet),
+        String(p.totalHpp),
+        String(p.labaKotor),
+        `${p.margin}%`,
+      ]),
+      [""],
+      ["RINCIAN PENGELUARAN OPERASIONAL"],
+      ["ID", "Nama Biaya", "Kategori", "Jumlah (Rp)", "Tanggal", "Catatan"],
+      ...expenses.map((e) => [
+        e.id,
+        `"${e.nama}"`,
+        e.kategori,
+        String(e.jumlah),
+        e.tanggal.slice(0, 10),
+        `"${e.catatan || ""}"`,
+      ]),
+    ];
+
+    const csvContent = "data:text/csv;charset=utf-8," + rows.map((e) => e.join(",")).join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `Laporan_Keuangan_TokoRAG_${period}_${analytics.selectedDate}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <ProtectedRoute allowedRole="admin">
-      <div className="min-h-screen flex flex-col md:flex-row bg-zinc-950 text-zinc-100 font-poppins selection:bg-zinc-800">
-        <Sidebar type="admin" />
+      <div className="min-h-screen flex flex-col md:flex-row bg-zinc-950 text-zinc-100 font-poppins selection:bg-zinc-800 print:bg-white print:text-black">
+        <div className="print:hidden">
+          <Sidebar type="admin" />
+        </div>
 
-        <main className="flex-1 p-4 md:p-8 lg:p-12 pb-24 md:pb-12 overflow-y-auto space-y-8 w-full max-w-7xl mx-auto">
+        <main className="flex-1 p-4 md:p-8 lg:p-12 pb-24 md:pb-12 overflow-y-auto space-y-8 w-full max-w-7xl mx-auto print:p-0 print:max-w-none">
           {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800 pb-6 pt-4 md:pt-0">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800 pb-6 pt-4 md:pt-0 print:border-b-2 print:border-black">
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-zinc-900 border border-zinc-800 text-zinc-300 rounded-md mb-2 text-xs font-semibold uppercase tracking-wider">
-                <FeatherIcon icon="trending-up" className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Executive Financial Report</span>
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-zinc-900 border border-zinc-800 text-zinc-300 rounded-md mb-2 text-xs font-semibold uppercase tracking-wider print:border-black print:text-black">
+                <FeatherIcon icon="trending-up" className="w-3.5 h-3.5 text-emerald-400 print:text-black" />
+                <span>Executive Financial & Profit/Loss Statement</span>
               </div>
-              <h1 className="text-3xl font-bold tracking-tight text-zinc-100">
-                Laporan & Analisis Keuangan
+              <h1 className="text-3xl font-bold tracking-tight text-zinc-100 print:text-black">
+                Laporan & Rekap Keuangan Toko
               </h1>
-              <p className="text-sm text-zinc-400 mt-1">
-                Rekap laba rugi, omzet kotor, margin HPP, dan pengeluaran operasional toko.
+              <p className="text-sm text-zinc-400 mt-1 print:text-zinc-600">
+                Laba rugi bersih, omzet kotor, modal HPP, margin profit, dan pengeluaran operasional.
               </p>
             </div>
 
-            {/* Filter Periode & Tanggal */}
-            <div className="flex flex-wrap items-center gap-2 bg-zinc-900 p-1.5 rounded-xl border border-zinc-800">
+            {/* Filter Periode, Print, Export & Catat Biaya */}
+            <div className="flex flex-wrap items-center gap-2 bg-zinc-900 p-1.5 rounded-xl border border-zinc-800 print:hidden">
               <div className="flex rounded-lg bg-zinc-950 p-1 border border-zinc-800">
                 <button
                   onClick={() => { setPeriod("daily"); setSelectedDate(""); }}
@@ -165,6 +223,24 @@ export default function LaporanKeuanganPage() {
               />
 
               <button
+                onClick={handleExportCSV}
+                className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-semibold text-xs rounded-lg flex items-center gap-1.5 transition-all border border-zinc-700 active:scale-95"
+                title="Export Spreadsheet CSV / Excel"
+              >
+                <FeatherIcon icon="download" className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Export CSV</span>
+              </button>
+
+              <button
+                onClick={handlePrint}
+                className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-semibold text-xs rounded-lg flex items-center gap-1.5 transition-all border border-zinc-700 active:scale-95"
+                title="Cetak Laporan / Export PDF"
+              >
+                <FeatherIcon icon="printer" className="w-3.5 h-3.5" />
+                <span>Cetak</span>
+              </button>
+
+              <button
                 onClick={() => setIsExpenseModalOpen(true)}
                 className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs rounded-lg flex items-center gap-1.5 transition-all shadow-md active:scale-95 ml-auto md:ml-0"
               >
@@ -187,7 +263,7 @@ export default function LaporanKeuanganPage() {
                 <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 relative overflow-hidden flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between text-zinc-400 mb-2">
-                      <span className="text-xs font-medium">Pendapatan Kotor</span>
+                      <span className="text-xs font-medium">Total Pendapatan (Omzet)</span>
                       <div className="w-7 h-7 rounded-lg bg-blue-950/60 border border-blue-800/60 flex items-center justify-center text-blue-400">
                         <FeatherIcon icon="dollar-sign" className="w-3.5 h-3.5" />
                       </div>
@@ -196,8 +272,9 @@ export default function LaporanKeuanganPage() {
                       {formatRp(analytics?.totalOmzet || 0)}
                     </h3>
                   </div>
-                  <p className="text-[11px] text-zinc-500 mt-3 pt-3 border-t border-zinc-800/80">
-                    Dari <strong>{analytics?.totalOrders || 0}</strong> transaksi selesai
+                  <p className="text-[11px] text-zinc-500 mt-3 pt-3 border-t border-zinc-800/80 flex items-center justify-between">
+                    <span><strong>{analytics?.totalOrders || 0}</strong> Transaksi</span>
+                    <span>AOV: {formatRp(analytics?.averageOrderValue || 0)}</span>
                   </p>
                 </div>
 
@@ -205,7 +282,7 @@ export default function LaporanKeuanganPage() {
                 <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 relative overflow-hidden flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between text-zinc-400 mb-2">
-                      <span className="text-xs font-medium">Total HPP / Modal</span>
+                      <span className="text-xs font-medium">Total Modal Bahan (HPP)</span>
                       <div className="w-7 h-7 rounded-lg bg-amber-950/60 border border-amber-800/60 flex items-center justify-center text-amber-400">
                         <FeatherIcon icon="archive" className="w-3.5 h-3.5" />
                       </div>
@@ -215,7 +292,7 @@ export default function LaporanKeuanganPage() {
                     </h3>
                   </div>
                   <p className="text-[11px] text-zinc-500 mt-3 pt-3 border-t border-zinc-800/80">
-                    Modal bahan baku per menu
+                    Modal bahan baku terpakai
                   </p>
                 </div>
 
@@ -223,7 +300,7 @@ export default function LaporanKeuanganPage() {
                 <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 relative overflow-hidden flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between text-zinc-400 mb-2">
-                      <span className="text-xs font-medium">Laba Kotor (Gross)</span>
+                      <span className="text-xs font-medium">Laba Kotor (Gross Profit)</span>
                       <div className="w-7 h-7 rounded-lg bg-purple-950/60 border border-purple-800/60 flex items-center justify-center text-purple-400">
                         <FeatherIcon icon="percent" className="w-3.5 h-3.5" />
                       </div>
@@ -233,7 +310,7 @@ export default function LaporanKeuanganPage() {
                     </h3>
                   </div>
                   <div className="mt-3 pt-3 border-t border-zinc-800/80 flex items-center justify-between text-[11px]">
-                    <span className="text-zinc-500">Margin Kotor:</span>
+                    <span className="text-zinc-500">Gross Margin:</span>
                     <span className="font-bold text-purple-400 bg-purple-950/60 px-2 py-0.5 rounded border border-purple-800/60">
                       {analytics?.marginPercentage || 0}%
                     </span>
@@ -244,7 +321,7 @@ export default function LaporanKeuanganPage() {
                 <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 relative overflow-hidden flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between text-zinc-400 mb-2">
-                      <span className="text-xs font-medium">Pengeluaran (Biaya)</span>
+                      <span className="text-xs font-medium">Biaya Operasional (Opex)</span>
                       <div className="w-7 h-7 rounded-lg bg-red-950/60 border border-red-800/60 flex items-center justify-center text-red-400">
                         <FeatherIcon icon="arrow-down-right" className="w-3.5 h-3.5" />
                       </div>
@@ -254,7 +331,7 @@ export default function LaporanKeuanganPage() {
                     </h3>
                   </div>
                   <p className="text-[11px] text-zinc-500 mt-3 pt-3 border-t border-zinc-800/80">
-                    Listrik, gaji, sewa, operasional
+                    Listrik, gaji, sewa, restock
                   </p>
                 </div>
 
@@ -262,7 +339,7 @@ export default function LaporanKeuanganPage() {
                 <div className="bg-gradient-to-b from-emerald-950/40 to-zinc-900 border border-emerald-800/60 rounded-2xl p-5 relative overflow-hidden flex flex-col justify-between shadow-lg shadow-emerald-950/20">
                   <div>
                     <div className="flex items-center justify-between text-emerald-400 mb-2">
-                      <span className="text-xs font-bold uppercase tracking-wider">Laba Bersih (Net)</span>
+                      <span className="text-xs font-bold uppercase tracking-wider">Laba Bersih (Net Profit)</span>
                       <div className="w-7 h-7 rounded-lg bg-emerald-500 text-zinc-950 flex items-center justify-center font-bold">
                         <FeatherIcon icon="award" className="w-4 h-4" />
                       </div>
@@ -271,9 +348,123 @@ export default function LaporanKeuanganPage() {
                       {formatRp(analytics?.netProfit || 0)}
                     </h3>
                   </div>
-                  <p className="text-[11px] text-emerald-300/80 mt-3 pt-3 border-t border-emerald-800/40 font-semibold">
-                    Keuntungan riil yang masuk kantong
-                  </p>
+                  <div className="mt-3 pt-3 border-t border-emerald-800/40 flex items-center justify-between text-[11px]">
+                    <span className="text-emerald-300/80">Net Margin:</span>
+                    <span className="font-bold text-emerald-300 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-700">
+                      {analytics?.netMarginPercentage || 0}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* ================= 3 MINI BREAKDOWN CARDS (PAYMENT, ORDER TYPE, HEALTH) ================= */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* 1. Metode Pembayaran */}
+                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 space-y-3">
+                  <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
+                    <h3 className="text-xs font-bold text-zinc-200 uppercase tracking-wider flex items-center gap-2">
+                      <FeatherIcon icon="credit-card" className="w-4 h-4 text-blue-400" />
+                      <span>Metode Pembayaran</span>
+                    </h3>
+                  </div>
+                  <div className="space-y-2.5">
+                    {analytics?.paymentMethods && analytics.paymentMethods.length > 0 ? (
+                      analytics.paymentMethods.map((pm, idx) => (
+                        <div key={idx} className="space-y-1">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-zinc-300 font-medium capitalize">{pm.method}</span>
+                            <span className="font-mono text-zinc-100 font-bold">{formatRp(pm.totalAmount)}</span>
+                          </div>
+                          <div className="w-full bg-zinc-950 h-1.5 rounded-full overflow-hidden">
+                            <div
+                              className="bg-blue-500 h-full rounded-full"
+                              style={{ width: `${pm.percentage}%` }}
+                            ></div>
+                          </div>
+                          <div className="flex justify-between text-[10px] text-zinc-500">
+                            <span>{pm.totalCount} transaksi</span>
+                            <span>{pm.percentage}%</span>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-xs text-zinc-500 py-4 text-center">Belum ada transaksi</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* 2. Tipe Pesanan (Dine-in vs Takeaway) */}
+                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 space-y-3">
+                  <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
+                    <h3 className="text-xs font-bold text-zinc-200 uppercase tracking-wider flex items-center gap-2">
+                      <FeatherIcon icon="shopping-bag" className="w-4 h-4 text-amber-400" />
+                      <span>Tipe Layanan Pesanan</span>
+                    </h3>
+                  </div>
+                  <div className="space-y-2.5">
+                    {analytics?.orderTypes && analytics.orderTypes.length > 0 ? (
+                      analytics.orderTypes.map((ot, idx) => (
+                        <div key={idx} className="space-y-1">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-zinc-300 font-medium capitalize">
+                              {ot.type === "DINE_IN" ? "🍽️ Makan di Tempat (Dine-in)" : "🥡 Bawa Pulang (Takeaway)"}
+                            </span>
+                            <span className="font-mono text-zinc-100 font-bold">{formatRp(ot.totalAmount)}</span>
+                          </div>
+                          <div className="w-full bg-zinc-950 h-1.5 rounded-full overflow-hidden">
+                            <div
+                              className="bg-amber-500 h-full rounded-full"
+                              style={{ width: `${ot.percentage}%` }}
+                            ></div>
+                          </div>
+                          <div className="flex justify-between text-[10px] text-zinc-500">
+                            <span>{ot.totalCount} pesanan</span>
+                            <span>{ot.percentage}%</span>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-xs text-zinc-500 py-4 text-center">Belum ada pesanan</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* 3. Status Kesehatan Margin Bisnis */}
+                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 space-y-3">
+                  <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
+                    <h3 className="text-xs font-bold text-zinc-200 uppercase tracking-wider flex items-center gap-2">
+                      <FeatherIcon icon="activity" className="w-4 h-4 text-emerald-400" />
+                      <span>Kesehatan Margin Usaha</span>
+                    </h3>
+                  </div>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-zinc-400">Efisiensi Biaya Operasional:</span>
+                      <span className="font-mono font-bold text-zinc-200">
+                        {analytics?.totalOmzet && analytics.totalOmzet > 0
+                          ? Math.round((analytics.totalExpenses / analytics.totalOmzet) * 100)
+                          : 0}% dari Omzet
+                      </span>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-800 space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span className="font-bold text-emerald-400 text-xs">
+                          {(analytics?.netMarginPercentage || 0) >= 30
+                            ? "Margin Sangat Prima"
+                            : (analytics?.netMarginPercentage || 0) >= 15
+                            ? "Margin Normal F&B"
+                            : "Perlu Evaluasi Biaya"}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-zinc-400">
+                        {(analytics?.netMarginPercentage || 0) >= 30
+                          ? "Keuntungan bersih toko sangat solid dan memiliki daya tahan kas yang tinggi."
+                          : "Toko menghasilkan laba. Pertahankan efisiensi bahan dan tingkatkan promosi menu best seller."}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
 

@@ -75,7 +75,7 @@ export const getProdukById = catchAsync(async (req: Request, res: Response) => {
 
 // ===================== CREATE PRODUK =====================
 export const createProduk = catchAsync(async (req: Request, res: Response) => {
-  const { nama, harga, stock, status, kategori, deskripsi, ingredients } = req.body;
+  const { nama, harga, hpp, stock, status, kategori, deskripsi, ingredients } = req.body;
   const file = (req as any).file;
 
   if (!file) {
@@ -87,6 +87,7 @@ export const createProduk = catchAsync(async (req: Request, res: Response) => {
   const produk = await createProdukService({
     nama,
     harga: Number(harga),
+    hpp: hpp !== undefined && hpp !== "" ? Number(hpp) : undefined,
     stock: Number(stock),
     status: String(status) === "true" || status === true,
     image: imagePath,
@@ -107,7 +108,7 @@ export const createProduk = catchAsync(async (req: Request, res: Response) => {
 // ===================== UPDATE PRODUK =====================
 export const updateProduk = catchAsync(async (req: Request, res: Response) => {
   const id = req.params.id as string;
-  const { nama, harga, stock, status, kategori, deskripsi, ingredients } = req.body;
+  const { nama, harga, hpp, stock, status, kategori, deskripsi, ingredients } = req.body;
   const file = (req as any).file;
 
   const oldProduct = await getProdukByIdService(id);
@@ -120,6 +121,7 @@ export const updateProduk = catchAsync(async (req: Request, res: Response) => {
   const produk = await updateProdukService(id, {
     nama,
     harga: harga !== undefined ? Number(harga) : undefined,
+    hpp: hpp !== undefined && hpp !== "" ? Number(hpp) : undefined,
     stock: stock !== undefined ? Number(stock) : undefined,
     status:
       status !== undefined ? status === true || String(status) === "true" : undefined,

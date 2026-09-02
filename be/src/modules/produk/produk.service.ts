@@ -5,6 +5,7 @@ import { invalidateRagCache } from "../rag/rag.cache";
 export interface CreateProdukDTO {
   nama: string;
   harga: number;
+  hpp?: number;
   stock: number;
   status: boolean;
   image: string;
@@ -17,6 +18,7 @@ export interface CreateProdukDTO {
 export interface UpdateProdukDTO {
   nama?: string;
   harga?: number;
+  hpp?: number;
   stock?: number;
   status?: boolean;
   image?: string;
@@ -54,15 +56,17 @@ export const getProdukByIdService = async (id: string) => {
 };
 
 export const createProdukService = async (data: CreateProdukDTO) => {
+  const hppVal = data.hpp !== undefined ? data.hpp : Math.round(data.harga * 0.4);
   const result = await pool.query(
     `
-    INSERT INTO produk (nama, harga, stock, status, image, kategori, deskripsi, ingredients, estimasi_menit)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+    INSERT INTO produk (nama, harga, hpp, stock, status, image, kategori, deskripsi, ingredients, estimasi_menit)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
     RETURNING *
     `,
     [
       data.nama,
       data.harga,
+      hppVal,
       data.stock,
       data.status,
       data.image,
@@ -91,6 +95,10 @@ export const updateProdukService = async (
   if (data.harga !== undefined) {
     fields.push(`harga = $${idx++}`);
     values.push(data.harga);
+  }
+  if (data.hpp !== undefined) {
+    fields.push(`hpp = $${idx++}`);
+    values.push(data.hpp);
   }
   if (data.stock !== undefined) {
     fields.push(`stock = $${idx++}`);
