@@ -66,7 +66,7 @@ export const checkoutService = async (
     // 2. Ambil produk dan lock untuk update stok
     const produkResult = await client.query(
       `
-      SELECT id, nama, harga, stock, status
+      SELECT id, nama, harga, COALESCE(hpp, ROUND(harga * 0.4)) AS hpp, stock, status
       FROM produk
       WHERE id = ANY($1::uuid[]) AND deleted_at IS NULL
       FOR UPDATE
@@ -102,6 +102,7 @@ export const checkoutService = async (
         produk_id: produk.id,
         nama: produk.nama,
         harga: produk.harga,
+        harga_modal: Number(produk.hpp) || Math.round(produk.harga * 0.4),
         quantity: item.quantity,
         subtotal: produk.harga * item.quantity,
       };
@@ -131,13 +132,13 @@ export const checkoutService = async (
 
     const orderId = orderResult.rows[0].id;
 
-    // 4. Insert order items
+    // 4. Insert order items with historical modal / HPP
     const itemsQuery = `
-      INSERT INTO order_items (order_id, produk_id, harga_barang, quantity, subtotal)
+      INSERT INTO order_items (order_id, produk_id, harga_barang, harga_modal, quantity, subtotal)
       VALUES ${orderItems
         .map(
           (_, i) =>
-            `($${i * 5 + 1}, $${i * 5 + 2}, $${i * 5 + 3}, $${i * 5 + 4}, $${i * 5 + 5})`
+            `($${i * 6 + 1}, $${i * 6 + 2}, $${i * 6 + 3}, $${i * 6 + 4}, $${i * 6 + 5}, $${i * 6 + 6})`
         )
         .join(", ")}
     `;
@@ -146,6 +147,7 @@ export const checkoutService = async (
       orderId,
       item.produk_id,
       item.harga,
+      item.harga_modal,
       item.quantity,
       item.subtotal,
     ]);

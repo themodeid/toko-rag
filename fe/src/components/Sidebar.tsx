@@ -58,6 +58,14 @@ export default function Sidebar({ type }: SidebarProps) {
             <FeatherIcon icon="plus" className="w-4 h-4" />
           </div>
 
+          <div
+            className={navClass("/admin/laporan")}
+            onClick={() => router.push("/admin/laporan")}
+            title="Laporan Keuangan & Analisis Profit"
+          >
+            <FeatherIcon icon="pie-chart" className="w-4 h-4" />
+          </div>
+
           {isAuthenticated && (
             <div
               className="flex items-center justify-center w-10 h-10 rounded-lg cursor-pointer text-zinc-400 hover:text-red-400 hover:bg-zinc-800/60 transition-colors"
