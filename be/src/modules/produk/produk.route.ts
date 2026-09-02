@@ -12,27 +12,37 @@ const router = Router();
 router.get("/", getAllProduk);
 router.get("/:id", getProdukById);
 
-// Admin only
+// Admin / Owner / Karyawan
 router.post(
   "/",
   authGuard,
-  roleGuard("admin"),
+  roleGuard("owner", "admin"),
   upload.single("image"),
   validateBody(produkSchema),
   controller.createProduk,
 );
 
-// mengirim foto
+// update produk & foto
 router.patch(
   "/:id",
   authGuard,
-  roleGuard("admin"),
+  roleGuard("owner", "admin", "karyawan"),
   upload.single("image"),
   controller.updateProduk,
 );
 
-router.put("/:id", authGuard, roleGuard("admin"), controller.updateProduk);
+router.put(
+  "/:id",
+  authGuard,
+  roleGuard("owner", "admin", "karyawan"),
+  controller.updateProduk,
+);
 
-router.delete("/:id", authGuard, roleGuard("admin"), controller.deleteProduk);
+router.delete(
+  "/:id",
+  authGuard,
+  roleGuard("owner", "admin"),
+  controller.deleteProduk,
+);
 
 export default router;

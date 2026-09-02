@@ -6,48 +6,65 @@ import { useAuth } from "@/context/AuthContext";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  allowedRole?: "admin" | "user";
+  allowedRole?:
+    | "owner"
+    | "admin"
+    | "karyawan"
+    | "user"
+    | Array<"owner" | "admin" | "karyawan" | "user" | string>;
 }
 
 export default function ProtectedRoute({ children, allowedRole }: ProtectedRouteProps) {
   const { user, isAuthenticated, loading } = useAuth();
   const router = useRouter();
 
+  const userRole = (user?.role || "").toLowerCase();
+  const allowedList = allowedRole
+    ? (Array.isArray(allowedRole) ? allowedRole : [allowedRole]).map((r) =>
+        r.toLowerCase()
+      )
+    : null;
+
+  // Normalisasi: owner & admin dianggap setara
+  const isAuthorized =
+    !allowedList ||
+    allowedList.some((role) => {
+      if (role === "admin" || role === "owner") {
+        return userRole === "admin" || userRole === "owner";
+      }
+      return userRole === role;
+    });
+
   useEffect(() => {
     if (!loading) {
       if (!isAuthenticated) {
-        if (allowedRole === "admin") {
-          router.replace("/login_admin");
+        router.replace("/login");
+      } else if (!isAuthorized) {
+        if (userRole === "owner" || userRole === "admin") {
+          router.replace("/admin/analyst");
+        } else if (userRole === "karyawan") {
+          router.replace("/pesanan/daftar_pesanan");
         } else {
-          router.replace("/login");
+          router.replace("/");
         }
-      } else if (allowedRole && user?.role !== allowedRole) {
-        // Redirect based on role if not authorized
-        router.replace(user?.role === "admin" ? "/pesanan/daftar_pesanan" : "/");
       }
     }
-  }, [loading, isAuthenticated, user, allowedRole, router]);
+  }, [loading, isAuthenticated, isAuthorized, userRole, router]);
 
   if (loading) {
-    const spinnerColor = allowedRole === "admin" ? "border-blue-500" : "border-green-500";
-    const textTheme = allowedRole === "admin" ? "text-blue-400" : "text-green-400";
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#09090b] text-zinc-50 font-poppins">
         <div className="flex flex-col items-center gap-4">
-          <div className={`w-8 h-8 border-4 ${spinnerColor} border-t-transparent rounded-full animate-spin`}></div>
-          <p className={`font-semibold ${textTheme}`}>Memeriksa autentikasi...</p>
+          <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="font-semibold text-xs text-zinc-400">Memeriksa autentikasi...</p>
         </div>
       </div>
     );
   }
 
-  // If authenticated and role matches, or no role restriction and is authenticated
-  if (isAuthenticated && (!allowedRole || user?.role === allowedRole)) {
+  if (isAuthenticated && isAuthorized) {
     return <>{children}</>;
   }
 
-  // Otherwise return loading placeholder or null while redirecting
-  return (
-    <div className="min-h-screen bg-[#09090b]"></div>
-  );
+  return <div className="min-h-screen bg-[#09090b]"></div>;
 }

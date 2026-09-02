@@ -32,9 +32,15 @@ export default function AuthPage() {
       if (mode === "login") {
         const user = await login({ username, password });
         await refreshUser();
-        console.log("ROLE DARI BACKEND:", user.role);
+        const role = (user.role || "").toLowerCase();
 
-        router.replace(user.role === "admin" ? "/pesanan/daftar_pesanan" : "/");
+        if (role === "owner" || role === "admin") {
+          router.replace("/admin/analyst");
+        } else if (role === "karyawan") {
+          router.replace("/pesanan/daftar_pesanan");
+        } else {
+          router.replace("/");
+        }
       } else {
         await register({ username, password, role });
         setMode("login");
@@ -124,11 +130,12 @@ export default function AuthPage() {
                 </label>
                 <select
                   name="role"
-                  defaultValue="admin"
-                  className="w-full bg-zinc-950 border border-zinc-700 rounded-lg py-2.5 px-3 text-xs focus:outline-none focus:border-zinc-400 transition-colors text-zinc-100 cursor-pointer"
+                  defaultValue="user"
+                  className="w-full bg-zinc-950 border border-zinc-700 rounded-lg py-2.5 px-3 text-xs focus:outline-none focus:border-zinc-400 transition-colors text-zinc-100 cursor-pointer font-medium"
                 >
-                  <option value="admin">Admin / Pemilik Toko / Kasir</option>
-                  <option value="user">Pelanggan / Pembeli</option>
+                  <option value="owner">👑 Owner / Pemilik Bisnis</option>
+                  <option value="karyawan">☕ Karyawan (Barista / Kasir / Kitchen)</option>
+                  <option value="user">🛍️ Pelanggan / Customer</option>
                 </select>
               </div>
             )}

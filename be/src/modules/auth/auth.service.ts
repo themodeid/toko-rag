@@ -7,12 +7,13 @@ import { RegisterInput, LoginInput } from "./auth.schema";
 
 export const registerAdminService = async (data: RegisterInput) => {
   const hashedPassword = await bcrypt.hash(data.password, 10);
+  const role = data.role ? data.role.toLowerCase() : "owner";
 
   const result = await pool.query(
     `INSERT INTO auth (username, password, role)
-     VALUES ($1, $2, 'admin')
+     VALUES ($1, $2, $3)
      RETURNING id, username, role, created_at`,
-    [data.username, hashedPassword]
+    [data.username, hashedPassword, role]
   );
 
   return result.rows[0];
@@ -20,12 +21,13 @@ export const registerAdminService = async (data: RegisterInput) => {
 
 export const registerUserService = async (data: RegisterInput) => {
   const hashedPassword = await bcrypt.hash(data.password, 10);
+  const role = data.role ? data.role.toLowerCase() : "user";
 
   const result = await pool.query(
     `INSERT INTO auth (username, password, role)
-     VALUES ($1, $2, 'user')
+     VALUES ($1, $2, $3)
      RETURNING id, username, role, created_at`,
-    [data.username, hashedPassword]
+    [data.username, hashedPassword, role]
   );
 
   return result.rows[0];

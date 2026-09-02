@@ -3,6 +3,7 @@ import { z } from "zod";
 export const RegisterSchema = z.object({
   username: z.string().min(3, "Username minimal 3 karakter").max(100),
   password: z.string().min(6, "Password minimal 6 karakter"),
+  role: z.enum(["owner", "admin", "karyawan", "user"]).optional().default("user"),
 });
 
 export const LoginSchema = z.object({
@@ -16,7 +17,7 @@ export const LoginResponseSchema = z.object({
   user: z.object({
     id: z.string().uuid(),
     username: z.string(),
-    role: z.enum(["admin", "user"]),
+    role: z.enum(["owner", "admin", "karyawan", "user"]),
   }),
 });
 

@@ -29,11 +29,11 @@ router.post("/chat", ragLimiter, askRag);
 router.post("/chat/stream", ragLimiter, askRagStream);
 router.get("/suggestions", getSuggestions);
 
-// ================= ADMIN RAG (DATA ANALYST & BUSINESS ADVISOR) =================
+// ================= ADMIN & OWNER RAG (DATA ANALYST & BUSINESS ADVISOR) =================
 router.post(
   "/admin/chat-stream",
   authGuard,
-  roleGuard(["admin"]),
+  roleGuard("owner", "admin"),
   ragLimiter,
   askAdminRagStream
 );
@@ -41,7 +41,7 @@ router.post(
 router.get(
   "/admin/customer-insights",
   authGuard,
-  roleGuard(["admin"]),
+  roleGuard("owner", "admin"),
   getAdminCustomerInsights
 );
 
