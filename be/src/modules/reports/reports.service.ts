@@ -158,7 +158,7 @@ export const getFinancialAnalyticsService = async (
       ${chartLabelExpr} AS label,
       COALESCE(SUM(oi.subtotal), 0) AS omzet,
       COALESCE(SUM(oi.quantity * COALESCE(NULLIF(oi.harga_modal, 0), NULLIF(p.hpp, 0), ROUND(oi.harga_barang * 0.4))), 0) AS hpp,
-      COALESCE(SUM(oi.subtotal - (oi.quantity * COALESCE(NULLIF(oi.harga_modal, 0), NULLIF(p.hpp, 0), ROUND(oi.harga_barang * 0.4))))), 0) AS profit
+      COALESCE(SUM(oi.subtotal - (oi.quantity * COALESCE(NULLIF(oi.harga_modal, 0), NULLIF(p.hpp, 0), ROUND(oi.harga_barang * 0.4)))), 0) AS profit
     FROM orders o
     INNER JOIN order_items oi ON o.id = oi.order_id
     LEFT JOIN produk p ON oi.produk_id = p.id
