@@ -11,8 +11,16 @@ export const roleGuard =
     const flatRoles = roles.flat().map((r) => r.toLowerCase());
     const userRole = (req.user.role || "").toLowerCase();
 
-    if (!flatRoles.includes(userRole)) {
-      throw new AppError("Forbidden: akses ditolak", 403);
+    // Normalisasi: jika route mengizinkan "admin" atau "owner", keduanya boleh akses
+    const hasAccess = flatRoles.some((r) => {
+      if (r === "admin" || r === "owner") {
+        return userRole === "admin" || userRole === "owner";
+      }
+      return userRole === r;
+    });
+
+    if (!hasAccess) {
+      throw new AppError(`Forbidden: role '${userRole}' tidak memiliki akses ke fitur ini`, 403);
     }
 
     next();
