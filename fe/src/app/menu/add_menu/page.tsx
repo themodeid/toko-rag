@@ -124,7 +124,7 @@ export default function AddMenuPage() {
   }
 
   return (
-    <ProtectedRoute allowedRole="admin">
+    <ProtectedRoute allowedRole={["owner", "admin", "karyawan"]}>
       <div className="min-h-screen flex flex-col md:flex-row bg-zinc-950 text-zinc-100 font-poppins selection:bg-zinc-800">
         <Sidebar type="admin" />
 
