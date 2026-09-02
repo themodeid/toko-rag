@@ -175,7 +175,7 @@ export default function HistoryPesanan() {
                     className="relative overflow-hidden bg-zinc-900 p-5 rounded-xl border border-zinc-800 transition-colors"
                   >
                     {/* Header */}
-                    <div className="flex justify-between items-start mb-4">
+                    <div className="flex justify-between items-start mb-3">
                       <div>
                         <p className="flex items-center gap-2 font-mono font-bold text-base text-zinc-100">
                           <FeatherIcon
@@ -184,6 +184,11 @@ export default function HistoryPesanan() {
                           />
                           {queueNumber}
                         </p>
+                        {order.tableNumber && (
+                          <p className="text-[11px] text-amber-400 font-semibold mt-0.5">
+                            Meja {order.tableNumber}
+                          </p>
+                        )}
                       </div>
 
                       <div className="text-right">
@@ -202,6 +207,29 @@ export default function HistoryPesanan() {
                         </p>
                       </div>
                     </div>
+
+                    {/* Estimasi Waktu Selesai Banner */}
+                    {order.statusPesanan !== "SELESAI" && order.statusPesanan !== "DIBATALKAN" && (
+                      <div className="flex items-center justify-between bg-amber-950/40 border border-amber-800/50 text-amber-200 px-3 py-2 rounded-lg text-xs font-mono mb-4">
+                        <div className="flex items-center gap-2">
+                          <FeatherIcon icon="clock" className="w-4 h-4 text-amber-400 animate-pulse" />
+                          <span>Estimasi Penyajian:</span>
+                        </div>
+                        <span className="font-bold text-amber-300">
+                          ~{Math.max(
+                            1,
+                            (order.items || []).reduce(
+                              (acc, item) => acc + (item.estimasiMenit || 5) * item.quantity,
+                              0
+                            ) -
+                              Math.floor(
+                                (Date.now() - new Date(order.createdAt).getTime()) / (1000 * 60)
+                              )
+                          )}{" "}
+                          Menit lagi
+                        </span>
+                      </div>
+                    )}
 
                     {/* Items */}
                     <div className="space-y-2 mb-4">

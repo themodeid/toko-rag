@@ -9,6 +9,7 @@ export const produkSchema = z.object({
   kategori: z.string().optional(),
   deskripsi: z.string().optional(),
   ingredients: z.string().optional(),
+  estimasi_menit: z.coerce.number().min(1).default(5).optional(),
 });
 
 export type CreateProdukInput = z.infer<typeof produkSchema>;
@@ -28,6 +29,7 @@ export const updateProdukSchema = z.object({
   kategori: z.string().optional(),
   deskripsi: z.string().optional(),
   ingredients: z.string().optional(),
+  estimasi_menit: z.coerce.number().min(1).optional(),
 });
 
 export type UpdateProdukInput = z.infer<typeof updateProdukSchema>;

@@ -542,7 +542,8 @@ export const getOrdersActiveWithItemsService = async () => {
             'quantity', oi.quantity,
             'subtotal', oi.subtotal,
             'queue_number', dq.queue_number,
-            'image', p.image
+            'image', p.image,
+            'estimasi_menit', COALESCE(p.estimasi_menit, 5)
           )
         ) FILTER (WHERE oi.id IS NOT NULL),
         '[]'
@@ -595,7 +596,8 @@ export const getGuestOrdersWithItemsService = async (orderIds: string[]) => {
             'quantity', oi.quantity,
             'subtotal', oi.subtotal,
             'image', p.image,
-            'queue_number', dq.queue_number
+            'queue_number', dq.queue_number,
+            'estimasi_menit', COALESCE(p.estimasi_menit, 5)
           )
         ) FILTER (WHERE oi.id IS NOT NULL),
         '[]'
@@ -631,7 +633,8 @@ export const getMyOrdersActiveWithItemsService = async (userId: string) => {
             'harga_barang', oi.harga_barang,
             'quantity', oi.quantity,
             'queue_number', dq.queue_number,
-            'image', p.image
+            'image', p.image,
+            'estimasi_menit', COALESCE(p.estimasi_menit, 5)
           )
         ) FILTER (WHERE oi.id IS NOT NULL),
         '[]'
@@ -668,7 +671,8 @@ export const getMyAllOrdersWithItemsService = async (userId: string) => {
             'harga_barang', oi.harga_barang,
             'quantity', oi.quantity,
             'image', p.image,
-            'queue_number', dq.queue_number
+            'queue_number', dq.queue_number,
+            'estimasi_menit', COALESCE(p.estimasi_menit, 5)
           )
         ) FILTER (WHERE oi.id IS NOT NULL),
         '[]'

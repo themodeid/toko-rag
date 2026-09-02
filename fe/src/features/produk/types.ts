@@ -9,6 +9,7 @@ export type Produk = {
   kategori?: string;
   deskripsi?: string;
   ingredients?: string;
+  estimasi_menit?: number;
 };
 
 // mengambil semua data produk versi ringan
@@ -27,6 +28,7 @@ export type CreateProdukPayload = {
   kategori?: string;
   deskripsi?: string;
   ingredients?: string;
+  estimasi_menit?: number;
 };
 
 /* Payload update */
@@ -39,6 +41,7 @@ export type UpdateProdukPayload = {
   kategori?: string;
   deskripsi?: string;
   ingredients?: string;
+  estimasi_menit?: number;
 };
 
 export interface ProdukResponse {

@@ -11,6 +11,7 @@ export interface CreateProdukDTO {
   kategori?: string;
   deskripsi?: string;
   ingredients?: string;
+  estimasi_menit?: number;
 }
 
 export interface UpdateProdukDTO {
@@ -22,6 +23,7 @@ export interface UpdateProdukDTO {
   kategori?: string;
   deskripsi?: string;
   ingredients?: string;
+  estimasi_menit?: number;
 }
 
 export const getAllProdukService = async (limit = 100, offset = 0) => {
@@ -54,8 +56,8 @@ export const getProdukByIdService = async (id: string) => {
 export const createProdukService = async (data: CreateProdukDTO) => {
   const result = await pool.query(
     `
-    INSERT INTO produk (nama, harga, stock, status, image, kategori, deskripsi, ingredients)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    INSERT INTO produk (nama, harga, stock, status, image, kategori, deskripsi, ingredients, estimasi_menit)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
     RETURNING *
     `,
     [
@@ -67,6 +69,7 @@ export const createProdukService = async (data: CreateProdukDTO) => {
       data.kategori || "Umum",
       data.deskripsi || null,
       data.ingredients || null,
+      data.estimasi_menit || 5,
     ]
   );
   await invalidateRagCache();
@@ -112,6 +115,10 @@ export const updateProdukService = async (
   if (data.ingredients !== undefined) {
     fields.push(`ingredients = $${idx++}`);
     values.push(data.ingredients);
+  }
+  if (data.estimasi_menit !== undefined) {
+    fields.push(`estimasi_menit = $${idx++}`);
+    values.push(data.estimasi_menit);
   }
 
   fields.push(`updated_at = NOW()`);

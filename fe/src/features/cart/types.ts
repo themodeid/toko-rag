@@ -10,6 +10,7 @@ export interface CartItem {
   subtotal: number;
   queue: number;
   image?: string;
+  estimasiMenit?: number;
 }
 
 export interface OrderItem {
@@ -20,6 +21,7 @@ export interface OrderItem {
   subtotal: number;
   queue: number;
   image?: string;
+  estimasiMenit?: number;
 }
 
 export interface Order {
@@ -62,6 +64,7 @@ export interface OrderItemFromApi {
   image: string;
   queue_number: number;
   subtotal: number;
+  estimasi_menit?: number;
 }
 
 export interface OrderWithItemsFromApi extends BaseOrderFromApi {

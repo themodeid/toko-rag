@@ -129,6 +129,7 @@ export async function getAllMyOrders(): Promise<Order[]> {
       subtotal: i.subtotal,
       queue: i.queue_number,
       image: i.image,
+      estimasiMenit: i.estimasi_menit || 5,
     })),
   }));
 }
@@ -157,6 +158,7 @@ export async function getAllOrderActiveItems(): Promise<Order[]> {
       subtotal: i.subtotal,
       queue: i.queue_number,
       image: i.image,
+      estimasiMenit: i.estimasi_menit || 5,
     })),
   }));
 }
@@ -184,6 +186,7 @@ export async function getMyOrdersActiveWithItems(): Promise<Order[]> {
       subtotal: i.subtotal,
       queue: i.queue_number,
       image: i.image,
+      estimasiMenit: i.estimasi_menit || 5,
     })),
   }));
 }

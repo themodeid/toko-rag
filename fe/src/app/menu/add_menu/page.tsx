@@ -55,10 +55,10 @@ export default function AddMenuPage() {
     const nama = formData.get("nama") as string;
     const harga = Number(formData.get("harga"));
     const stock = Number(formData.get("stock")) || 0;
-    const status = formData.get("status") === "true";
     const kategori = (formData.get("kategori") as string) || "Umum";
     const deskripsi = (formData.get("deskripsi") as string) || "";
     const ingredients = (formData.get("ingredients") as string) || "";
+    const estimasi_menit = Number(formData.get("estimasi_menit")) || 5;
 
     if (!image || !image.type?.startsWith("image/")) {
       setError("File harus berupa gambar!");
@@ -85,6 +85,7 @@ export default function AddMenuPage() {
         kategori,
         deskripsi,
         ingredients,
+        estimasi_menit,
       });
 
       setImagePreview(null);
@@ -219,7 +220,7 @@ export default function AddMenuPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
                     <label className="block font-semibold uppercase tracking-wider mb-1 text-zinc-400 text-[11px]">
                       Harga (Rp) *
@@ -241,6 +242,20 @@ export default function AddMenuPage() {
                       type="number"
                       name="stock"
                       placeholder="Contoh: 50"
+                      className="w-full bg-zinc-950 border border-zinc-700 rounded-lg py-2 px-3 text-xs focus:outline-none focus:border-zinc-400 transition-colors placeholder-zinc-600 text-zinc-100"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold uppercase tracking-wider mb-1 text-zinc-400 text-[11px]">
+                      Estimasi Masak (Menit) ⏱️
+                    </label>
+                    <input
+                      type="number"
+                      name="estimasi_menit"
+                      defaultValue={5}
+                      min={1}
+                      placeholder="Contoh: 5"
                       className="w-full bg-zinc-950 border border-zinc-700 rounded-lg py-2 px-3 text-xs focus:outline-none focus:border-zinc-400 transition-colors placeholder-zinc-600 text-zinc-100"
                     />
                   </div>

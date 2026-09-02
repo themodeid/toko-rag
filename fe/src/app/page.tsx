@@ -84,6 +84,7 @@ export default function MenuPage() {
             subtotal: produk.harga,
             queue: 0,
             image: produk.image,
+            estimasiMenit: produk.estimasi_menit || 5,
           },
         ];
       }
@@ -350,13 +351,19 @@ export default function MenuPage() {
                 {/* Content */}
                 <div className="p-4 flex-1 flex flex-col justify-between">
                   <div>
-                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                    <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
                       <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 bg-zinc-800 border border-zinc-700 px-2 py-0.5 rounded">
                         {item.kategori || "Menu"}
                       </span>
-                      <div className="flex items-center gap-1 text-xs text-zinc-400">
-                        <FeatherIcon icon="box" className="w-3 h-3" />
-                        <span>Stok: {item.stock}</span>
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1 text-[10px] font-mono text-amber-300 bg-amber-950/50 border border-amber-800/60 px-1.5 py-0.5 rounded">
+                          <FeatherIcon icon="clock" className="w-2.5 h-2.5 text-amber-400" />
+                          <span>~{item.estimasi_menit || 5} mnt</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-xs text-zinc-400">
+                          <FeatherIcon icon="box" className="w-3 h-3" />
+                          <span>{item.stock}</span>
+                        </div>
                       </div>
                     </div>
 
@@ -391,7 +398,7 @@ export default function MenuPage() {
                       </p>
                     </div>
 
-                    {item.status && item.stock > 0 && isAuthenticated && (
+                    {item.status && item.stock > 0 && (
                       <button
                         onClick={() => updateCart(item)}
                         className="w-9 h-9 bg-zinc-100 hover:bg-zinc-200 text-zinc-900 rounded-lg flex items-center justify-center transition-all shadow-sm active:scale-[0.98]"
