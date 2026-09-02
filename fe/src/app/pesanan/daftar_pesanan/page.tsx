@@ -17,6 +17,7 @@ import {
   getAllOrderActiveItems,
   selesaiOrder,
   cancelOrder,
+  deleteOrder,
 } from "@/features/cart/api";
 import { getAllProduk } from "@/features/produk/api";
 
@@ -69,6 +70,21 @@ export default function Antrian() {
       setActionLoading(orderId);
       await cancelOrder(orderId);
       await fetchOrders();
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleDelete = async (orderId: string) => {
+    const confirm = window.confirm("Apakah Anda yakin ingin menghapus pesanan ini secara permanen dari database?");
+    if (!confirm) return;
+
+    try {
+      setActionLoading(orderId);
+      await deleteOrder(orderId);
+      await fetchOrders();
+    } catch (err) {
+      alert("Gagal menghapus pesanan");
     } finally {
       setActionLoading(null);
     }
@@ -219,36 +235,51 @@ export default function Antrian() {
                     </div>
 
                     {/* Actions */}
-                    {!isFinished && (
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleCancel(order.id)}
-                          disabled={actionLoading === order.id}
-                          className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-800/60 transition-colors"
-                          title="Batalkan Pesanan"
-                        >
-                          {actionLoading === order.id ? (
-                            <div className="w-3.5 h-3.5 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
-                          ) : (
-                            <FeatherIcon icon="x" className="w-4 h-4" />
-                          )}
-                        </button>
-                        <button
-                          onClick={() => handleDone(order.id)}
-                          disabled={actionLoading === order.id}
-                          className="px-3 h-8 flex items-center justify-center gap-1.5 rounded-lg text-xs font-semibold bg-zinc-100 hover:bg-zinc-200 text-zinc-900 transition-all shadow-sm active:scale-[0.98]"
-                        >
-                          {actionLoading === order.id ? (
-                            <div className="w-3.5 h-3.5 border-2 border-zinc-900 border-t-transparent rounded-full animate-spin"></div>
-                          ) : (
-                            <>
-                              Selesai
-                              <FeatherIcon icon="check" className="w-3.5 h-3.5" />
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    )}
+                    <div className="flex gap-2 items-center">
+                      <button
+                        onClick={() => handleDelete(order.id)}
+                        disabled={actionLoading === order.id}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-800/80 hover:bg-red-950/80 text-zinc-400 hover:text-red-300 border border-zinc-700/80 hover:border-red-800/80 transition-colors"
+                        title="Hapus Pesanan Permanen"
+                      >
+                        {actionLoading === order.id ? (
+                          <div className="w-3.5 h-3.5 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                          <FeatherIcon icon="trash-2" className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+
+                      {!isFinished && (
+                        <>
+                          <button
+                            onClick={() => handleCancel(order.id)}
+                            disabled={actionLoading === order.id}
+                            className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-800/60 transition-colors"
+                            title="Batalkan Pesanan"
+                          >
+                            {actionLoading === order.id ? (
+                              <div className="w-3.5 h-3.5 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+                            ) : (
+                              <FeatherIcon icon="x" className="w-4 h-4" />
+                            )}
+                          </button>
+                          <button
+                            onClick={() => handleDone(order.id)}
+                            disabled={actionLoading === order.id}
+                            className="px-3 h-8 flex items-center justify-center gap-1.5 rounded-lg text-xs font-semibold bg-zinc-100 hover:bg-zinc-200 text-zinc-900 transition-all shadow-sm active:scale-[0.98]"
+                          >
+                            {actionLoading === order.id ? (
+                              <div className="w-3.5 h-3.5 border-2 border-zinc-900 border-t-transparent rounded-full animate-spin"></div>
+                            ) : (
+                              <>
+                                Selesai
+                                <FeatherIcon icon="check" className="w-3.5 h-3.5" />
+                              </>
+                            )}
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               );

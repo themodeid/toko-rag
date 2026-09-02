@@ -27,7 +27,7 @@ export async function createProduk(data: CreateProdukPayload): Promise<Produk> {
       },
     });
 
-    return res.data.produk;
+    return res.data.data?.produk ?? res.data.produk;
   } catch (error) {
     throw new Error("Gagal membuat produk");
   }
@@ -40,7 +40,7 @@ export async function getAllProduk(): Promise<{ produk: Produk[] }> {
   try {
     const res = await api.get("/api/produk?limit=100");
     return {
-      produk: res.data.produk ?? [],
+      produk: res.data.produk ?? res.data.data?.produk ?? [],
     };
   } catch (error) {
     console.error(error); 
@@ -67,7 +67,7 @@ export async function getProdukById(id: string): Promise<{ produk: Produk }> {
   try {
     const res = await api.get(`/api/produk/${id}`);
     return {
-      produk: res.data.produk,
+      produk: res.data.data?.produk ?? res.data.produk,
     };
   } catch (error) {
     throw new Error("Gagal mengambil produk");
@@ -93,6 +93,7 @@ export async function updateProduk(
       if (data.kategori !== undefined) formData.append("kategori", data.kategori);
       if (data.deskripsi !== undefined) formData.append("deskripsi", data.deskripsi);
       if (data.ingredients !== undefined) formData.append("ingredients", data.ingredients);
+      if (data.estimasi_menit !== undefined) formData.append("estimasi_menit", String(data.estimasi_menit));
 
       const res = await api.patch(`/api/produk/${id}`, formData, {
         headers: {
@@ -100,12 +101,24 @@ export async function updateProduk(
         },
       });
 
-      return res.data.produk;
+      return res.data.data?.produk ?? res.data.produk;
     } else {
       const res = await api.patch(`/api/produk/${id}`, data);
-      return res.data.produk;
+      return res.data.data?.produk ?? res.data.produk;
     }
   } catch (error) {
     throw new Error("Gagal memperbarui produk");
   }
 }
+
+/* =======================
+   DELETE (SOFT DELETE)
+======================= */
+export async function deleteProduk(id: string): Promise<void> {
+  try {
+    await api.delete(`/api/produk/${id}`);
+  } catch (error) {
+    throw new Error("Gagal menghapus produk");
+  }
+}
+

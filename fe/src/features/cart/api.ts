@@ -70,8 +70,12 @@ export async function getOrders(): Promise<Order[]> {
   const res = await api.get<GetOrdersResponse>("/api/orders");
   return res.data.data.map((o) => ({
     id: o.id,
-    userId: o.user_id,
-    namaUser: o.username,
+    userId: o.user_id || o.auth_id,
+    namaUser: o.customer_name || o.username || "Pelanggan",
+    customerName: o.customer_name || o.username || "Pelanggan",
+    orderType: o.order_type,
+    tableNumber: o.table_number,
+    customerPhone: o.customer_phone,
     totalPrice: o.total_price,
     statusPesanan: o.status_pesanan,
     createdAt: o.created_at,
@@ -83,8 +87,12 @@ export async function getActiveOrders(): Promise<Order[]> {
   const res = await api.get<GetOrdersResponse>("/api/orders/Active");
   return res.data.data.map((o) => ({
     id: o.id,
-    userId: o.user_id,
-    namaUser: o.username,
+    userId: o.user_id || o.auth_id,
+    namaUser: o.customer_name || o.username || "Pelanggan",
+    customerName: o.customer_name || o.username || "Pelanggan",
+    orderType: o.order_type,
+    tableNumber: o.table_number,
+    customerPhone: o.customer_phone,
     totalPrice: o.total_price,
     statusPesanan: o.status_pesanan,
     createdAt: o.created_at,
@@ -96,8 +104,12 @@ export async function getMyOrders(): Promise<Order[]> {
   const res = await api.get<GetOrdersResponse>("/api/orders/MyActive");
   return res.data.data.map((o) => ({
     id: o.id,
-    userId: o.user_id,
-    namaUser: o.username,
+    userId: o.user_id || o.auth_id,
+    namaUser: o.customer_name || o.username || "Pelanggan",
+    customerName: o.customer_name || o.username || "Pelanggan",
+    orderType: o.order_type,
+    tableNumber: o.table_number,
+    customerPhone: o.customer_phone,
     totalPrice: o.total_price,
     statusPesanan: o.status_pesanan,
     createdAt: o.created_at,
@@ -198,4 +210,8 @@ export async function selesaiOrder(orderId: string) {
 
 export async function cancelOrder(orderId: string) {
   await api.patch(`/api/orders/${orderId}/cancel`);
+}
+
+export async function deleteOrder(orderId: string) {
+  await api.delete(`/api/orders/${orderId}`);
 }

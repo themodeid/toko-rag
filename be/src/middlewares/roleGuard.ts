@@ -2,13 +2,16 @@ import { Request, Response, NextFunction } from "express";
 import { AppError } from "../errors/AppError";
 
 export const roleGuard =
-  (...allowedRoles: string[]) =>
+  (...roles: (string | string[])[]) =>
   (req: Request, _res: Response, next: NextFunction) => {
     if (!req.user) {
       throw new AppError("Unauthorized", 401);
     }
 
-    if (!allowedRoles.includes(req.user.role)) {
+    const flatRoles = roles.flat().map((r) => r.toLowerCase());
+    const userRole = (req.user.role || "").toLowerCase();
+
+    if (!flatRoles.includes(userRole)) {
       throw new AppError("Forbidden: akses ditolak", 403);
     }
 

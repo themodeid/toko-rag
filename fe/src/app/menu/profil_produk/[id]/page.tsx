@@ -12,7 +12,7 @@ import { getProductImageUrl } from "@/lib/imageHelper";
 import { Produk, UpdateProdukPayload } from "@/features/produk/types";
 
 // API
-import { getProdukById, updateProduk } from "@/features/produk/api";
+import { getProdukById, updateProduk, deleteProduk } from "@/features/produk/api";
 
 export default function MenuPage() {
   const { id } = useParams<{ id: string }>();
@@ -21,6 +21,7 @@ export default function MenuPage() {
   // UI / loading state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   // Data state
   const [produk, setProduk] = useState<Produk | null>(null);
@@ -33,6 +34,21 @@ export default function MenuPage() {
     } catch {
       setError("Gagal mengambil produk");
     } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleDeleteProduk() {
+    if (!produk) return;
+    const confirm = window.confirm(`Apakah Anda yakin ingin menghapus menu "${produk.nama}"? Menu ini tidak akan ditampilkan lagi ke pelanggan.`);
+    if (!confirm) return;
+
+    try {
+      setLoading(true);
+      await deleteProduk(id);
+      router.push("/menu/add_menu");
+    } catch {
+      setError("Gagal menghapus produk");
       setLoading(false);
     }
   }
@@ -56,15 +72,17 @@ export default function MenuPage() {
     const kategoriValue = formData.get("kategori")?.toString();
     const deskripsiValue = formData.get("deskripsi")?.toString();
     const ingredientsValue = formData.get("ingredients")?.toString();
+    const estimasiMenitValue = formData.get("estimasi_menit");
 
     const payload: UpdateProdukPayload = {
       nama: formData.get("nama")?.toString(),
-      harga: hargaValue !== null ? Number(hargaValue) : undefined,
-      stock: stockValue !== null ? Number(stockValue) : undefined,
+      harga: hargaValue !== null && hargaValue !== "" ? Number(hargaValue) : undefined,
+      stock: stockValue !== null && stockValue !== "" ? Number(stockValue) : undefined,
       status: formData.get("status") !== null,
       kategori: kategoriValue,
       deskripsi: deskripsiValue,
       ingredients: ingredientsValue,
+      estimasi_menit: estimasiMenitValue !== null && estimasiMenitValue !== "" ? Number(estimasiMenitValue) : undefined,
     };
 
     if (imageValue instanceof File && imageValue.size > 0) {
@@ -80,8 +98,9 @@ export default function MenuPage() {
     try {
       await updateProduk(produk.id, payload);
       router.push("/menu/add_menu");
-    } catch {
-      setError("Gagal update produk");
+    } catch (err: any) {
+      console.error("Update error:", err);
+      setError(err?.response?.data?.message || err?.message || "Gagal update produk");
       setLoading(false);
     }
   }
@@ -147,11 +166,11 @@ export default function MenuPage() {
                     Gambar Produk
                   </label>
                   
-                  {produk?.image && (
-                    <div className="relative h-40 w-full bg-zinc-950 border border-zinc-800 rounded-lg mb-3 overflow-hidden">
+                  {(imagePreview || produk?.image) && (
+                    <div className="relative h-44 w-full bg-zinc-950 border border-zinc-800 rounded-lg mb-3 overflow-hidden">
                       <Image 
-                        src={getProductImageUrl(produk.image)}
-                        alt={produk.nama || "Product image"}
+                        src={imagePreview || getProductImageUrl(produk?.image)}
+                        alt={produk?.nama || "Product image"}
                         fill
                         className="object-cover"
                       />
@@ -161,13 +180,23 @@ export default function MenuPage() {
                   <label className="flex flex-col items-center justify-center w-full h-14 border-2 border-dashed border-zinc-700 rounded-lg bg-zinc-950 hover:bg-zinc-850 transition-colors cursor-pointer group">
                     <div className="flex items-center gap-2">
                       <FeatherIcon icon="upload-cloud" className="w-4 h-4 text-zinc-500 group-hover:text-zinc-300" />
-                      <p className="text-[11px] text-zinc-400"><span className="font-semibold text-zinc-200">Ganti gambar</span> (Opsional)</p>
+                      <p className="text-[11px] text-zinc-400">
+                        <span className="font-semibold text-zinc-200">
+                          {imagePreview ? "Ganti file gambar lain" : "Pilih gambar baru"}
+                        </span> (Opsional)
+                      </p>
                     </div>
                     <input
                       type="file"
                       name="image"
                       accept="image/*"
                       className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setImagePreview(URL.createObjectURL(file));
+                        }
+                      }}
                     />
                   </label>
                 </div>
@@ -273,8 +302,8 @@ export default function MenuPage() {
                   </label>
                   <div className="flex items-center justify-between bg-zinc-950 p-2.5 rounded-lg border border-zinc-700">
                     <div className="flex flex-col">
-                      <span className="text-xs font-medium text-zinc-200">Aktif & Tampil di Menu</span>
-                      <span className="text-[10px] text-zinc-500">Nonaktifkan jika tidak ingin ditampilkan</span>
+                      <span className="text-xs font-medium text-zinc-200">Tampilkan di Menu Toko?</span>
+                      <span className="text-[10px] text-zinc-400">Hijau = Aktif & Dijual, Merah = Non-aktif</span>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input 
@@ -284,17 +313,27 @@ export default function MenuPage() {
                         className="sr-only peer" 
                         defaultChecked={produk?.status} 
                       />
-                      <div className="w-9 h-5 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-zinc-100"></div>
+                      <div className="w-11 h-6 bg-red-950/90 border border-red-700/80 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 peer-checked:border-emerald-400 shadow-inner"></div>
                     </label>
                   </div>
                 </div>
               </div>
 
-              <div className="md:col-span-2 pt-3 border-t border-zinc-800">
+              <div className="md:col-span-2 pt-4 border-t border-zinc-800 flex gap-3">
+                <button
+                  type="button"
+                  onClick={handleDeleteProduk}
+                  disabled={loading}
+                  className="px-4 py-2.5 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 text-xs bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-800/60 shadow-sm active:scale-[0.98]"
+                >
+                  <FeatherIcon icon="trash-2" className="w-3.5 h-3.5" />
+                  <span>Hapus Menu</span>
+                </button>
+
                 <button
                   type="submit"
                   disabled={loading}
-                  className={`w-full py-2.5 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 text-xs ${
+                  className={`flex-1 py-2.5 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 text-xs ${
                     loading
                       ? "bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700"
                       : "bg-zinc-100 hover:bg-zinc-200 text-zinc-900 shadow-sm active:scale-[0.98]"

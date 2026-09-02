@@ -15,7 +15,7 @@ import { CartItem } from "@/features/cart/types";
 
 // API
 import { getAllProduk } from "@/features/produk/api";
-import { createOrder } from "@/features/cart/api";
+import { createOrder, simulatePayment } from "@/features/cart/api";
 
 export default function MenuPage() {
   const router = useRouter();
@@ -310,14 +310,14 @@ export default function MenuPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 pb-24">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-6 pb-28 lg:pb-12">
             {produk.map((item) => (
               <div
                 key={item.id}
                 className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden hover:border-zinc-700 transition-colors group flex flex-col"
               >
                 {/* Image Container */}
-                <div className="relative h-48 bg-zinc-950 rounded-t-xl overflow-hidden border-b border-zinc-800">
+                <div className="relative h-44 sm:h-48 bg-zinc-950 rounded-t-xl overflow-hidden border-b border-zinc-800">
                   {item.image ? (
                     <Image
                       src={getProductImageUrl(item.image)}
@@ -415,19 +415,43 @@ export default function MenuPage() {
               </div>
             ))}
           </div>
+
+          {/* Floating Mobile Cart Bar (HP) */}
+          {cart.length > 0 && !isCheckoutModalOpen && (
+            <div className="fixed bottom-20 left-3 right-3 z-40 lg:hidden animate-in slide-in-from-bottom-3 duration-200">
+              <button
+                onClick={() => setIsCartOpen(true)}
+                className="w-full bg-zinc-100 hover:bg-zinc-200 text-zinc-950 p-3 sm:p-3.5 rounded-2xl shadow-2xl flex items-center justify-between font-medium border border-white/20 transition-transform active:scale-[0.98]"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 bg-zinc-900 text-zinc-100 rounded-lg flex items-center justify-center text-xs font-bold font-mono">
+                    {cart.reduce((a, b) => a + b.quantity, 0)}
+                  </div>
+                  <div className="text-left">
+                    <p className="text-xs font-bold leading-tight">Keranjang Pesanan</p>
+                    <p className="text-[11px] text-zinc-600 font-mono font-semibold">Rp {total.toLocaleString("id-ID")}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 text-xs font-bold bg-zinc-900 text-zinc-100 px-3 py-1.5 rounded-xl">
+                  <span>Lihat & Bayar</span>
+                  <FeatherIcon icon="arrow-right" className="w-3.5 h-3.5" />
+                </div>
+              </button>
+            </div>
+          )}
         </main>
 
         {isCartOpen && (
           <div
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] lg:hidden"
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[70] lg:hidden"
             onClick={() => setIsCartOpen(false)}
           ></div>
         )}
 
         <aside
-          className={`fixed inset-y-0 right-0 z-[70] w-full sm:w-[380px] lg:w-[380px] flex-shrink-0 bg-zinc-900 border-l border-zinc-800 flex flex-col h-full lg:h-screen lg:sticky lg:top-0 transition-transform duration-300 ease-in-out ${isCartOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0"}`}
+          className={`fixed inset-y-0 right-0 z-[80] w-full sm:w-[380px] lg:w-[360px] xl:w-[380px] flex-shrink-0 bg-zinc-900 border-l border-zinc-800 flex flex-col h-full lg:h-screen lg:sticky lg:top-0 transition-transform duration-300 ease-in-out ${isCartOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0"}`}
         >
-          <div className="p-6 flex-1 overflow-y-auto custom-scrollbar flex flex-col pb-24 lg:pb-6">
+          <div className="p-4 sm:p-6 flex-1 overflow-y-auto custom-scrollbar flex flex-col pb-24 lg:pb-6">
             {/* Current Order Section */}
             <div className="mb-6 flex-1">
               <div className="flex items-center justify-between mb-4">
@@ -475,7 +499,7 @@ export default function MenuPage() {
                       <div className="w-14 h-14 bg-zinc-900 rounded-lg relative overflow-hidden flex-shrink-0 border border-zinc-800">
                         {produk.find((p) => p.id === item.produkId)?.image ? (
                           <Image
-                            src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${produk.find((p) => p.id === item.produkId)?.image}`}
+                            src={getProductImageUrl(produk.find((p) => p.id === item.produkId)?.image || "")}
                             alt={item.nama}
                             fill
                             className="object-cover"
@@ -564,27 +588,29 @@ export default function MenuPage() {
 
       {/* ================= MODAL CHECKOUT PELANGGAN / GUEST ================= */}
       {isCheckoutModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-zinc-900 border border-zinc-800 w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-5 text-zinc-100">
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center text-zinc-200">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-3 sm:p-4 animate-in fade-in duration-200">
+          <div className="bg-zinc-900 border border-zinc-800 w-full max-w-lg rounded-2xl p-4 sm:p-6 shadow-2xl space-y-4 text-zinc-100 max-h-[92vh] flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-3 flex-shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-zinc-800 border border-zinc-700/60 flex items-center justify-center text-zinc-100 shadow-inner">
                   <FeatherIcon icon="shopping-bag" className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm text-zinc-100">Konfirmasi Pemesanan</h3>
+                  <h3 className="font-bold text-sm sm:text-base text-zinc-100">Konfirmasi Pemesanan</h3>
                   <p className="text-[11px] text-zinc-400">Silakan lengkapi data pemesan</p>
                 </div>
               </div>
               <button
                 onClick={() => setIsCheckoutModalOpen(false)}
-                className="text-zinc-400 hover:text-zinc-100 p-1 rounded-lg hover:bg-zinc-800 transition-colors"
+                className="text-zinc-400 hover:text-zinc-100 p-1.5 rounded-xl hover:bg-zinc-800 transition-colors"
               >
                 <FeatherIcon icon="x" className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleProcessCheckout} className="space-y-4">
+            {/* Form Body - Scrollable on mobile */}
+            <form onSubmit={handleProcessCheckout} className="space-y-4 overflow-y-auto pr-1 flex-1 custom-scrollbar">
               {/* Nama Pemesan */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-zinc-300 flex items-center gap-1">
@@ -597,7 +623,7 @@ export default function MenuPage() {
                   placeholder="Contoh: Adam / Kak Budi"
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-500 transition-colors"
+                  className="w-full px-3 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-400 transition-colors"
                 />
               </div>
 
@@ -608,9 +634,9 @@ export default function MenuPage() {
                   <button
                     type="button"
                     onClick={() => setOrderType("DINE_IN")}
-                    className={`py-2 px-3 rounded-xl text-xs font-medium border flex items-center justify-center gap-1.5 transition-all ${
+                    className={`py-2.5 px-3 rounded-xl text-xs font-medium border flex items-center justify-center gap-1.5 transition-all ${
                       orderType === "DINE_IN"
-                        ? "bg-zinc-100 text-zinc-950 border-zinc-100 font-semibold"
+                        ? "bg-zinc-100 text-zinc-950 border-zinc-100 font-semibold shadow-sm"
                         : "bg-zinc-950 text-zinc-400 border-zinc-800 hover:text-zinc-200"
                     }`}
                   >
@@ -620,14 +646,14 @@ export default function MenuPage() {
                   <button
                     type="button"
                     onClick={() => setOrderType("TAKE_AWAY")}
-                    className={`py-2 px-3 rounded-xl text-xs font-medium border flex items-center justify-center gap-1.5 transition-all ${
+                    className={`py-2.5 px-3 rounded-xl text-xs font-medium border flex items-center justify-center gap-1.5 transition-all ${
                       orderType === "TAKE_AWAY"
-                        ? "bg-zinc-100 text-zinc-950 border-zinc-100 font-semibold"
+                        ? "bg-zinc-100 text-zinc-950 border-zinc-100 font-semibold shadow-sm"
                         : "bg-zinc-950 text-zinc-400 border-zinc-800 hover:text-zinc-200"
                     }`}
                   >
                     <FeatherIcon icon="package" className="w-3.5 h-3.5" />
-                    <span>Bungkus / Bawa Pulang</span>
+                    <span>Bungkus / Pulang</span>
                   </button>
                 </div>
               </div>
@@ -637,7 +663,7 @@ export default function MenuPage() {
                 <div className="space-y-1.5 animate-in fade-in duration-150">
                   <label className="text-xs font-semibold text-zinc-300 flex items-center justify-between">
                     <span>Nomor Meja</span>
-                    <span className="text-[10px] text-zinc-500">(Wajib jika di tempat)</span>
+                    <span className="text-[10px] text-zinc-400 font-normal">(Wajib jika di tempat)</span>
                   </label>
                   <input
                     type="text"
@@ -645,7 +671,7 @@ export default function MenuPage() {
                     placeholder="Contoh: 04 / Meja Bar Depan"
                     value={tableNumber}
                     onChange={(e) => setTableNumber(e.target.value)}
-                    className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-500 transition-colors"
+                    className="w-full px-3 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-400 transition-colors"
                   />
                 </div>
               )}
@@ -654,46 +680,46 @@ export default function MenuPage() {
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-zinc-300 flex items-center justify-between">
                   <span>No. WhatsApp</span>
-                  <span className="text-[10px] text-zinc-500">(Opsional untuk notifikasi)</span>
+                  <span className="text-[10px] text-zinc-500 font-normal">(Opsional)</span>
                 </label>
                 <input
                   type="tel"
                   placeholder="Contoh: 08123456789"
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
-                  className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-500 transition-colors"
+                  className="w-full px-3 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-400 transition-colors"
                 />
               </div>
 
               {/* Ringkasan Total */}
-              <div className="p-3 bg-zinc-950 rounded-xl border border-zinc-800/80 flex items-center justify-between">
-                <span className="text-xs text-zinc-400">Total Pembayaran ({cart.reduce((a, b) => a + b.quantity, 0)} item)</span>
-                <span className="text-sm font-bold font-mono text-zinc-100">Rp {total.toLocaleString("id-ID")}</span>
+              <div className="p-3.5 bg-zinc-950 rounded-xl border border-zinc-800 flex items-center justify-between flex-wrap gap-2">
+                <span className="text-xs text-zinc-400 font-medium">Total Pembayaran ({cart.reduce((a, b) => a + b.quantity, 0)} item)</span>
+                <span className="text-base font-bold font-mono text-zinc-100">Rp {total.toLocaleString("id-ID")}</span>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-2 pt-2">
+              <div className="flex gap-2 pt-2 flex-shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsCheckoutModalOpen(false)}
-                  className="w-1/3 py-2.5 rounded-xl border border-zinc-800 text-xs font-semibold text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
+                  className="w-1/3 py-2.5 sm:py-3 rounded-xl border border-zinc-800 text-xs font-semibold text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={checkoutLoading}
-                  className="flex-1 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-500/10 active:scale-[0.98]"
+                  className="flex-1 py-2.5 sm:py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-500/10 active:scale-[0.98]"
                 >
                   {checkoutLoading ? (
                     <>
                       <div className="w-3.5 h-3.5 border-2 border-zinc-950 border-t-transparent rounded-full animate-spin"></div>
-                      <span>Menyiapkan QRIS...</span>
+                      <span>Menyiapkan Pembayaran...</span>
                     </>
                   ) : (
                     <>
-                      <FeatherIcon icon="credit-card" className="w-3.5 h-3.5" />
-                      <span>Bayar Sekarang via QRIS</span>
+                      <FeatherIcon icon="credit-card" className="w-4 h-4" />
+                      <span>Bayar Sekarang via QRIS / VA</span>
                     </>
                   )}
                 </button>
@@ -702,6 +728,9 @@ export default function MenuPage() {
           </div>
         </div>
       )}
+
+      {/* Floating AI Chat Assistant */}
+      <AiChatWidget />
     </div>
   );
 }

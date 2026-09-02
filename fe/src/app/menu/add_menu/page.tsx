@@ -12,7 +12,7 @@ import { getProductImageUrl } from "@/lib/imageHelper";
 import { Produk } from "@/features/produk/types";
 
 // API
-import { createProduk, getAllProduk } from "@/features/produk/api";
+import { createProduk, getAllProduk, deleteProduk } from "@/features/produk/api";
 
 export default function AddMenuPage() {
   const router = useRouter();
@@ -38,6 +38,22 @@ export default function AddMenuPage() {
     }
   }
 
+  async function handleDeleteProduk(id: string, nama: string) {
+    const confirm = window.confirm(`Apakah Anda yakin ingin menghapus menu "${nama}"? Menu ini tidak akan ditampilkan lagi ke pelanggan.`);
+    if (!confirm) return;
+
+    try {
+      setLoading(true);
+      await deleteProduk(id);
+      await getProduk();
+    } catch (err) {
+      setError("Gagal menghapus produk");
+      setTimeout(() => setError(null), 3000);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   useEffect(() => {
     getProduk();
   }, []);
@@ -55,6 +71,7 @@ export default function AddMenuPage() {
     const nama = formData.get("nama") as string;
     const harga = Number(formData.get("harga"));
     const stock = Number(formData.get("stock")) || 0;
+    const status = formData.get("status") !== null;
     const kategori = (formData.get("kategori") as string) || "Umum";
     const deskripsi = (formData.get("deskripsi") as string) || "";
     const ingredients = (formData.get("ingredients") as string) || "";
@@ -293,9 +310,14 @@ export default function AddMenuPage() {
                     Status Produk
                   </label>
                   <div className="flex items-center justify-between bg-zinc-950 p-2.5 rounded-lg border border-zinc-700">
-                    <span className="text-xs font-medium text-zinc-300">
-                      Tampilkan di Menu Toko?
-                    </span>
+                    <div className="flex flex-col">
+                      <span className="text-xs font-medium text-zinc-300">
+                        Tampilkan di Menu Toko?
+                      </span>
+                      <span className="text-[10px] text-zinc-400">
+                        Hijau = Aktif & Dijual, Merah = Non-aktif
+                      </span>
+                    </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input
                         type="checkbox"
@@ -304,7 +326,7 @@ export default function AddMenuPage() {
                         className="sr-only peer"
                         defaultChecked
                       />
-                      <div className="w-9 h-5 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-zinc-100"></div>
+                      <div className="w-11 h-6 bg-red-950/90 border border-red-700/80 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 peer-checked:border-emerald-400 shadow-inner"></div>
                     </label>
                   </div>
                 </div>
@@ -419,12 +441,23 @@ export default function AddMenuPage() {
                       </div>
                     </div>
 
-                    <Link
-                      href={`/menu/profil_produk/${item.id}`}
-                      className="mt-auto block text-center bg-zinc-800 hover:bg-zinc-700/80 border border-zinc-700 text-zinc-200 font-semibold py-2 px-3 rounded-lg transition-colors text-xs"
-                    >
-                      Edit Detail & Komposisi
-                    </Link>
+                    <div className="mt-auto flex gap-2 pt-2 border-t border-zinc-800/80">
+                      <Link
+                        href={`/menu/profil_produk/${item.id}`}
+                        className="flex-1 text-center bg-zinc-800 hover:bg-zinc-700/80 border border-zinc-700 text-zinc-200 font-semibold py-2 px-3 rounded-lg transition-colors text-xs flex items-center justify-center gap-1.5"
+                      >
+                        <FeatherIcon icon="edit-2" className="w-3.5 h-3.5 text-zinc-400" />
+                        <span>Edit</span>
+                      </Link>
+                      <button
+                        onClick={() => handleDeleteProduk(item.id, item.nama)}
+                        disabled={loading}
+                        className="w-9 h-9 flex items-center justify-center rounded-lg bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-800/60 transition-colors"
+                        title="Hapus Menu"
+                      >
+                        <FeatherIcon icon="trash-2" className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}

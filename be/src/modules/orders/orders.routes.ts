@@ -57,4 +57,7 @@ router.patch("/:id/selesai", authGuard, controller.doneOrders);
 // Cancel order
 router.patch("/:id/cancel", optionalAuthGuard, controller.cancelOrder);
 
+// Hapus order permanen
+router.delete("/:id", optionalAuthGuard, controller.deleteOrder);
+
 export default router;

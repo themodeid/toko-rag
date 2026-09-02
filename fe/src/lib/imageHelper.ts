@@ -13,9 +13,9 @@ export function getProductImageUrl(imagePath?: string | null): string {
     return trimmed;
   }
 
-  // Jika berupa path lokal /uploads/...
+  const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
   const cleanPath = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
   
-  // Gunakan same-origin relative path agar di-serve langsung oleh Next.js public / rewrites
-  return cleanPath;
+  return `${backendUrl}${cleanPath}`;
 }
+

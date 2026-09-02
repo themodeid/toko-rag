@@ -6,6 +6,10 @@ import {
   handleRagChatStream,
   getRagSuggestions,
 } from "./rag.service";
+import {
+  streamAdminRagResponse,
+  buildAdminRagContext,
+} from "./rag.admin.service";
 
 /**
  * Endpoint JSON Standar: POST /api/rag/chat
@@ -124,7 +128,6 @@ export const askAdminRagStream = async (req: Request, res: Response): Promise<vo
   });
 
   try {
-    const { streamAdminRagResponse } = await import("./rag.admin.service");
     const streamGen = streamAdminRagResponse(
       message.trim(),
       Array.isArray(history) ? history : []
@@ -156,7 +159,6 @@ export const askAdminRagStream = async (req: Request, res: Response): Promise<vo
  * Endpoint Insights Pertanyaan Customer: GET /api/rag/admin/customer-insights
  */
 export const getAdminCustomerInsights = catchAsync(async (_req: Request, res: Response) => {
-  const { buildAdminRagContext } = await import("./rag.admin.service");
   const context = await buildAdminRagContext();
 
   return res.status(200).json({
@@ -171,3 +173,4 @@ export const getAdminCustomerInsights = catchAsync(async (_req: Request, res: Re
     },
   });
 });
+

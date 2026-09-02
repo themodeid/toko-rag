@@ -17,6 +17,7 @@ import {
   getMyOrdersActiveWithItems,
   getGuestOrders,
   cancelOrder,
+  deleteOrder,
   simulatePayment,
 } from "@/features/cart/api";
 
@@ -102,6 +103,41 @@ export default function HistoryPesanan() {
       }
     } catch (error) {
       setError("Gagal membatalkan pesanan");
+    }
+  };
+
+  const handleDelete = async (orderId: string) => {
+    const confirm = window.confirm("Apakah Anda yakin ingin menghapus pesanan ini dari riwayat?");
+    if (!confirm) return;
+
+    try {
+      setLoading(true);
+      await deleteOrder(orderId);
+
+      // Bersihkan dari guest localStorage jika ada
+      if (typeof window !== "undefined") {
+        try {
+          const savedOrdersStr = localStorage.getItem("guest_orders");
+          if (savedOrdersStr) {
+            const orderIds: string[] = JSON.parse(savedOrdersStr);
+            const filtered = orderIds.filter((id) => id !== orderId);
+            localStorage.setItem("guest_orders", JSON.stringify(filtered));
+          }
+        } catch (e) {
+          console.error("Storage clean error:", e);
+        }
+      }
+
+      const token = localStorage.getItem("token");
+      if (token) {
+        await Promise.all([fetchHistory(), fetchPesanan()]);
+      } else {
+        await fetchGuestOrdersData();
+      }
+    } catch (error) {
+      setError("Gagal menghapus pesanan");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -291,6 +327,14 @@ export default function HistoryPesanan() {
                       </div>
 
                       <div className="flex gap-2 items-center">
+                        <button
+                          onClick={() => handleDelete(order.id)}
+                          className="w-7 h-7 flex items-center justify-center rounded-lg bg-zinc-800/80 hover:bg-red-950/80 text-zinc-400 hover:text-red-300 border border-zinc-700/80 hover:border-red-800/80 transition-colors"
+                          title="Hapus dari Riwayat"
+                        >
+                          <FeatherIcon icon="trash-2" className="w-3.5 h-3.5" />
+                        </button>
+
                         {order.statusPesanan === "MENUNGGU_PEMBAYARAN" && (
                           <button
                             onClick={async () => {
@@ -472,10 +516,18 @@ export default function HistoryPesanan() {
                       )}{" "}
                       Item)
                     </p>
+                    <p className="font-bold text-base text-zinc-100 font-mono">
+                      Rp {Number(order.totalPrice).toLocaleString("id-ID")}
+                    </p>
                   </div>
-                  <p className="font-bold text-base text-zinc-100 font-mono">
-                    Rp {Number(order.totalPrice).toLocaleString("id-ID")}
-                  </p>
+
+                  <button
+                    onClick={() => handleDelete(order.id)}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-800/80 hover:bg-red-950/80 text-zinc-400 hover:text-red-300 border border-zinc-700/80 hover:border-red-800/80 transition-colors"
+                    title="Hapus dari Riwayat"
+                  >
+                    <FeatherIcon icon="trash-2" className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
             ))}

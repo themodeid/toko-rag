@@ -1,4 +1,5 @@
 import { ENV } from "../../config/env";
+import { pool } from "../../config/database";
 import {
   searchRelevantProducts,
   searchKnowledgeBase,
@@ -619,7 +620,6 @@ export async function logCustomerChat(
   matchedKnowledge?: string[]
 ) {
   try {
-    const { pool } = await import("../../config/database");
     await pool.query(
       `INSERT INTO rag_chat_logs (session_id, user_message, ai_response, matched_products, matched_knowledge)
        VALUES ($1, $2, $3, $4, $5)`,

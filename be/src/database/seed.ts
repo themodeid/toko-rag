@@ -9,13 +9,13 @@ export async function runSeeder(): Promise<void> {
     await client.query("BEGIN");
 
     // 1. Seed Admin User
+    const hashedAdminPassword = await bcrypt.hash("admin123", 10);
     const existingAdmin = await client.query(
       "SELECT id FROM auth WHERE username = $1",
       ["admin"]
     );
 
     if (existingAdmin.rowCount === 0) {
-      const hashedAdminPassword = await bcrypt.hash("admin123", 10);
       await client.query(
         `INSERT INTO auth (username, password, role)
          VALUES ($1, $2, 'admin')`,
@@ -23,27 +23,36 @@ export async function runSeeder(): Promise<void> {
       );
       console.log("✅ Seeded default admin user (username: admin, pass: admin123)");
     } else {
-      console.log("ℹ️  Admin user already exists, skipping.");
+      await client.query(
+        `UPDATE auth SET role = 'admin', password = $1 WHERE username = 'admin'`,
+        [hashedAdminPassword]
+      );
+      console.log("ℹ️  Admin user updated (username: admin, pass: admin123, role: admin).");
     }
 
     // 2. Seed Regular User
+    const hashedUserPassword = await bcrypt.hash("user123", 10);
     const existingUser = await client.query(
       "SELECT id FROM auth WHERE username = $1",
       ["user1"]
     );
 
     if (existingUser.rowCount === 0) {
-      const hashedUserPassword = await bcrypt.hash("user123", 10);
       await client.query(
         `INSERT INTO auth (username, password, role)
          VALUES ($1, $2, 'user')`,
         ["user1", hashedUserPassword]
       );
+      console.log("✅ Seeded default user (username: user1, pass: user123)");
     } else {
-      console.log("ℹ️  Demo user already exists, skipping.");
+      await client.query(
+        `UPDATE auth SET role = 'user', password = $1 WHERE username = 'user1'`,
+        [hashedUserPassword]
+      );
+      console.log("ℹ️  Demo user updated (username: user1, pass: user123, role: user).");
     }
 
-    // 3. Seed Sample Products (Hanya 3 Menu Utama: Matcha, Thai Tea, Americano)
+    // 3. Seed Sample Products (Menu Utama: Matcha, Thai Tea, Americano, Croissant)
     const sampleProducts = [
       // === 1. MATCHA ===
       {
@@ -51,8 +60,9 @@ export async function runSeeder(): Promise<void> {
         harga: 28000,
         stock: 60,
         status: true,
-        image: "/uploads/latte.jpg",
+        image: "/uploads/matcha.jpg",
         kategori: "Non-Kopi",
+        estimasi_menit: 5,
         deskripsi: "⭐ BEST SELLER #1! Minuman matcha autentik khas Uji Kyoto Jepang grade ceremonial yang dipadukan dengan fresh milk lembut. Memiliki aroma earthy alami, kaya antioksidan L-Theanine, manis pas dan creamy menyegarkan.",
         ingredients: "100% Pure Ceremonial Uji Matcha Powder Kyoto (Tanpa Pewarna Buatan), Fresh Milk Pasteurisasi / Susu UHT Segar, Simple Syrup Tebu Alami. Tersedia opsi penggantian Oat Milk (Vegan Friendly). Mengandung produk susu sapi.",
       },
@@ -62,8 +72,9 @@ export async function runSeeder(): Promise<void> {
         harga: 24000,
         stock: 55,
         status: true,
-        image: "/uploads/espresso.jpg",
+        image: "/uploads/latte.jpg",
         kategori: "Non-Kopi",
+        estimasi_menit: 5,
         deskripsi: "⭐ BEST SELLER #2! Teh rempah asli Thailand (Cha Tra Mue) diseduh pekat dengan aroma vanila & bunga lawang, dipadukan kental manis dan evaporated milk. Citarasa manis, gurih legit, dan menyegarkan.",
         ingredients: "Daun Teh Hitam Asli Thailand (Cha Tra Mue Blend), Bunga Lawang (Star Anise), Biji Adas Manis, Susu Evaporasi, Susu Kental Manis, Es Kristal Higienis. Mengandung susu sapi.",
       },
@@ -73,14 +84,27 @@ export async function runSeeder(): Promise<void> {
         harga: 22000,
         stock: 75,
         status: true,
-        image: "/uploads/matcha.jpg",
+        image: "/uploads/espresso.jpg",
         kategori: "Kopi",
+        estimasi_menit: 3,
         deskripsi: "⭐ BEST SELLER #3! Double shot espresso arabika pilihan dengan crema tebal keemasan, disajikan dengan air mineral dingin dan es batu. Citarasa bersih (clean cup), aroma floral buah segar, 0 kalori gula.",
         ingredients: "Double Shot Espresso 100% Biji Arabika Specialty (House Blend Gayo Aceh & Kintamani Bali), Air Mineral Terfiltrasi Oksigen, Es Batu Kristal. 0 Kalori Gula, 100% Bebas Susu (Dairy-Free, Gluten-Free & Vegan).",
+      },
+      // === 4. CROISSANT ===
+      {
+        nama: "Butter Croissant French Artisan",
+        harga: 20000,
+        stock: 40,
+        status: true,
+        image: "/uploads/croissant.jpg",
+        kategori: "Pastry",
+        estimasi_menit: 4,
+        deskripsi: "Pastry klasik khas Prancis dengan lapisan renyah di luar (flaky) dan lembut wangi butter premium di dalam. Dipanggang fresh setiap pagi.",
+        ingredients: "Tepung Gandum Premium, French Butter 82% Lemak Nabati/Hewani Murni, Ragi Alami, Gula, Garam Laut, Susu Segar. Mengandung gluten & produk olahan susu.",
       }
     ];
 
-    // Hapus menu lain selain 3 menu utama ini
+    // Hapus menu lain selain menu utama ini
     const allowedNames = sampleProducts.map((p) => p.nama);
     await client.query(
       "DELETE FROM order_items WHERE produk_id IN (SELECT id FROM produk WHERE NOT (nama = ANY($1::text[])))",
@@ -98,16 +122,16 @@ export async function runSeeder(): Promise<void> {
       );
       if (existing.rowCount === 0) {
         await client.query(
-          `INSERT INTO produk (nama, harga, stock, status, image, kategori, deskripsi, ingredients)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-          [p.nama, p.harga, p.stock, p.status, p.image, p.kategori, p.deskripsi, p.ingredients]
+          `INSERT INTO produk (nama, harga, stock, status, image, kategori, deskripsi, ingredients, estimasi_menit)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+          [p.nama, p.harga, p.stock, p.status, p.image, p.kategori, p.deskripsi, p.ingredients, p.estimasi_menit]
         );
       } else {
         await client.query(
           `UPDATE produk 
-           SET harga = $1, stock = $2, status = $3, image = $4, kategori = $5, deskripsi = $6, ingredients = $7, deleted_at = NULL
-           WHERE nama = $8`,
-          [p.harga, p.stock, p.status, p.image, p.kategori, p.deskripsi, p.ingredients, p.nama]
+           SET harga = $1, stock = $2, status = $3, image = $4, kategori = $5, deskripsi = $6, ingredients = $7, estimasi_menit = $8, deleted_at = NULL
+           WHERE nama = $9`,
+          [p.harga, p.stock, p.status, p.image, p.kategori, p.deskripsi, p.ingredients, p.estimasi_menit, p.nama]
         );
       }
     }

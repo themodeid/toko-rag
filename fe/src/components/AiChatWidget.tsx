@@ -277,12 +277,12 @@ export default function AiChatWidget() {
   };
 
   return (
-    <div className="fixed bottom-20 md:bottom-6 right-4 md:right-8 z-50 flex flex-col items-end pointer-events-auto font-poppins">
+    <div className="fixed bottom-36 md:bottom-6 right-3 sm:right-4 md:right-8 z-50 flex flex-col items-end pointer-events-auto font-poppins">
       {/* CHAT WINDOW */}
       {isOpen && (
         <div
-          className={`w-[92vw] sm:w-[420px] bg-zinc-900/95 border border-zinc-800/90 rounded-2xl shadow-2xl backdrop-blur-2xl flex flex-col overflow-hidden transition-all duration-300 mb-4 animate-in fade-in slide-in-from-bottom-5 ${
-            isMinimized ? "h-16" : "h-[600px] max-h-[82vh]"
+          className={`w-[calc(100vw-24px)] sm:w-[400px] md:w-[420px] bg-zinc-900/95 border border-zinc-800/90 rounded-2xl shadow-2xl backdrop-blur-2xl flex flex-col overflow-hidden transition-all duration-300 mb-3 sm:mb-4 animate-in fade-in slide-in-from-bottom-5 ${
+            isMinimized ? "h-16" : "h-[560px] max-h-[75vh] sm:max-h-[82vh]"
           }`}
         >
           {/* Header */}

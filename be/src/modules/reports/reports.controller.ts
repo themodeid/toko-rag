@@ -46,7 +46,7 @@ export const createExpense = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const deleteExpense = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const id = req.params.id as string;
   await deleteExpenseService(id);
 
   return res.status(200).json({

@@ -492,6 +492,64 @@ export const doneOrderService = async (orderId: string) => {
   }
 };
 
+export const deleteOrderService = async (
+  orderId: string,
+  role?: string,
+  userId?: string
+) => {
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const orderResult = await client.query(
+      `SELECT * FROM orders WHERE id = $1 FOR UPDATE`,
+      [orderId]
+    );
+
+    const order = orderResult.rows[0];
+    if (!order) {
+      throw new AppError("Pesanan tidak ditemukan", 404);
+    }
+
+    const normalizedRole = role ? role.toUpperCase() : "GUEST";
+
+    // Jika bukan admin dan order terikat pada akun lain, tolak
+    if (normalizedRole !== "ADMIN" && order.auth_id && userId && order.auth_id !== userId) {
+      throw new AppError("Anda tidak memiliki akses untuk menghapus pesanan ini", 403);
+    }
+
+    // Jika order masih berstatus aktif (belum selesai/batal), kembalikan stok
+    if (["MENUNGGU_PEMBAYARAN", "ANTRI", "DIPROSES"].includes(order.status_pesanan)) {
+      const itemsResult = await client.query(
+        `SELECT produk_id, quantity FROM order_items WHERE order_id = $1`,
+        [orderId]
+      );
+
+      for (const item of itemsResult.rows) {
+        await client.query(
+          `UPDATE produk SET stock = stock + $1 WHERE id = $2`,
+          [item.quantity, item.produk_id]
+        );
+      }
+    }
+
+    // 1. Hapus item pesanan
+    await client.query(`DELETE FROM order_items WHERE order_id = $1`, [orderId]);
+
+    // 2. Hapus pesanan utama
+    await client.query(`DELETE FROM orders WHERE id = $1`, [orderId]);
+
+    await client.query("COMMIT");
+    return true;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
 export const getMyOrdersActiveService = async (userId: string) => {
   const query = `
     SELECT *

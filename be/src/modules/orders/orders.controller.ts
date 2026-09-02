@@ -8,6 +8,7 @@ import {
   simulatePaymentSuccessService,
   cancelOrderService,
   doneOrderService,
+  deleteOrderService,
   getMyOrdersActiveService,
   getOrderItemsService,
   getOrdersActiveWithItemsService,
@@ -282,3 +283,24 @@ export const xenditWebhookNotification = catchAsync(
     });
   }
 );
+
+// ===================== DELETE ORDER (ADMIN & GUEST/USER) =====================
+export const deleteOrder = catchAsync(async (req: Request, res: Response) => {
+  const id = req.params.id as string;
+  const role = req.user?.role;
+  const userId = req.user?.id;
+
+  await deleteOrderService(id, role, userId);
+
+  // Invalidate caches
+  await Promise.all([
+    delCache("orders:active"),
+    delCachePattern("orders:active:*"),
+    delCachePattern("produk:*"),
+  ]);
+
+  return res.status(200).json({
+    status: "success",
+    message: "Pesanan berhasil dihapus secara permanen",
+  });
+});

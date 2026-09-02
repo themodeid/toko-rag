@@ -97,11 +97,14 @@ export interface CheckoutResponse {
   order_id: string;
   snap_token?: string;
   redirect_url?: string;
+  redirectUrl?: string;
+  invoiceUrl?: string;
   total_price: number;
   data: {
     orderId: string;
     snapToken?: string;
     redirectUrl?: string;
+    invoiceUrl?: string;
     totalPrice: number;
     statusPesanan: string;
   };

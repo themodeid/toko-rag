@@ -52,6 +52,7 @@ export const ENV = {
   DB_WAIT_ATTEMPTS: getEnvInt("DB_WAIT_ATTEMPTS", 30),
   // RAG / AI Configuration
   GEMINI_API_KEY: getEnv("GEMINI_API_KEY", ""),
+  GEMINI_MODEL: getEnv("GEMINI_MODEL", "gemini-2.0-flash"),
   // Payment Gateways
   XENDIT_SECRET_KEY: getEnv("XENDIT_SECRET_KEY", "xnd_development_oP9dwP1nCG5CsdQ2uK7HxTgtY94YSgj50EKxdrPoo6NgMs7joJ1PhWO9TaU"),
   MIDTRANS_SERVER_KEY: getEnv("MIDTRANS_SERVER_KEY", "SB-Mid-server-test-key"),

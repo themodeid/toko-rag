@@ -117,6 +117,22 @@ export default function AuthPage() {
               </div>
             </div>
 
+            {mode === "register" && (
+              <div className="animate-in fade-in duration-150">
+                <label className="block font-semibold uppercase tracking-wider mb-1 text-zinc-400 text-[11px]">
+                  Daftar Sebagai Role
+                </label>
+                <select
+                  name="role"
+                  defaultValue="admin"
+                  className="w-full bg-zinc-950 border border-zinc-700 rounded-lg py-2.5 px-3 text-xs focus:outline-none focus:border-zinc-400 transition-colors text-zinc-100 cursor-pointer"
+                >
+                  <option value="admin">Admin / Pemilik Toko / Kasir</option>
+                  <option value="user">Pelanggan / Pembeli</option>
+                </select>
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={loading}
