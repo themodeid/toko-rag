@@ -1,6 +1,14 @@
-﻿import { Router } from "express";
+import { Router } from "express";
 import rateLimit from "express-rate-limit";
-import { askRag, askRagStream, getSuggestions } from "./rag.controller";
+import {
+  askRag,
+  askRagStream,
+  getSuggestions,
+  askAdminRagStream,
+  getAdminCustomerInsights,
+} from "./rag.controller";
+import { authGuard } from "../../middlewares/auth";
+import { roleGuard } from "../../middlewares/roleGuard";
 
 const router = Router();
 
@@ -16,13 +24,25 @@ const ragLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Endpoint untuk chat JSON standar
+// ================= CUSTOMER RAG (PUBLIC) =================
 router.post("/chat", ragLimiter, askRag);
-
-// Endpoint untuk real-time SSE streaming chat
 router.post("/chat/stream", ragLimiter, askRagStream);
-
-// Endpoint saran prompt
 router.get("/suggestions", getSuggestions);
+
+// ================= ADMIN RAG (DATA ANALYST & BUSINESS ADVISOR) =================
+router.post(
+  "/admin/chat-stream",
+  authGuard,
+  roleGuard(["admin"]),
+  ragLimiter,
+  askAdminRagStream
+);
+
+router.get(
+  "/admin/customer-insights",
+  authGuard,
+  roleGuard(["admin"]),
+  getAdminCustomerInsights
+);
 
 export default router;

@@ -583,6 +583,17 @@ export async function* handleRagChatStream(
 
     yield { type: "done", data: {} };
 
+    // Simpan ke log database untuk dianalisis oleh Admin AI Analyst
+    if (fullAccumulatedText) {
+      logCustomerChat(
+        null,
+        message,
+        fullAccumulatedText,
+        products.map((p) => p.nama),
+        knowledge.map((k) => k.title)
+      );
+    }
+
     if (fullAccumulatedText && history.length === 0) {
       await setCachedRagResponse(message, {
         message: fullAccumulatedText,
@@ -594,8 +605,34 @@ export async function* handleRagChatStream(
   } catch (error) {
     console.error("Gemini stream fetch error:", error);
     const fallback = generateSmartFallbackResponse(message, products, knowledge);
+    logCustomerChat(null, message, fallback, products.map((p) => p.nama), knowledge.map((k) => k.title));
     yield { type: "chunk", data: { text: fallback } };
     yield { type: "done", data: {} };
+  }
+}
+
+export async function logCustomerChat(
+  sessionId: string | null,
+  userMessage: string,
+  aiResponse: string,
+  matchedProducts?: string[],
+  matchedKnowledge?: string[]
+) {
+  try {
+    const { pool } = await import("../../config/database");
+    await pool.query(
+      `INSERT INTO rag_chat_logs (session_id, user_message, ai_response, matched_products, matched_knowledge)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [
+        sessionId || null,
+        userMessage,
+        aiResponse,
+        matchedProducts || [],
+        matchedKnowledge || [],
+      ]
+    );
+  } catch (err) {
+    console.warn("⚠️ Failed to log customer chat:", err);
   }
 }
 
