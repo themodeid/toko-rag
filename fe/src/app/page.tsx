@@ -12,10 +12,12 @@ import { getProductImageUrl } from "@/lib/imageHelper";
 // Types
 import { Produk } from "@/features/produk/types";
 import { CartItem } from "@/features/cart/types";
+import { ValidatePromoResponse } from "@/features/promos/types";
 
 // API
 import { getAllProduk } from "@/features/produk/api";
 import { createOrder, simulatePayment } from "@/features/cart/api";
+import { validatePromoCode } from "@/features/promos/api";
 
 export default function MenuPage() {
   const router = useRouter();
@@ -98,6 +100,12 @@ export default function MenuPage() {
   const [tableNumber, setTableNumber] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
 
+  // Promo code state
+  const [promoCodeInput, setPromoCodeInput] = useState("");
+  const [appliedPromo, setAppliedPromo] = useState<ValidatePromoResponse | null>(null);
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [promoError, setPromoError] = useState<string | null>(null);
+
   // Deteksi nomor meja dari URL query parameter (?meja=04 atau ?table=04)
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -112,6 +120,27 @@ export default function MenuPage() {
       }
     }
   }, [user]);
+
+  const handleApplyPromo = async () => {
+    if (!promoCodeInput.trim()) return;
+    try {
+      setPromoLoading(true);
+      setPromoError(null);
+      const res = await validatePromoCode(promoCodeInput.trim(), subtotal);
+      setAppliedPromo(res);
+    } catch (err: any) {
+      setPromoError(err?.response?.data?.message || "Kode promo tidak valid");
+      setAppliedPromo(null);
+    } finally {
+      setPromoLoading(false);
+    }
+  };
+
+  const handleRemovePromo = () => {
+    setAppliedPromo(null);
+    setPromoCodeInput("");
+    setPromoError(null);
+  };
 
   const handleOpenCheckoutModal = () => {
     if (cart.length === 0) {
@@ -145,6 +174,8 @@ export default function MenuPage() {
         order_type: orderType,
         table_number: orderType === "DINE_IN" ? tableNumber.trim() : null,
         customer_phone: customerPhone.trim() || null,
+        promo_id: appliedPromo?.promoId || null,
+        discount_amount: appliedPromo ? appliedPromo.discountAmount : 0,
       });
 
       const invoiceUrl = res.invoiceUrl || res.data?.invoiceUrl || res.redirectUrl || res.data?.redirectUrl;
@@ -246,8 +277,8 @@ export default function MenuPage() {
     (acc, item) => acc + item.harga * item.quantity,
     0,
   );
-  const discount = 0;
-  const total = subtotal - discount;
+  const discount = appliedPromo ? appliedPromo.discountAmount : 0;
+  const total = Math.max(0, subtotal - discount);
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-zinc-950 text-zinc-100 font-poppins selection:bg-zinc-800">
@@ -691,10 +722,85 @@ export default function MenuPage() {
                 />
               </div>
 
+              {/* Promo / Voucher Code Box */}
+              <div className="space-y-1.5 p-3 bg-zinc-950/80 rounded-xl border border-zinc-800">
+                <label className="text-xs font-semibold text-zinc-300 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <FeatherIcon icon="tag" className="w-3.5 h-3.5 text-pink-400" />
+                    <span>Punya Voucher Diskon?</span>
+                  </span>
+                  {appliedPromo && (
+                    <span className="text-[10px] text-emerald-400 font-bold">
+                      Diskon Aktif
+                    </span>
+                  )}
+                </label>
+
+                {!appliedPromo ? (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={promoCodeInput}
+                      onChange={(e) => setPromoCodeInput(e.target.value.toUpperCase())}
+                      placeholder="Contoh: DISKON10 / HEMAT15K"
+                      className="flex-1 px-3 py-2 bg-zinc-900 border border-zinc-700/80 rounded-lg text-xs font-mono uppercase text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-pink-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleApplyPromo}
+                      disabled={promoLoading || !promoCodeInput.trim()}
+                      className="px-3.5 py-2 bg-pink-600 hover:bg-pink-500 disabled:bg-zinc-800 disabled:text-zinc-600 text-white font-bold text-xs rounded-lg transition-colors"
+                    >
+                      {promoLoading ? "Cek..." : "Gunakan"}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between bg-pink-950/40 border border-pink-800/80 rounded-lg p-2.5 text-xs">
+                    <div>
+                      <span className="font-mono font-bold text-pink-300">
+                        🎟️ {appliedPromo.kodePromo}
+                      </span>
+                      <p className="text-[10px] text-emerald-400 font-semibold mt-0.5">
+                        Hemat Rp {appliedPromo.discountAmount.toLocaleString("id-ID")}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleRemovePromo}
+                      className="text-[11px] text-zinc-400 hover:text-red-400 underline font-medium"
+                    >
+                      Hapus
+                    </button>
+                  </div>
+                )}
+
+                {promoError && (
+                  <p className="text-[11px] text-red-400 font-medium animate-in fade-in">
+                    {promoError}
+                  </p>
+                )}
+              </div>
+
               {/* Ringkasan Total */}
-              <div className="p-3.5 bg-zinc-950 rounded-xl border border-zinc-800 flex items-center justify-between flex-wrap gap-2">
-                <span className="text-xs text-zinc-400 font-medium">Total Pembayaran ({cart.reduce((a, b) => a + b.quantity, 0)} item)</span>
-                <span className="text-base font-bold font-mono text-zinc-100">Rp {total.toLocaleString("id-ID")}</span>
+              <div className="p-3.5 bg-zinc-950 rounded-xl border border-zinc-800 space-y-1.5">
+                <div className="flex items-center justify-between text-xs text-zinc-400">
+                  <span>Subtotal ({cart.reduce((a, b) => a + b.quantity, 0)} item)</span>
+                  <span className="font-mono font-medium text-zinc-300">
+                    Rp {subtotal.toLocaleString("id-ID")}
+                  </span>
+                </div>
+                {discount > 0 && (
+                  <div className="flex items-center justify-between text-xs text-emerald-400 font-semibold">
+                    <span>Potongan Diskon Promo</span>
+                    <span className="font-mono">- Rp {discount.toLocaleString("id-ID")}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between pt-1 border-t border-zinc-800">
+                  <span className="text-xs text-zinc-100 font-bold">Total Pembayaran Akhir</span>
+                  <span className="text-base font-bold font-mono text-emerald-400">
+                    Rp {total.toLocaleString("id-ID")}
+                  </span>
+                </div>
               </div>
 
               {/* Action Buttons */}

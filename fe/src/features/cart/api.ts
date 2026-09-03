@@ -14,6 +14,8 @@ export interface CreateOrderParams {
   order_type?: "DINE_IN" | "TAKE_AWAY" | "DELIVERY";
   table_number?: string | null;
   customer_phone?: string | null;
+  promo_id?: string | null;
+  discount_amount?: number;
 }
 
 // ================= CREATE ORDER =================
@@ -31,6 +33,8 @@ export async function createOrder(
     order_type: isArray ? "DINE_IN" : params.order_type,
     table_number: isArray ? undefined : params.table_number,
     customer_phone: isArray ? undefined : params.customer_phone,
+    promo_id: isArray ? undefined : params.promo_id,
+    discount_amount: isArray ? undefined : params.discount_amount,
   };
   const res = await api.post<CheckoutResponse>("/api/orders", payload);
   return res.data;

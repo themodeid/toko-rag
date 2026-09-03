@@ -33,6 +33,8 @@ export const checkoutService = async (
     table_number,
     customer_phone,
     guest_token,
+    promo_id,
+    discount_amount = 0,
   } = input;
 
   if (!items || items.length === 0) {
@@ -114,16 +116,18 @@ export const checkoutService = async (
       };
     });
 
-    const totalPrice = orderItems.reduce((acc, item) => acc + item.subtotal, 0);
+    const rawSubtotal = orderItems.reduce((acc, item) => acc + item.subtotal, 0);
+    const effectiveDiscount = Math.min(rawSubtotal, Math.round(Number(discount_amount) || 0));
+    const totalPrice = Math.max(0, rawSubtotal - effectiveDiscount);
 
-    // 3. Insert order dengan status awal MENUNGGU_PEMBAYARAN & guest fields & branch_id
+    // 3. Insert order dengan status awal MENUNGGU_PEMBAYARAN & guest fields & branch_id & promo
     const orderResult = await client.query(
       `
       INSERT INTO orders (
-        auth_id, branch_id, customer_name, order_type, table_number, customer_phone, guest_token, total_price, status_pesanan, status_pembayaran
+        auth_id, branch_id, customer_name, order_type, table_number, customer_phone, guest_token, promo_id, discount_amount, total_price, status_pesanan, status_pembayaran
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'MENUNGGU_PEMBAYARAN', 'PENDING')
-      RETURNING id, auth_id, branch_id, customer_name, order_type, table_number, total_price, status_pesanan, status_pembayaran, created_at
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'MENUNGGU_PEMBAYARAN', 'PENDING')
+      RETURNING id, auth_id, branch_id, customer_name, order_type, table_number, promo_id, discount_amount, total_price, status_pesanan, status_pembayaran, created_at
       `,
       [
         userId || null,
@@ -133,11 +137,21 @@ export const checkoutService = async (
         table_number || null,
         customer_phone || null,
         guest_token || null,
+        promo_id || null,
+        effectiveDiscount,
         totalPrice,
       ]
     );
 
     const orderId = orderResult.rows[0].id;
+
+    // Jika promo_id ada, update kuota_terpakai
+    if (promo_id) {
+      await client.query(
+        "UPDATE promos SET kuota_terpakai = kuota_terpakai + 1 WHERE id = $1",
+        [promo_id]
+      );
+    }
 
     // 4. Insert order items with historical modal / HPP
     const itemsQuery = `

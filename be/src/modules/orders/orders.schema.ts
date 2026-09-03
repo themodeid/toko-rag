@@ -7,6 +7,8 @@ export const CheckoutSchema = z.object({
   table_number: z.string().max(20).optional().nullable(),
   customer_phone: z.string().max(30).optional().nullable(),
   guest_token: z.string().max(100).optional().nullable(),
+  promo_id: z.string().uuid().optional().nullable(),
+  discount_amount: z.number().nonnegative().optional().default(0),
   items: z
     .array(
       z.object({

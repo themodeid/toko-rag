@@ -73,13 +73,44 @@ export default function Sidebar({ type }: SidebarProps) {
             <div
               className={navClass("/admin/cabang")}
               onClick={() => router.push("/admin/cabang")}
-              title="Manajemen Gerai Cabang & Staff (HQ)"
+              title="Manajemen Gerai Cabang (HQ)"
             >
               <FeatherIcon icon="git-branch" className="w-4 h-4 text-amber-400" />
             </div>
           )}
 
-          {/* 4. Laporan Keuangan (Owner & Branch Manager) */}
+          {/* 4. Direktori & Manajemen Karyawan (Owner & Manager) */}
+          {(isOwner || isManager) && (
+            <div
+              className={navClass("/admin/karyawan")}
+              onClick={() => router.push("/admin/karyawan")}
+              title="Manajemen Karyawan & Staff"
+            >
+              <FeatherIcon icon="users" className="w-4 h-4 text-purple-400" />
+            </div>
+          )}
+
+          {/* 5. Absensi & Shift Kerja (Semua Staff) */}
+          <div
+            className={navClass("/admin/absensi")}
+            onClick={() => router.push("/admin/absensi")}
+            title="Rekap Absensi & Shift Kerja"
+          >
+            <FeatherIcon icon="clock" className="w-4 h-4 text-emerald-400" />
+          </div>
+
+          {/* 6. Voucher Diskon & Promo Toko (Owner & Admin) */}
+          {isOwner && (
+            <div
+              className={navClass("/admin/promo")}
+              onClick={() => router.push("/admin/promo")}
+              title="Voucher Diskon & Promo Toko"
+            >
+              <FeatherIcon icon="tag" className="w-4 h-4 text-pink-400" />
+            </div>
+          )}
+
+          {/* 7. Laporan Keuangan (Owner & Branch Manager) */}
           {(isOwner || isManager) && (
             <div
               className={navClass("/admin/laporan")}
@@ -90,7 +121,7 @@ export default function Sidebar({ type }: SidebarProps) {
             </div>
           )}
 
-          {/* 5. AI Business Analyst & Data Advisor (Owner & Branch Manager) */}
+          {/* 8. AI Business Analyst & Data Advisor (Owner & Branch Manager) */}
           {(isOwner || isManager) && (
             <div
               className={navClass("/admin/analyst")}
@@ -101,7 +132,7 @@ export default function Sidebar({ type }: SidebarProps) {
             </div>
           )}
 
-          {/* 6. Quick link ke Katalog Toko */}
+          {/* 9. Quick link ke Katalog Toko */}
           <div
             className={navClass("/")}
             onClick={() => router.push("/")}
