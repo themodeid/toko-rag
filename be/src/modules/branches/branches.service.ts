@@ -199,7 +199,7 @@ export const assignStaffService = async (
     UPDATE auth
     SET branch_id = $1, role = $2
     WHERE id = $3
-    RETURNING id, username, email, role, branch_id
+    RETURNING id, username, role, branch_id
   `;
 
   const res = await pool.query(query, [branchId, newRole, userId]);
@@ -211,7 +211,6 @@ export const getAllStaffService = async () => {
     SELECT 
       a.id,
       a.username,
-      a.email,
       a.role,
       a.branch_id,
       b.nama AS branch_name,

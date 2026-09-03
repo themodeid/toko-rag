@@ -8,11 +8,13 @@ import {
 export async function getFinancialAnalytics(
   period: "daily" | "monthly" | "yearly" = "daily",
   date?: string,
-  branchId?: string
+  branchId?: string | null
 ): Promise<FinancialAnalyticsData> {
   const params: Record<string, string> = { period };
   if (date) params.date = date;
-  if (branchId && branchId !== "all") params.branchId = branchId;
+  if (branchId && branchId !== "all" && branchId !== "null" && branchId !== "undefined") {
+    params.branchId = branchId;
+  }
 
   const res = await api.get<{ status: string; data: FinancialAnalyticsData }>(
     "/api/reports/analytics",
@@ -24,11 +26,13 @@ export async function getFinancialAnalytics(
 export async function getExpenses(
   period: "daily" | "monthly" | "yearly" = "daily",
   date?: string,
-  branchId?: string
+  branchId?: string | null
 ): Promise<ExpenseItem[]> {
   const params: Record<string, string> = { period };
   if (date) params.date = date;
-  if (branchId && branchId !== "all") params.branchId = branchId;
+  if (branchId && branchId !== "all" && branchId !== "null" && branchId !== "undefined") {
+    params.branchId = branchId;
+  }
 
   const res = await api.get<{ status: string; data: ExpenseItem[] }>(
     "/api/reports/expenses",

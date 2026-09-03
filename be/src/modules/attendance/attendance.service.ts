@@ -87,7 +87,6 @@ export async function getAttendanceRecapService(branchId?: string, startDate?: s
       a.status,
       a.catatan,
       u.username,
-      u.email,
       u.role,
       b.nama as branch_name,
       b.kode_cabang

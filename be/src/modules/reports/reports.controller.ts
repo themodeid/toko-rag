@@ -16,6 +16,9 @@ export const getFinancialAnalytics = catchAsync(async (req: Request, res: Respon
   const requestedBranchId = req.query.branchId as string | undefined;
 
   let effectiveBranchId = requestedBranchId;
+  if (effectiveBranchId === "all" || effectiveBranchId === "null" || effectiveBranchId === "undefined" || !effectiveBranchId) {
+    effectiveBranchId = undefined;
+  }
   if (userRole === "manager" && userBranchId) {
     effectiveBranchId = userBranchId;
   }
@@ -37,6 +40,9 @@ export const getExpenses = catchAsync(async (req: Request, res: Response) => {
   const requestedBranchId = req.query.branchId as string | undefined;
 
   let effectiveBranchId = requestedBranchId;
+  if (effectiveBranchId === "all" || effectiveBranchId === "null" || effectiveBranchId === "undefined" || !effectiveBranchId) {
+    effectiveBranchId = undefined;
+  }
   if (userRole === "manager" && userBranchId) {
     effectiveBranchId = userBranchId;
   }

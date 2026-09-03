@@ -21,9 +21,11 @@ export interface CreateStaffPayload {
   branch_id?: string | null;
 }
 
-export async function getAllStaff(branchId?: string): Promise<StaffMember[]> {
+export async function getAllStaff(branchId?: string | null): Promise<StaffMember[]> {
   const params: Record<string, string> = {};
-  if (branchId && branchId !== "all") params.branchId = branchId;
+  if (branchId && branchId !== "all" && branchId !== "null" && branchId !== "undefined") {
+    params.branchId = branchId;
+  }
 
   const res = await api.get<{ status: string; data: { staff: StaffMember[] } }>(
     "/api/users/staff",

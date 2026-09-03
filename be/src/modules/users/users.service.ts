@@ -4,7 +4,7 @@ import { AppError } from "../../utils/appError";
 
 export const getMeService = async (userId: string) => {
   const result = await pool.query(
-    `SELECT u.id, u.username, u.email, u.role, u.branch_id, b.nama as branch_name, u.created_at 
+    `SELECT u.id, u.username, u.role, u.branch_id, b.nama as branch_name, u.created_at 
      FROM auth u
      LEFT JOIN branches b ON u.branch_id = b.id
      WHERE u.id = $1`,
@@ -18,7 +18,6 @@ export const getAllStaffService = async (branchId?: string) => {
     SELECT 
       u.id, 
       u.username, 
-      u.email, 
       u.role, 
       u.branch_id, 
       b.nama as branch_name,
@@ -55,27 +54,25 @@ export const getAllStaffService = async (branchId?: string) => {
 
 export const createStaffService = async (data: {
   username: string;
-  email?: string;
   password: string;
   role: "manager" | "karyawan";
   branch_id?: string | null;
 }) => {
   const existing = await pool.query(
-    `SELECT id FROM auth WHERE username = $1 OR (email IS NOT NULL AND email = $2)`,
-    [data.username, data.email || ""]
+    `SELECT id FROM auth WHERE username = $1`,
+    [data.username]
   );
   if (existing.rows.length > 0) {
-    throw new AppError("Username atau email sudah terdaftar!", 400);
+    throw new AppError("Username sudah terdaftar!", 400);
   }
 
   const hashedPassword = await bcrypt.hash(data.password, 10);
   const result = await pool.query(
-    `INSERT INTO auth (username, email, password, role, branch_id)
-     VALUES ($1, $2, $3, $4, $5)
-     RETURNING id, username, email, role, branch_id, created_at`,
+    `INSERT INTO auth (username, password, role, branch_id)
+     VALUES ($1, $2, $3, $4)
+     RETURNING id, username, role, branch_id, created_at`,
     [
       data.username,
-      data.email || `${data.username.toLowerCase()}@kafetokorag.com`,
       hashedPassword,
       data.role,
       data.branch_id || null,
@@ -120,7 +117,7 @@ export const updateStaffService = async (
     UPDATE auth 
     SET ${updates.join(", ")}
     WHERE id = $1
-    RETURNING id, username, email, role, branch_id
+    RETURNING id, username, role, branch_id
   `;
 
   const result = await pool.query(query, params);
