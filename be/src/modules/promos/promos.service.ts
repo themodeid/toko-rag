@@ -1,4 +1,4 @@
-import pool from "../../database";
+import { pool } from "../../config/database";
 import { AppError } from "../../utils/appError";
 import { CreatePromoInput } from "./promos.schema";
 

@@ -13,12 +13,15 @@ export interface CheckoutItemInput {
 }
 
 export interface CheckoutInput {
+  branch_id?: string | null;
   items: CheckoutItemInput[];
   customer_name?: string;
   order_type?: "DINE_IN" | "TAKE_AWAY" | "DELIVERY";
   table_number?: string | null;
   customer_phone?: string | null;
   guest_token?: string | null;
+  promo_id?: string | null;
+  discount_amount?: number;
 }
 
 export const checkoutService = async (
