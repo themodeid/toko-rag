@@ -15,8 +15,9 @@ export default function Sidebar({ type }: SidebarProps) {
 
   const userRole = (user?.role || "").toLowerCase();
   const isOwner = userRole === "owner" || userRole === "admin";
+  const isManager = userRole === "manager";
   const isKaryawan = userRole === "karyawan";
-  const isStaff = isOwner || isKaryawan || type === "admin";
+  const isStaff = isOwner || isManager || isKaryawan || type === "admin";
 
   const handleLogout = async () => {
     const confirm = window.confirm("Apakah Anda yakin ingin logout?");
@@ -33,23 +34,23 @@ export default function Sidebar({ type }: SidebarProps) {
       pathname === path ? activeColor : hoverColor
     }`;
 
-  // Tampilan untuk Owner & Karyawan (Staff Toko / POS / KDS)
+  // Tampilan untuk Owner, Manager, & Karyawan (Staff Toko / POS / KDS)
   if (isStaff) {
     return (
       <aside className="w-full md:w-20 h-16 md:h-screen fixed bottom-0 md:sticky md:top-0 bg-zinc-900 border-t md:border-t-0 md:border-r border-zinc-800 flex flex-row md:flex-col items-center justify-around md:justify-start py-0 md:py-6 gap-0 md:gap-6 z-50">
         <div
           className="hidden md:flex w-10 h-10 bg-zinc-800 border border-zinc-700 rounded-lg items-center justify-center mb-4 cursor-pointer hover:bg-zinc-700/80 transition-colors"
-          onClick={() => router.push(isOwner ? "/admin/analyst" : "/pesanan/daftar_pesanan")}
-          title={isOwner ? "👑 Panel Owner" : "☕ Panel Karyawan (KDS)"}
+          onClick={() => router.push(isOwner ? "/admin/analyst" : isManager ? "/admin/laporan" : "/pesanan/daftar_pesanan")}
+          title={isOwner ? "👑 Panel Owner (HQ)" : isManager ? "👔 Panel Branch Manager" : "☕ Panel Barista (KDS)"}
         >
           <FeatherIcon
-            icon={isOwner ? "shield" : "coffee"}
-            className={`w-5 h-5 ${isOwner ? "text-amber-400" : "text-emerald-400"}`}
+            icon={isOwner ? "shield" : isManager ? "briefcase" : "coffee"}
+            className={`w-5 h-5 ${isOwner ? "text-amber-400" : isManager ? "text-purple-400" : "text-emerald-400"}`}
           />
         </div>
 
         <div className="flex flex-row md:flex-col gap-2 md:gap-4 w-full items-center justify-evenly md:justify-start px-4 md:px-0">
-          {/* 1. Antrean Pesanan & Kitchen Display System (Owner & Karyawan) */}
+          {/* 1. Antrean Pesanan & Kitchen Display System (Semua Staff) */}
           <div
             className={navClass("/pesanan/daftar_pesanan")}
             onClick={() => router.push("/pesanan/daftar_pesanan")}
@@ -58,7 +59,7 @@ export default function Sidebar({ type }: SidebarProps) {
             <FeatherIcon icon="list" className="w-4 h-4" />
           </div>
 
-          {/* 2. Tambah / Kelola Menu & Stok (Owner & Karyawan) */}
+          {/* 2. Tambah / Kelola Menu & Stok */}
           <div
             className={navClass("/menu/add_menu")}
             onClick={() => router.push("/menu/add_menu")}
@@ -67,29 +68,40 @@ export default function Sidebar({ type }: SidebarProps) {
             <FeatherIcon icon="plus" className="w-4 h-4" />
           </div>
 
-          {/* 3. Laporan Keuangan (Hanya Owner / Admin) */}
+          {/* 3. Manajemen Multi-Cabang (Khusus Owner / Admin) */}
           {isOwner && (
+            <div
+              className={navClass("/admin/cabang")}
+              onClick={() => router.push("/admin/cabang")}
+              title="Manajemen Gerai Cabang & Staff (HQ)"
+            >
+              <FeatherIcon icon="git-branch" className="w-4 h-4 text-amber-400" />
+            </div>
+          )}
+
+          {/* 4. Laporan Keuangan (Owner & Branch Manager) */}
+          {(isOwner || isManager) && (
             <div
               className={navClass("/admin/laporan")}
               onClick={() => router.push("/admin/laporan")}
-              title="Laporan Keuangan & Laba Bersih (Owner Only)"
+              title="Laporan Keuangan & Laba Bersih"
             >
               <FeatherIcon icon="pie-chart" className="w-4 h-4 text-emerald-400" />
             </div>
           )}
 
-          {/* 4. AI Business Analyst & Data Insights (Hanya Owner / Admin) */}
-          {isOwner && (
+          {/* 5. AI Business Analyst & Data Advisor (Owner & Branch Manager) */}
+          {(isOwner || isManager) && (
             <div
               className={navClass("/admin/analyst")}
               onClick={() => router.push("/admin/analyst")}
-              title="AI Business & Data Advisor (Owner Only)"
+              title="AI Business & Data Advisor"
             >
               <FeatherIcon icon="cpu" className="w-4 h-4 text-blue-400" />
             </div>
           )}
 
-          {/* 5. Quick link ke Katalog Toko */}
+          {/* 6. Quick link ke Katalog Toko */}
           <div
             className={navClass("/")}
             onClick={() => router.push("/")}

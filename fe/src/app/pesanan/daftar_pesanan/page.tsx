@@ -6,6 +6,8 @@ import Image from "next/image";
 import FeatherIcon from "feather-icons-react";
 import Sidebar from "@/components/Sidebar";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import BranchSwitcher from "@/components/BranchSwitcher";
+import { useBranch } from "@/context/BranchContext";
 import { getProductImageUrl } from "@/lib/imageHelper";
 
 // Types
@@ -23,6 +25,7 @@ import { getAllProduk } from "@/features/produk/api";
 
 export default function Antrian() {
   const router = useRouter();
+  const { selectedBranchId } = useBranch();
 
   // Data state
   const [orders, setOrders] = useState<Order[]>([]);
@@ -71,7 +74,7 @@ export default function Antrian() {
   async function fetchOrders(silent = false) {
     try {
       if (!silent) setLoadingOrders(true);
-      const ordersData = await getAllOrderActiveItems();
+      const ordersData = await getAllOrderActiveItems(selectedBranchId);
 
       setOrders((prev) => {
         // Deteksi apakah ada pesanan baru masuk
@@ -131,13 +134,13 @@ export default function Antrian() {
       fetchOrders(true);
     }, 6000);
     return () => clearInterval(interval);
-  }, [soundEnabled]);
+  }, [soundEnabled, selectedBranchId]);
 
   const isLoading = loadingOrders || loadingProduk;
 
   // ================= RENDER =================
   return (
-    <ProtectedRoute allowedRole={["owner", "admin", "karyawan"]}>
+    <ProtectedRoute allowedRole={["owner", "admin", "manager", "karyawan"]}>
       <div className="min-h-screen flex flex-col md:flex-row bg-zinc-950 text-zinc-100 font-poppins selection:bg-zinc-800">
         <Sidebar type="admin" />
 
@@ -152,12 +155,14 @@ export default function Antrian() {
               </span>
             </div>
 
-            {/* Sound Notifier & Live Indicator */}
-            <div className="flex items-center gap-3 bg-zinc-900 border border-zinc-800 px-3 py-1.5 rounded-xl text-xs">
-              <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                <span className="text-zinc-400 font-mono text-[11px]">Auto-Refresh (6s)</span>
-              </div>
+            {/* Branch Switcher & Sound Notifier */}
+            <div className="flex items-center gap-3">
+              <BranchSwitcher />
+              <div className="flex items-center gap-3 bg-zinc-900 border border-zinc-800 px-3 py-1.5 rounded-xl text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                  <span className="text-zinc-400 font-mono text-[11px]">Auto-Refresh (6s)</span>
+                </div>
               <div className="w-px h-4 bg-zinc-800"></div>
               <button
                 onClick={() => {
@@ -172,6 +177,7 @@ export default function Antrian() {
                 <FeatherIcon icon={soundEnabled ? "volume-2" : "volume-x"} className="w-3.5 h-3.5" />
                 <span>{soundEnabled ? "Bell Aktif" : "Mute"}</span>
               </button>
+            </div>
             </div>
           </div>
 

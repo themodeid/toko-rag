@@ -108,7 +108,10 @@ export const createProduk = catchAsync(async (req: Request, res: Response) => {
 // ===================== UPDATE PRODUK =====================
 export const updateProduk = catchAsync(async (req: Request, res: Response) => {
   const id = req.params.id as string;
-  const { nama, harga, hpp, stock, status, kategori, deskripsi, ingredients } = req.body;
+  const userRole = (req.user?.role || "").toLowerCase();
+  const isKaryawan = userRole === "karyawan";
+
+  const { nama, harga, hpp, stock, status, kategori, deskripsi, ingredients, estimasi_menit } = req.body;
   const file = (req as any).file;
 
   const oldProduct = await getProdukByIdService(id);
@@ -118,20 +121,30 @@ export const updateProduk = catchAsync(async (req: Request, res: Response) => {
 
   const imagePath = file ? `/uploads/${file.filename}` : undefined;
 
-  const produk = await updateProdukService(id, {
-    nama,
-    harga: harga !== undefined ? Number(harga) : undefined,
-    hpp: hpp !== undefined && hpp !== "" ? Number(hpp) : undefined,
-    stock: stock !== undefined ? Number(stock) : undefined,
-    status:
-      status !== undefined ? status === true || String(status) === "true" : undefined,
-    image: imagePath,
-    kategori,
-    deskripsi,
-    ingredients,
-  });
+  // Jika role KARYAWAN, HANYA boleh ubah stock dan status (ketersediaan)
+  const updatePayload = isKaryawan
+    ? {
+        stock: stock !== undefined ? Number(stock) : undefined,
+        status:
+          status !== undefined ? status === true || String(status) === "true" : undefined,
+      }
+    : {
+        nama,
+        harga: harga !== undefined ? Number(harga) : undefined,
+        hpp: hpp !== undefined && hpp !== "" ? Number(hpp) : undefined,
+        stock: stock !== undefined ? Number(stock) : undefined,
+        status:
+          status !== undefined ? status === true || String(status) === "true" : undefined,
+        image: imagePath,
+        kategori,
+        deskripsi,
+        ingredients,
+        estimasi_menit: estimasi_menit !== undefined ? Number(estimasi_menit) : undefined,
+      };
 
-  // Hapus gambar lama dari disk jika ada file gambar baru
+  const produk = await updateProdukService(id, updatePayload);
+
+  // Hapus gambar lama dari disk jika ada file gambar baru (hanya jika owner/admin upload)
   if (imagePath && oldProduct.image) {
     const oldFileName = path.basename(oldProduct.image);
     const oldFilePath = path.join(__dirname, "../../../uploads", oldFileName);

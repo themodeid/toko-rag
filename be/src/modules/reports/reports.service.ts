@@ -5,6 +5,7 @@ import { CreateExpenseDTO } from "./reports.schema";
 export interface AnalyticsSummary {
   period: "daily" | "monthly" | "yearly";
   selectedDate: string;
+  branchId?: string;
   totalOmzet: number;
   totalHpp: number;
   grossProfit: number;
@@ -48,11 +49,21 @@ export interface AnalyticsSummary {
     labaKotor: number;
     margin: number;
   }>;
+  branchPerformance?: Array<{
+    id: string;
+    nama: string;
+    kode_cabang: string;
+    omzet: number;
+    orders: number;
+    expenses: number;
+    netProfit: number;
+  }>;
 }
 
 export const getFinancialAnalyticsService = async (
   period: "daily" | "monthly" | "yearly" = "daily",
-  dateParam?: string
+  dateParam?: string,
+  branchId?: string
 ): Promise<AnalyticsSummary> => {
   let dateFilterOrder = "";
   let dateFilterExpense = "";
@@ -86,9 +97,20 @@ export const getFinancialAnalyticsService = async (
     chartLabelExpr = "TO_CHAR(o.created_at, 'Mon')";
   }
 
+  // Branch filter condition
+  const hasBranchFilter = Boolean(branchId && branchId !== "all");
+  const branchOrderClause = hasBranchFilter ? "AND o.branch_id = $2" : "";
+  const branchExpenseClause = hasBranchFilter ? "AND e.branch_id = $2" : "";
+
+  const queryParams: any[] = [formattedDate];
+  if (hasBranchFilter) {
+    queryParams.push(branchId);
+  }
+
   // Common order filter for valid non-canceled sales
   const validOrderCondition = `
     ${dateFilterOrder}
+    ${branchOrderClause}
     AND o.status_pesanan != 'DIBATALKAN'
     AND (
       o.status_pembayaran IN ('PAID', 'SETTLEMENT') 
@@ -113,18 +135,18 @@ export const getFinancialAnalyticsService = async (
   const expenseQuery = `
     SELECT COALESCE(SUM(e.jumlah), 0) AS total_expenses
     FROM expenses e
-    WHERE ${dateFilterExpense}
+    WHERE ${dateFilterExpense} ${branchExpenseClause}
   `;
 
   // 3. Query Payment Method Breakdown
   const paymentMethodQuery = `
     SELECT 
-      COALESCE(NULLIF(o.payment_type, ''), 'QRIS / Midtrans') AS method,
+      COALESCE(NULLIF(o.payment_type, ''), 'QRIS / Xendit') AS method,
       COUNT(o.id) AS total_count,
       COALESCE(SUM(o.total_price), 0) AS total_amount
     FROM orders o
     WHERE ${validOrderCondition}
-    GROUP BY COALESCE(NULLIF(o.payment_type, ''), 'QRIS / Midtrans')
+    GROUP BY COALESCE(NULLIF(o.payment_type, ''), 'QRIS / Xendit')
     ORDER BY total_amount DESC
   `;
 
@@ -147,7 +169,7 @@ export const getFinancialAnalyticsService = async (
       COUNT(e.id) AS total_count,
       COALESCE(SUM(e.jumlah), 0) AS total_amount
     FROM expenses e
-    WHERE ${dateFilterExpense}
+    WHERE ${dateFilterExpense} ${branchExpenseClause}
     GROUP BY COALESCE(e.kategori, 'OPERASIONAL')
     ORDER BY total_amount DESC
   `;
@@ -186,15 +208,34 @@ export const getFinancialAnalyticsService = async (
     LIMIT 10
   `;
 
-  const [revRes, expRes, payRes, ordTypeRes, expCatRes, chartRes, topProdRes] = await Promise.all([
-    pool.query(revenueQuery, [formattedDate]),
-    pool.query(expenseQuery, [formattedDate]),
-    pool.query(paymentMethodQuery, [formattedDate]),
-    pool.query(orderTypeQuery, [formattedDate]),
-    pool.query(expenseCategoryQuery, [formattedDate]),
-    pool.query(chartQuery, [formattedDate]),
-    pool.query(topProductsQuery, [formattedDate]),
-  ]);
+  // 8. Query Branch Breakdown (Bila mode konsolidasi / semua cabang)
+  const branchBreakdownQuery = `
+    SELECT 
+      b.id,
+      b.nama,
+      b.kode_cabang,
+      COALESCE(SUM(o.total_price), 0) AS omzet,
+      COALESCE(COUNT(DISTINCT o.id), 0) AS orders
+    FROM branches b
+    LEFT JOIN orders o ON b.id = o.branch_id 
+      AND ${dateFilterOrder}
+      AND o.status_pesanan != 'DIBATALKAN'
+      AND o.status_pembayaran NOT IN ('FAILED', 'EXPIRED')
+    GROUP BY b.id, b.nama, b.kode_cabang
+    ORDER BY omzet DESC
+  `;
+
+  const [revRes, expRes, payRes, ordTypeRes, expCatRes, chartRes, topProdRes, branchRes] =
+    await Promise.all([
+      pool.query(revenueQuery, queryParams),
+      pool.query(expenseQuery, queryParams),
+      pool.query(paymentMethodQuery, queryParams),
+      pool.query(orderTypeQuery, queryParams),
+      pool.query(expenseCategoryQuery, queryParams),
+      pool.query(chartQuery, queryParams),
+      pool.query(topProductsQuery, queryParams),
+      pool.query(branchBreakdownQuery, [formattedDate]),
+    ]);
 
   const totalOmzet = Number(revRes.rows[0]?.total_omzet || 0);
   const totalHpp = Number(revRes.rows[0]?.total_hpp || 0);
@@ -235,24 +276,36 @@ export const getFinancialAnalyticsService = async (
     profit: Number(row.profit),
   }));
 
-  const topProducts = topProdRes.rows.map((p) => {
-    const prodOmzet = Number(p.total_omzet);
-    const prodProfit = Number(p.laba_kotor);
+  const topProducts = topProdRes.rows.map((row) => {
+    const omzet = Number(row.total_omzet);
+    const hpp = Number(row.total_hpp);
+    const labaKotor = Number(row.laba_kotor);
     return {
-      id: p.id,
-      nama: p.nama,
-      kategori: p.kategori,
-      totalTerjual: Number(p.total_terjual),
-      totalOmzet: prodOmzet,
-      totalHpp: Number(p.total_hpp),
-      labaKotor: prodProfit,
-      margin: prodOmzet > 0 ? Math.round((prodProfit / prodOmzet) * 1000) / 10 : 0,
+      id: row.id,
+      nama: row.nama,
+      kategori: row.kategori,
+      totalTerjual: Number(row.total_terjual),
+      totalOmzet: omzet,
+      totalHpp: hpp,
+      labaKotor,
+      margin: omzet > 0 ? Math.round((labaKotor / omzet) * 1000) / 10 : 0,
     };
   });
+
+  const branchPerformance = branchRes.rows.map((row) => ({
+    id: row.id,
+    nama: row.nama,
+    kode_cabang: row.kode_cabang,
+    omzet: Number(row.omzet),
+    orders: Number(row.orders),
+    expenses: 0,
+    netProfit: Number(row.omzet),
+  }));
 
   return {
     period,
     selectedDate: formattedDate,
+    branchId: branchId || "all",
     totalOmzet,
     totalHpp,
     grossProfit,
@@ -267,13 +320,18 @@ export const getFinancialAnalyticsService = async (
     expenseCategories,
     chartData,
     topProducts,
+    branchPerformance,
   };
 };
 
 // ================= EXPENSES SERVICE =================
 
-export const getExpensesService = async (dateParam?: string, period: "daily" | "monthly" | "yearly" = "daily") => {
-  let filter = "";
+export const getExpensesService = async (
+  dateParam?: string,
+  period: "daily" | "monthly" | "yearly" = "daily",
+  branchId?: string
+) => {
+  let dateFilter = "";
   let param = dateParam;
 
   const today = new Date();
@@ -283,30 +341,47 @@ export const getExpensesService = async (dateParam?: string, period: "daily" | "
 
   if (period === "daily") {
     param = dateParam || `${yyyy}-${mm}-${dd}`;
-    filter = "WHERE DATE(tanggal) = $1";
+    dateFilter = "DATE(e.tanggal) = $1";
   } else if (period === "monthly") {
     param = dateParam || `${yyyy}-${mm}`;
-    filter = "WHERE TO_CHAR(tanggal, 'YYYY-MM') = $1";
+    dateFilter = "TO_CHAR(e.tanggal, 'YYYY-MM') = $1";
   } else {
     param = dateParam || `${yyyy}`;
-    filter = "WHERE TO_CHAR(tanggal, 'YYYY') = $1";
+    dateFilter = "TO_CHAR(e.tanggal, 'YYYY') = $1";
+  }
+
+  const queryParams: any[] = [param];
+  let branchFilter = "";
+  if (branchId && branchId !== "all") {
+    queryParams.push(branchId);
+    branchFilter = `AND e.branch_id = $${queryParams.length}`;
   }
 
   const query = `
-    SELECT id, nama, kategori, jumlah, tanggal, catatan, created_at
-    FROM expenses
-    ${filter}
-    ORDER BY tanggal DESC, created_at DESC
+    SELECT 
+      e.id, 
+      e.nama, 
+      e.kategori, 
+      e.jumlah, 
+      e.tanggal, 
+      e.catatan, 
+      e.branch_id,
+      b.nama AS branch_name,
+      e.created_at
+    FROM expenses e
+    LEFT JOIN branches b ON e.branch_id = b.id
+    WHERE ${dateFilter} ${branchFilter}
+    ORDER BY e.tanggal DESC, e.created_at DESC
   `;
-  const result = await pool.query(query, [param]);
+  const result = await pool.query(query, queryParams);
   return result.rows;
 };
 
-export const createExpenseService = async (data: CreateExpenseDTO) => {
+export const createExpenseService = async (data: CreateExpenseDTO & { branch_id?: string }) => {
   const result = await pool.query(
     `
-    INSERT INTO expenses (nama, kategori, jumlah, tanggal, catatan)
-    VALUES ($1, $2, $3, COALESCE($4::date, CURRENT_DATE), $5)
+    INSERT INTO expenses (nama, kategori, jumlah, tanggal, catatan, branch_id)
+    VALUES ($1, $2, $3, COALESCE($4::date, CURRENT_DATE), $5, $6)
     RETURNING *
     `,
     [
@@ -315,6 +390,7 @@ export const createExpenseService = async (data: CreateExpenseDTO) => {
       data.jumlah,
       data.tanggal || null,
       data.catatan || null,
+      data.branch_id || "a0000000-0000-0000-0000-000000000001",
     ]
   );
   return result.rows[0];

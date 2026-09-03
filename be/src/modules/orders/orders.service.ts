@@ -26,6 +26,7 @@ export const checkoutService = async (
   input: CheckoutInput
 ) => {
   const {
+    branch_id,
     items,
     customer_name,
     order_type = "DINE_IN",
@@ -56,10 +57,15 @@ export const checkoutService = async (
 
     // 1. Ambil data nama pemesan (dari user login atau input guest)
     let username = customer_name?.trim() || "Pelanggan";
+    let effectiveBranchId = branch_id || "a0000000-0000-0000-0000-000000000001";
+
     if (userId) {
-      const userRes = await client.query("SELECT username FROM auth WHERE id = $1", [userId]);
+      const userRes = await client.query("SELECT username, branch_id FROM auth WHERE id = $1", [userId]);
       if (userRes.rows[0]?.username) {
         username = userRes.rows[0].username;
+      }
+      if (!branch_id && userRes.rows[0]?.branch_id) {
+        effectiveBranchId = userRes.rows[0].branch_id;
       }
     }
 
@@ -110,17 +116,18 @@ export const checkoutService = async (
 
     const totalPrice = orderItems.reduce((acc, item) => acc + item.subtotal, 0);
 
-    // 3. Insert order dengan status awal MENUNGGU_PEMBAYARAN & guest fields
+    // 3. Insert order dengan status awal MENUNGGU_PEMBAYARAN & guest fields & branch_id
     const orderResult = await client.query(
       `
       INSERT INTO orders (
-        auth_id, customer_name, order_type, table_number, customer_phone, guest_token, total_price, status_pesanan, status_pembayaran
+        auth_id, branch_id, customer_name, order_type, table_number, customer_phone, guest_token, total_price, status_pesanan, status_pembayaran
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, 'MENUNGGU_PEMBAYARAN', 'PENDING')
-      RETURNING id, auth_id, customer_name, order_type, table_number, total_price, status_pesanan, status_pembayaran, created_at
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'MENUNGGU_PEMBAYARAN', 'PENDING')
+      RETURNING id, auth_id, branch_id, customer_name, order_type, table_number, total_price, status_pesanan, status_pembayaran, created_at
       `,
       [
         userId || null,
+        effectiveBranchId,
         username,
         order_type,
         table_number || null,
@@ -578,7 +585,15 @@ export const getOrderItemsService = async (orderId: string) => {
   return result.rows;
 };
 
-export const getOrdersActiveWithItemsService = async () => {
+export const getOrdersActiveWithItemsService = async (branchId?: string) => {
+  let branchFilter = "";
+  const params: any[] = [];
+
+  if (branchId && branchId !== "all") {
+    params.push(branchId);
+    branchFilter = `AND o.branch_id = $${params.length}`;
+  }
+
   const query = `
     SELECT 
       o.id,
@@ -592,6 +607,9 @@ export const getOrdersActiveWithItemsService = async () => {
       o.status_pesanan,
       o.status_pembayaran,
       o.payment_type,
+      o.branch_id,
+      b.nama AS branch_name,
+      b.kode_cabang,
       o.created_at,
       COALESCE(
         json_agg(
@@ -610,14 +628,16 @@ export const getOrdersActiveWithItemsService = async () => {
       ) AS items
     FROM orders o
     LEFT JOIN auth u ON o.auth_id = u.id
+    LEFT JOIN branches b ON o.branch_id = b.id
     LEFT JOIN order_items oi ON o.id = oi.order_id
     LEFT JOIN produk p ON oi.produk_id = p.id
     LEFT JOIN daily_queue dq ON dq.order_id = o.id
     WHERE o.status_pesanan IN ('ANTRI', 'DIPROSES') 
-    GROUP BY o.id, u.username
+    ${branchFilter}
+    GROUP BY o.id, u.username, b.nama, b.kode_cabang
     ORDER BY o.created_at ASC
   `;
-  const result = await pool.query(query);
+  const result = await pool.query(query, params);
   return result.rows;
 };
 

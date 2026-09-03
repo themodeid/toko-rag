@@ -31,8 +31,8 @@ router.post("/guest-orders", controller.getGuestOrders);
  * READ
  * ================================
  */
-// Ambil semua order aktif beserta item
-router.get("/activeItems", authGuard, controller.getOrdersActiveWithItems);
+// Ambil semua order aktif beserta item (Khusus Staff: Owner, Admin, Karyawan)
+router.get("/activeItems", authGuard, roleGuard("owner", "admin", "karyawan"), controller.getOrdersActiveWithItems);
 
 // Ambil order saya yang aktif beserta item
 router.get("/myActiveItems", authGuard, controller.getMyOrdersActiveWithItems);
@@ -51,8 +51,8 @@ router.get("/:id/items", authGuard, controller.getOrdersItems);
 // Simulasi pembayaran sukses (Sandbox testing)
 router.post("/:id/simulate-payment", optionalAuthGuard, controller.simulatePayment);
 
-// Tandai order selesai
-router.patch("/:id/selesai", authGuard, controller.doneOrders);
+// Tandai order selesai (Khusus Staff: Owner, Admin, Karyawan)
+router.patch("/:id/selesai", authGuard, roleGuard("owner", "admin", "karyawan"), controller.doneOrders);
 
 // Cancel order
 router.patch("/:id/cancel", optionalAuthGuard, controller.cancelOrder);

@@ -5,6 +5,7 @@ import ordersRoutes from "../modules/orders/orders.routes";
 import userRoutes from "../modules/users/users.routes";
 import ragRoutes from "../modules/rag/rag.route";
 import reportsRoutes from "../modules/reports/reports.routes";
+import branchesRoutes from "../modules/branches/branches.routes";
 import { upload } from "../middlewares/upload";
 import { authGuard } from "../middlewares/auth";
 import { AppError } from "../utils/appError";
@@ -31,6 +32,7 @@ router.use("/orders", ordersRoutes);
 router.use("/users", userRoutes);
 router.use("/rag", ragRoutes);
 router.use("/reports", reportsRoutes);
+router.use("/branches", branchesRoutes);
 
 
 // General file upload helper

@@ -4,18 +4,21 @@ import { useState, useEffect } from "react";
 import FeatherIcon from "feather-icons-react";
 import Sidebar from "@/components/Sidebar";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import BranchSwitcher from "@/components/BranchSwitcher";
+import { useBranch } from "@/context/BranchContext";
+import {
+  FinancialAnalyticsData,
+  ExpenseItem,
+} from "@/features/reports/types";
 import {
   getFinancialAnalytics,
   getExpenses,
   createExpense,
   deleteExpense,
 } from "@/features/reports/api";
-import {
-  FinancialAnalyticsData,
-  ExpenseItem,
-} from "@/features/reports/types";
 
 export default function LaporanKeuanganPage() {
+  const { selectedBranchId } = useBranch();
   const [period, setPeriod] = useState<"daily" | "monthly" | "yearly">("daily");
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [loading, setLoading] = useState(true);
@@ -37,8 +40,8 @@ export default function LaporanKeuanganPage() {
     try {
       setLoading(true);
       const [analyticsData, expensesData] = await Promise.all([
-        getFinancialAnalytics(period, selectedDate || undefined),
-        getExpenses(period, selectedDate || undefined),
+        getFinancialAnalytics(period, selectedDate || undefined, selectedBranchId),
+        getExpenses(period, selectedDate || undefined, selectedBranchId),
       ]);
       setAnalytics(analyticsData);
       setExpenses(expensesData);
@@ -51,7 +54,7 @@ export default function LaporanKeuanganPage() {
 
   useEffect(() => {
     loadData();
-  }, [period, selectedDate]);
+  }, [period, selectedDate, selectedBranchId]);
 
   const handleCreateExpense = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -156,7 +159,7 @@ export default function LaporanKeuanganPage() {
   };
 
   return (
-    <ProtectedRoute allowedRole="admin">
+    <ProtectedRoute allowedRole={["owner", "admin", "manager"]}>
       <div className="min-h-screen flex flex-col md:flex-row bg-zinc-950 text-zinc-100 font-poppins selection:bg-zinc-800 print:bg-white print:text-black">
         <div className="print:hidden">
           <Sidebar type="admin" />
@@ -178,8 +181,9 @@ export default function LaporanKeuanganPage() {
               </p>
             </div>
 
-            {/* Filter Periode, Print, Export & Catat Biaya */}
+            {/* Branch Switcher, Filter Periode, Print, Export & Catat Biaya */}
             <div className="flex flex-wrap items-center gap-2 bg-zinc-900 p-1.5 rounded-xl border border-zinc-800 print:hidden">
+              <BranchSwitcher />
               <div className="flex rounded-lg bg-zinc-950 p-1 border border-zinc-800">
                 <button
                   onClick={() => { setPeriod("daily"); setSelectedDate(""); }}

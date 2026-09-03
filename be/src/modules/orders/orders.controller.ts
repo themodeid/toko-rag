@@ -188,23 +188,20 @@ export const getOrdersItems = catchAsync(
   }
 );
 
-// ===================== GET ALL ACTIVE ORDERS WITH ITEMS (ADMIN) =====================
+// ===================== GET ACTIVE ORDERS WITH ITEMS =====================
 export const getOrdersActiveWithItems = catchAsync(
   async (req: Request, res: Response) => {
-    const cacheKey = "orders:active";
-    const cachedData = await getCache(cacheKey);
+    const userRole = (req.user?.role || "").toLowerCase();
+    const userBranchId = (req.user as any)?.branch_id;
+    const requestedBranchId = req.query.branchId as string | undefined;
 
-    if (cachedData) {
-      return res.status(200).json({
-        status: "success",
-        message: "Data dari cache 🚀",
-        total: cachedData.length,
-        data: cachedData,
-      });
+    // Jika karyawan atau manager, batasi hanya ke cabang mereka
+    let effectiveBranchId = requestedBranchId;
+    if (["manager", "karyawan"].includes(userRole) && userBranchId) {
+      effectiveBranchId = userBranchId;
     }
 
-    const orders = await getOrdersActiveWithItemsService();
-    await setCache(cacheKey, orders, 10);
+    const orders = await getOrdersActiveWithItemsService(effectiveBranchId);
 
     return res.status(200).json({
       status: "success",

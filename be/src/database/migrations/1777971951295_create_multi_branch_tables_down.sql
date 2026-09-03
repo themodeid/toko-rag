@@ -1,0 +1,7 @@
+-- Migration DOWN: Multi-Branch
+DROP TABLE IF EXISTS branch_stocks CASCADE;
+ALTER TABLE rag_chat_logs DROP COLUMN IF EXISTS branch_id;
+ALTER TABLE expenses DROP COLUMN IF EXISTS branch_id;
+ALTER TABLE orders DROP COLUMN IF EXISTS branch_id;
+ALTER TABLE auth DROP COLUMN IF EXISTS branch_id;
+DROP TABLE IF EXISTS branches CASCADE;

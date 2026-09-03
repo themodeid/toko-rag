@@ -54,6 +54,15 @@ export interface FinancialAnalyticsData {
   expenseCategories: ExpenseCategoryBreakdown[];
   chartData: ChartDataPoint[];
   topProducts: TopProductAnalytics[];
+  branchPerformance?: Array<{
+    id: string;
+    nama: string;
+    kode_cabang: string;
+    omzet: number;
+    orders: number;
+    expenses: number;
+    netProfit: number;
+  }>;
 }
 
 export interface ExpenseItem {

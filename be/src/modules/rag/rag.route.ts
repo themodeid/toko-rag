@@ -33,7 +33,7 @@ router.get("/suggestions", getSuggestions);
 router.post(
   "/admin/chat-stream",
   authGuard,
-  roleGuard("owner", "admin"),
+  roleGuard("owner", "admin", "manager"),
   ragLimiter,
   askAdminRagStream
 );
@@ -41,7 +41,7 @@ router.post(
 router.get(
   "/admin/customer-insights",
   authGuard,
-  roleGuard("owner", "admin"),
+  roleGuard("owner", "admin", "manager"),
   getAdminCustomerInsights
 );
 

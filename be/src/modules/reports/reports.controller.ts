@@ -11,8 +11,16 @@ import {
 export const getFinancialAnalytics = catchAsync(async (req: Request, res: Response) => {
   const period = (req.query.period as "daily" | "monthly" | "yearly") || "daily";
   const date = req.query.date as string | undefined;
+  const userRole = (req.user?.role || "").toLowerCase();
+  const userBranchId = (req.user as any)?.branch_id;
+  const requestedBranchId = req.query.branchId as string | undefined;
 
-  const analytics = await getFinancialAnalyticsService(period, date);
+  let effectiveBranchId = requestedBranchId;
+  if (userRole === "manager" && userBranchId) {
+    effectiveBranchId = userBranchId;
+  }
+
+  const analytics = await getFinancialAnalyticsService(period, date, effectiveBranchId);
 
   return res.status(200).json({
     status: "success",
@@ -24,8 +32,16 @@ export const getFinancialAnalytics = catchAsync(async (req: Request, res: Respon
 export const getExpenses = catchAsync(async (req: Request, res: Response) => {
   const period = (req.query.period as "daily" | "monthly" | "yearly") || "daily";
   const date = req.query.date as string | undefined;
+  const userRole = (req.user?.role || "").toLowerCase();
+  const userBranchId = (req.user as any)?.branch_id;
+  const requestedBranchId = req.query.branchId as string | undefined;
 
-  const expenses = await getExpensesService(date, period);
+  let effectiveBranchId = requestedBranchId;
+  if (userRole === "manager" && userBranchId) {
+    effectiveBranchId = userBranchId;
+  }
+
+  const expenses = await getExpensesService(date, period, effectiveBranchId);
 
   return res.status(200).json({
     status: "success",
@@ -36,7 +52,15 @@ export const getExpenses = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const createExpense = catchAsync(async (req: Request, res: Response) => {
-  const expense = await createExpenseService(req.body);
+  const userRole = (req.user?.role || "").toLowerCase();
+  const userBranchId = (req.user as any)?.branch_id;
+
+  const payload = {
+    ...req.body,
+    branch_id: userRole === "manager" && userBranchId ? userBranchId : req.body.branch_id,
+  };
+
+  const expense = await createExpenseService(payload);
 
   return res.status(201).json({
     status: "success",
