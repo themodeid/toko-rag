@@ -41,12 +41,13 @@ export const ENV = {
     "postgresql://adam_dev:adamwahyukur@localhost:5453/toko_online_adam"
   ),
   REDIS_URL: getEnv("REDIS_URL", "redis://localhost:6381"),
-  CORS_ORIGIN: getEnv("CORS_ORIGIN", "http://localhost:4000,http://localhost:3000"),
+  FRONTEND_URL: getEnv("FRONTEND_URL", "http://localhost:3000"),
+  CORS_ORIGIN: getEnv("CORS_ORIGIN", "http://localhost:3000,http://localhost:4000"),
   JSON_BODY_LIMIT: getEnv("JSON_BODY_LIMIT", "10mb"),
   JWT_SECRET: getEnv("JWT_SECRET", "super_secret_jwt_key_toko_online_adam"),
   JWT_EXPIRES_IN: getEnv("JWT_EXPIRES_IN", "1d"),
   RATE_LIMIT_WINDOW_MS: getEnvInt("RATE_LIMIT_WINDOW_MS", 15 * 60 * 1000),
-  RATE_LIMIT_MAX: getEnvInt("RATE_LIMIT_MAX", 200),
+  RATE_LIMIT_MAX: getEnvInt("RATE_LIMIT_MAX", 2000),
   STARTUP_RETRIES: getEnvInt("STARTUP_RETRIES", 30),
   STARTUP_DELAY_MS: getEnvInt("STARTUP_DELAY_MS", 2000),
   DB_WAIT_ATTEMPTS: getEnvInt("DB_WAIT_ATTEMPTS", 30),
@@ -59,4 +60,5 @@ export const ENV = {
   MIDTRANS_SERVER_KEY: getEnv("MIDTRANS_SERVER_KEY", "SB-Mid-server-test-key"),
   MIDTRANS_CLIENT_KEY: getEnv("MIDTRANS_CLIENT_KEY", "SB-Mid-client-test-key"),
   MIDTRANS_IS_PRODUCTION: getEnvBool("MIDTRANS_IS_PRODUCTION", false),
+  ORDER_EXPIRATION_MINUTES: getEnvInt("ORDER_EXPIRATION_MINUTES", 5),
 } as const;

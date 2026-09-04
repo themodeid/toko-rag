@@ -20,6 +20,47 @@ import {
   simulatePayment,
 } from "@/features/cart/api";
 
+function PaymentCountdown({
+  createdAt,
+  onExpire,
+}: {
+  createdAt: string;
+  onExpire?: () => void;
+}) {
+  const [timeLeft, setTimeLeft] = useState<number>(() => {
+    const expiresAt = new Date(createdAt).getTime() + 5 * 60 * 1000;
+    return Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
+  });
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const expiresAt = new Date(createdAt).getTime() + 5 * 60 * 1000;
+      const remaining = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
+      setTimeLeft(remaining);
+      if (remaining === 0) {
+        clearInterval(timer);
+        onExpire?.();
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [createdAt, onExpire]);
+
+  const mins = Math.floor(timeLeft / 60);
+  const secs = timeLeft % 60;
+
+  if (timeLeft === 0) {
+    return (
+      <span className="text-red-400 font-bold">Waktu Habis (Kadaluarsa)</span>
+    );
+  }
+
+  return (
+    <span className="font-bold text-amber-300 font-mono">
+      {String(mins).padStart(2, "0")}:{String(secs).padStart(2, "0")}
+    </span>
+  );
+}
+
 export default function HistoryPesanan() {
   const router = useRouter();
 
@@ -39,33 +80,35 @@ export default function HistoryPesanan() {
     DIBATALKAN: "bg-red-950/40 text-red-300 border border-red-800/60",
   };
 
-  async function fetchHistory() {
+  async function fetchHistory(silent = false) {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const data = await getAllMyOrders();
       setHistory(data);
+      if (silent) setError(null);
     } catch (error) {
-      setError("Gagal mengambil riwayat pesanan");
+      if (!silent) setError("Gagal mengambil riwayat pesanan");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }
 
-  async function fetchPesanan() {
+  async function fetchPesanan(silent = false) {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const data = await getMyOrdersActiveWithItems();
       setPesanan(data);
+      if (silent) setError(null);
     } catch (error) {
-      setError("Gagal mengambil data pesanan");
+      if (!silent) setError("Gagal mengambil data pesanan");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }
 
-  async function fetchGuestOrdersData() {
+  async function fetchGuestOrdersData(silent = false) {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const savedOrdersStr = localStorage.getItem("guest_orders");
       const orderIds: string[] = savedOrdersStr ? JSON.parse(savedOrdersStr) : [];
 
@@ -83,12 +126,34 @@ export default function HistoryPesanan() {
         ["MENUNGGU_PEMBAYARAN", "ANTRI", "DIPROSES"].includes(o.statusPesanan)
       );
       setPesanan(active);
+      if (silent) setError(null);
     } catch (err) {
-      console.error("Gagal load guest orders:", err);
+      console.warn("Silent guest orders update:", err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }
+
+  const [payingId, setPayingId] = useState<string | null>(null);
+
+  const handlePay = async (orderId: string) => {
+    try {
+      setPayingId(orderId);
+      setError(null);
+      await simulatePayment(orderId);
+      alert("✅ Pembayaran berhasil disimulasikan! Pesanan otomatis masuk antrean.");
+      const token = localStorage.getItem("token");
+      if (token) {
+        await Promise.all([fetchHistory(), fetchPesanan()]);
+      } else {
+        await fetchGuestOrdersData();
+      }
+    } catch (error: any) {
+      setError(error?.response?.data?.message || "Gagal memproses pembayaran");
+    } finally {
+      setPayingId(null);
+    }
+  };
 
   const handleCancel = async (orderId: string) => {
     try {
@@ -122,16 +187,17 @@ export default function HistoryPesanan() {
 
     loadData();
 
-    // Auto-polling status pesanan setiap 5 detik agar otomatis update saat pembayaran lunas
+    // Auto-polling status pesanan setiap 8 detik secara silent
     const interval = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
       const token = localStorage.getItem("token");
       if (token) {
-        fetchPesanan();
-        fetchHistory();
+        fetchPesanan(true);
+        fetchHistory(true);
       } else {
-        fetchGuestOrdersData();
+        fetchGuestOrdersData(true);
       }
-    }, 5000);
+    }, 8000);
 
     return () => clearInterval(interval);
   }, []);
@@ -218,14 +284,33 @@ export default function HistoryPesanan() {
                       </div>
                     </div>
 
-                    {/* Estimasi Waktu Selesai Banner */}
-                    {order.statusPesanan !== "SELESAI" && order.statusPesanan !== "DIBATALKAN" && (
+                    {/* Status & Countdown / Estimasi Banner */}
+                    {order.statusPesanan === "MENUNGGU_PEMBAYARAN" ? (
                       <div className="flex items-center justify-between bg-amber-950/40 border border-amber-800/50 text-amber-200 px-3 py-2 rounded-lg text-xs font-mono mb-4">
                         <div className="flex items-center gap-2">
-                          <FeatherIcon icon="clock" className="w-4 h-4 text-amber-400 animate-pulse" />
+                          <FeatherIcon icon="alert-triangle" className="w-4 h-4 text-amber-400 animate-pulse" />
+                          <span>Sisa Waktu Pembayaran (Maks 5 Mnt):</span>
+                        </div>
+                        <PaymentCountdown
+                          createdAt={order.createdAt}
+                          onExpire={() => {
+                            const token = localStorage.getItem("token");
+                            if (token) {
+                              fetchPesanan();
+                              fetchHistory();
+                            } else {
+                              fetchGuestOrdersData();
+                            }
+                          }}
+                        />
+                      </div>
+                    ) : order.statusPesanan === "ANTRI" || order.statusPesanan === "DIPROSES" ? (
+                      <div className="flex items-center justify-between bg-emerald-950/30 border border-emerald-800/40 text-emerald-200 px-3 py-2 rounded-lg text-xs font-mono mb-4">
+                        <div className="flex items-center gap-2">
+                          <FeatherIcon icon="clock" className="w-4 h-4 text-emerald-400 animate-pulse" />
                           <span>Estimasi Penyajian:</span>
                         </div>
-                        <span className="font-bold text-amber-300">
+                        <span className="font-bold text-emerald-300">
                           ~{Math.max(
                             1,
                             (order.items || []).reduce(
@@ -239,7 +324,7 @@ export default function HistoryPesanan() {
                           Menit lagi
                         </span>
                       </div>
-                    )}
+                    ) : null}
 
                     {/* Items */}
                     <div className="space-y-2 mb-4">
@@ -307,9 +392,20 @@ export default function HistoryPesanan() {
                             <span>Lunas (QRIS)</span>
                           </div>
                         ) : order.statusPesanan === "MENUNGGU_PEMBAYARAN" ? (
-                          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-950/60 border border-amber-800/60 text-amber-300 text-xs font-semibold">
-                            <FeatherIcon icon="clock" className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-                            <span>Menunggu Pembayaran</span>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handlePay(order.id)}
+                              disabled={payingId === order.id}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-amber-500 hover:bg-amber-400 text-zinc-950 shadow-sm active:scale-95 disabled:opacity-50"
+                              title="Klik untuk simulasi pembayaran lunas instan"
+                            >
+                              <FeatherIcon icon="zap" className="w-3.5 h-3.5 fill-current" />
+                              <span>{payingId === order.id ? "Memproses..." : "Bayar Sekarang"}</span>
+                            </button>
+                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-950/60 border border-amber-800/60 text-amber-300 text-xs font-semibold">
+                              <FeatherIcon icon="clock" className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                              <span>Menunggu Pembayaran</span>
+                            </div>
                           </div>
                         ) : null}
 

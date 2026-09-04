@@ -11,6 +11,7 @@ import { runMigrations } from "./database/migrationRunner";
 import routes from "./routes/index";
 import { errorHandler } from "./middlewares/errorHandler";
 import { ENV } from "./config/env";
+import { autoCancelExpiredOrdersService } from "./modules/orders/orders.service";
 
 export const app = express();
 
@@ -79,9 +80,10 @@ app.use("/api/rag", ragLimiter);
 
 const globalLimiter = rateLimit({
   windowMs: ENV.RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000,
-  max: ENV.RATE_LIMIT_MAX || 200,
+  max: ENV.RATE_LIMIT_MAX || 2000,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => ENV.NODE_ENV === "development",
   message: {
     status: "fail",
     statusCode: 429,
@@ -176,8 +178,18 @@ export async function startServer(): Promise<void> {
       console.log("🚀 Toko Online Server is up and running!");
       console.log(`🌐 Base API URL : http://localhost:${ENV.PORT}/api`);
       console.log(`🕒 System Time  : ${new Date().toLocaleString()}`);
+      console.log(`⏱️ Auto-Cancel : Pesanan belum dibayar otomatis batal setelah ${ENV.ORDER_EXPIRATION_MINUTES} menit`);
       console.log("===================================");
     });
+
+    // 5. START BACKGROUND ORDER EXPIRATION WORKER (Setiap 30 detik)
+    setInterval(async () => {
+      try {
+        await autoCancelExpiredOrdersService();
+      } catch (err) {
+        console.error("Worker Auto-Cancel Error:", err);
+      }
+    }, 30000);
   } catch (error) {
     console.error("===================================");
     console.error("❌ Server failed to start:", error);

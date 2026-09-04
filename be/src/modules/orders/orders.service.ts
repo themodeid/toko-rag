@@ -1,5 +1,6 @@
 import { pool } from "../../config/database";
 import { AppError } from "../../utils/appError";
+import { ENV } from "../../config/env";
 import { createXenditInvoice } from "../../config/xendit";
 import {
   createSnapTransaction,
@@ -845,4 +846,74 @@ export const handleXenditWebhookService = async (payload: XenditWebhookPayload) 
     client.release();
   }
 };
+
+/**
+ * Membatalkan pesanan yang belum dibayar jika melewati batas waktu (default 5 menit)
+ * Serta mengembalikan stok produk yang sebelumnya sudah dikurangi saat checkout.
+ */
+export const autoCancelExpiredOrdersService = async (
+  expirationMinutes: number = ENV.ORDER_EXPIRATION_MINUTES
+): Promise<number> => {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    // Cari semua pesanan yang statusnya MENUNGGU_PEMBAYARAN dan umurnya melebihi batas waktu
+    const expiredOrdersResult = await client.query(
+      `SELECT id FROM orders 
+       WHERE status_pesanan = 'MENUNGGU_PEMBAYARAN' 
+         AND status_pembayaran = 'UNPAID'
+         AND created_at < NOW() - ($1 || ' minutes')::INTERVAL
+       FOR UPDATE SKIP LOCKED`,
+      [expirationMinutes]
+    );
+
+    const expiredOrders = expiredOrdersResult.rows;
+    if (expiredOrders.length === 0) {
+      await client.query("COMMIT");
+      return 0;
+    }
+
+    for (const order of expiredOrders) {
+      const orderId = order.id;
+
+      // 1. Hapus antrean jika ada
+      await client.query(`DELETE FROM daily_queue WHERE order_id = $1`, [orderId]);
+
+      // 2. Kembalikan stok produk
+      const itemsResult = await client.query(
+        `SELECT produk_id, quantity FROM order_items WHERE order_id = $1`,
+        [orderId]
+      );
+
+      for (const item of itemsResult.rows) {
+        await client.query(
+          `UPDATE produk SET stock = stock + $1 WHERE id = $2`,
+          [item.quantity, item.produk_id]
+        );
+      }
+
+      // 3. Tandai pesanan sebagai DIBATALKAN & EXPIRED
+      await client.query(
+        `UPDATE orders 
+         SET status_pesanan = 'DIBATALKAN', 
+             status_pembayaran = 'EXPIRED' 
+         WHERE id = $1`,
+        [orderId]
+      );
+
+      console.log(`⏰ [Auto-Cancel] Order #${orderId.slice(0, 8)} otomatis dibatalkan karena tidak dibayar dalam ${expirationMinutes} menit.`);
+    }
+
+    await client.query("COMMIT");
+    return expiredOrders.length;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error("❌ Error running autoCancelExpiredOrdersService:", error);
+    return 0;
+  } finally {
+    client.release();
+  }
+};
+
 

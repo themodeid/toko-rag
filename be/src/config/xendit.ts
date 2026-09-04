@@ -35,7 +35,7 @@ export async function createXenditInvoice(
     external_id: params.orderId,
     amount: Math.round(params.amount),
     description: `Pembayaran Pesanan #${params.orderId.slice(0, 8)} di Toko Online + RAG`,
-    invoice_duration: 1800, // 30 Menit durasi invoice / QRIS aktif
+    invoice_duration: ENV.ORDER_EXPIRATION_MINUTES * 60, // Durasi invoice sesuai batas waktu pembayaran
     customer: {
       given_names: params.customerName || "Customer Toko",
       email: params.customerEmail || "customer@toko-rag.com",
@@ -52,8 +52,8 @@ export async function createXenditInvoice(
       "DANA",
       "SHOPEEPAY",
     ],
-    success_redirect_url: "http://localhost:4000/pesanan/history_pesanan",
-    failure_redirect_url: "http://localhost:4000/pesanan/history_pesanan",
+    success_redirect_url: `${ENV.FRONTEND_URL}/pesanan/history_pesanan`,
+    failure_redirect_url: `${ENV.FRONTEND_URL}/pesanan/history_pesanan`,
   };
 
   try {
