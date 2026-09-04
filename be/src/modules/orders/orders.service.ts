@@ -413,8 +413,13 @@ export const cancelOrderService = async (
       throw new AppError("Order tidak ditemukan", 404);
     }
 
-    // Role check: admin bisa batalkan order siapapun, user hanya miliknya sendiri
-    if (order.auth_id !== userId && normalizedRole !== "ADMIN") {
+    const isStaff =
+      normalizedRole === "ADMIN" ||
+      normalizedRole === "OWNER" ||
+      normalizedRole === "KARYAWAN";
+
+    // Role check: staf bisa batalkan order siapapun, user hanya miliknya sendiri
+    if (!isStaff && order.auth_id && userId && order.auth_id !== userId) {
       throw new AppError("Tidak diizinkan membatalkan order pengguna lain", 403);
     }
 
@@ -426,31 +431,8 @@ export const cancelOrderService = async (
       throw new AppError("Order yang sudah selesai tidak dapat dibatalkan", 400);
     }
 
-    // Batasan user biasa: hanya status ANTRI atau MENUNGGU_PEMBAYARAN
-    if (normalizedRole !== "ADMIN") {
-      if (order.status_pesanan !== "ANTRI" && order.status_pesanan !== "MENUNGGU_PEMBAYARAN") {
-        throw new AppError("Order sedang diproses dan tidak bisa dibatalkan", 400);
-      }
-
-      if (order.status_pesanan === "ANTRI") {
-        const topThree = await client.query(`
-          SELECT id
-          FROM orders
-          WHERE status_pesanan = 'ANTRI'
-          ORDER BY created_at ASC
-          LIMIT 3
-          FOR UPDATE
-        `);
-
-        const topThreeIds = topThree.rows.map((row) => row.id);
-        if (topThreeIds.includes(orderId)) {
-          throw new AppError(
-            "Order masuk dalam antrian prioritas yang sedang disiapkan dan tidak bisa dibatalkan",
-            400
-          );
-        }
-      }
-    }
+    // Hapus antrean harian jika ada
+    await client.query(`DELETE FROM daily_queue WHERE order_id = $1`, [orderId]);
 
     // Kembalikan stok produk
     const itemsResult = await client.query(
@@ -537,9 +519,10 @@ export const deleteOrderService = async (
     }
 
     const normalizedRole = role ? role.toUpperCase() : "GUEST";
+    const isOwnerOrAdmin = normalizedRole === "ADMIN" || normalizedRole === "OWNER";
 
-    // Jika bukan admin dan order terikat pada akun lain, tolak
-    if (normalizedRole !== "ADMIN" && order.auth_id && userId && order.auth_id !== userId) {
+    // Jika bukan owner/admin dan order terikat pada akun lain, tolak
+    if (!isOwnerOrAdmin && order.auth_id && userId && order.auth_id !== userId) {
       throw new AppError("Anda tidak memiliki akses untuk menghapus pesanan ini", 403);
     }
 
@@ -557,6 +540,9 @@ export const deleteOrderService = async (
         );
       }
     }
+
+    // 0. Hapus antrean harian jika ada (Foreign Key Constraint)
+    await client.query(`DELETE FROM daily_queue WHERE order_id = $1`, [orderId]);
 
     // 1. Hapus item pesanan
     await client.query(`DELETE FROM order_items WHERE order_id = $1`, [orderId]);

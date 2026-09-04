@@ -4,14 +4,11 @@ import React, { useState, useEffect } from "react";
 import FeatherIcon from "feather-icons-react";
 import Sidebar from "@/components/Sidebar";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import BranchSwitcher from "@/components/BranchSwitcher";
 import AttendanceWidget from "@/components/AttendanceWidget";
-import { useBranch } from "@/context/BranchContext";
 import { AttendanceRecord } from "@/features/attendance/types";
 import { getAttendanceRecap } from "@/features/attendance/api";
 
 export default function AdminAbsensiPage() {
-  const { selectedBranchId } = useBranch();
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState("");
@@ -21,7 +18,7 @@ export default function AdminAbsensiPage() {
     try {
       setLoading(true);
       const data = await getAttendanceRecap(
-        selectedBranchId,
+        undefined,
         startDate || undefined,
         endDate || undefined
       );
@@ -35,7 +32,7 @@ export default function AdminAbsensiPage() {
 
   useEffect(() => {
     loadData();
-  }, [selectedBranchId, startDate, endDate]);
+  }, [startDate, endDate]);
 
   // Statistik Ringkasan
   const totalHadir = records.filter((r) => r.status === "HADIR").length;
@@ -43,7 +40,7 @@ export default function AdminAbsensiPage() {
   const totalIzinSakit = records.filter((r) => ["IZIN", "SAKIT"].includes(r.status)).length;
 
   return (
-    <ProtectedRoute allowedRole={["owner", "admin", "manager"]}>
+    <ProtectedRoute allowedRole={["owner", "admin", "karyawan"]}>
       <div className="min-h-screen flex flex-col md:flex-row bg-zinc-950 text-zinc-100 font-poppins selection:bg-zinc-800">
         <Sidebar type="admin" />
 
@@ -59,13 +56,12 @@ export default function AdminAbsensiPage() {
                 Rekap Absensi & Shift Staff
               </h1>
               <p className="text-sm text-zinc-400 mt-1">
-                Pantau jam masuk, kepulangan, status hadir, dan catatan shift seluruh barista & manager per cabang.
+                Pantau jam masuk, kepulangan, status hadir, dan catatan shift seluruh barista kafe.
               </p>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
               <AttendanceWidget />
-              <BranchSwitcher />
             </div>
           </div>
 

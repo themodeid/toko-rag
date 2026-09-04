@@ -5,11 +5,9 @@ import FeatherIcon from "feather-icons-react";
 import { AttendanceRecord } from "@/features/attendance/types";
 import { getTodayAttendance, clockIn, clockOut } from "@/features/attendance/api";
 import { useAuth } from "@/context/AuthContext";
-import { useBranch } from "@/context/BranchContext";
 
 export default function AttendanceWidget() {
   const { user } = useAuth();
-  const { selectedBranchId, branches } = useBranch();
   const [todayAttendance, setTodayAttendance] = useState<AttendanceRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -52,12 +50,7 @@ export default function AttendanceWidget() {
     try {
       setActionLoading(true);
       if (modalMode === "in") {
-        const effectiveBranch =
-          (user as any)?.branch_id ||
-          (selectedBranchId !== "all" ? selectedBranchId : branches[0]?.id);
-
         await clockIn({
-          branchId: effectiveBranch,
           status,
           catatan: catatan || undefined,
         });

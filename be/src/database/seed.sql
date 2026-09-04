@@ -1,29 +1,28 @@
 -- ==============================================================================
--- DATABASE SEED DATA (TOKO ONLINE + POS + RAG AI)
+-- DATABASE SEED DATA (TOKO ONLINE + POS + RAG AI - SINGLE CAFE)
 -- File: src/database/seed.sql
 -- ==============================================================================
 
--- 1. SEED AUTH USERS (Default Passwords: owner123, admin123, karyawan123, user123)
--- Role options: 'owner', 'admin', 'karyawan', 'user'
+-- 1. SEED AUTH USERS (Default Passwords: admin123 untuk semua akun testing)
 INSERT INTO auth (username, password, role)
 VALUES 
-    ('owner', '$2b$10$wiCopag8g2sqjkG3pK0Oy.HLCQbj.cUSMqFc8/5iHpLaxyYC6Hroi', 'owner'),
-    ('admin', '$2b$10$uigfkcA5xU7MxBU3iKIorOK1pccmARIxJH7ac.5CrRPZLu.Pqupce', 'owner'),
-    ('karyawan', '$2b$10$dQNkDZZEA0KbaYyHS10Y5.7.8EyK9Gv9vKs40N6GD0VRaWP16GvZO', 'karyawan'),
-    ('user1', '$2b$10$lTFZuXHYqJ/9hKZxRAaFFepEXsYQjozjjm7Mm7ifqP.GJb6fXMnbO', 'user')
+    ('owner', '$2b$10$4AbiyaJxukDIJc76TgRqCeSq4ReEhnjIgC.dcIUogWTZMlKRWZdxO', 'owner'),
+    ('admin', '$2b$10$4AbiyaJxukDIJc76TgRqCeSq4ReEhnjIgC.dcIUogWTZMlKRWZdxO', 'owner'),
+    ('karyawan', '$2b$10$4AbiyaJxukDIJc76TgRqCeSq4ReEhnjIgC.dcIUogWTZMlKRWZdxO', 'karyawan'),
+    ('user1', '$2b$10$4AbiyaJxukDIJc76TgRqCeSq4ReEhnjIgC.dcIUogWTZMlKRWZdxO', 'user')
 ON CONFLICT (username) DO UPDATE 
 SET password = EXCLUDED.password, role = EXCLUDED.role;
 
--- 2. SEED SAMPLE PRODUK (Menu Utama: Matcha, Thai Tea, Americano, Croissant)
+-- 2. SEED MASTER PRODUK (Data Menu Real Kustom Pengguna)
 INSERT INTO produk (nama, harga, hpp, stock, status, image, kategori, deskripsi, ingredients, estimasi_menit)
 VALUES 
     (
-        'Matcha Latte Uji Kyoto', 
-        28000, 
-        11000, 
+        'Matcha Latte', 
+        5000, 
+        2500, 
         60, 
         TRUE, 
-        '/uploads/matcha.jpg', 
+        '/uploads/1788427856083-389802389.jpg', 
         'Non-Kopi', 
         '⭐ BEST SELLER #1! Minuman matcha autentik khas Uji Kyoto Jepang grade ceremonial yang dipadukan dengan fresh milk lembut. Memiliki aroma earthy alami, kaya antioksidan L-Theanine, manis pas dan creamy menyegarkan.', 
         '100% Pure Ceremonial Uji Matcha Powder Kyoto (Tanpa Pewarna Buatan), Fresh Milk Pasteurisasi / Susu UHT Segar, Simple Syrup Tebu Alami. Tersedia opsi penggantian Oat Milk (Vegan Friendly). Mengandung produk susu sapi.', 
@@ -31,11 +30,11 @@ VALUES
     ),
     (
         'Authentic Thai Tea Creamy', 
-        24000, 
-        9500, 
+        5000, 
+        2500, 
         55, 
         TRUE, 
-        '/uploads/latte.jpg', 
+        '/uploads/1788427877885-268759234.jpg', 
         'Non-Kopi', 
         '⭐ BEST SELLER #2! Teh rempah asli Thailand (Cha Tra Mue) diseduh pekat dengan aroma vanila & bunga lawang, dipadukan kental manis dan evaporated milk. Citarasa manis, gurih legit, dan menyegarkan.', 
         'Daun Teh Hitam Asli Thailand (Cha Tra Mue Blend), Bunga Lawang (Star Anise), Biji Adas Manis, Susu Evaporasi, Susu Kental Manis, Es Kristal Higienis. Mengandung susu sapi.', 
@@ -43,37 +42,64 @@ VALUES
     ),
     (
         'Iced Americano Arabica Special', 
-        22000, 
-        8000, 
+        5000, 
+        2500, 
         75, 
         TRUE, 
-        '/uploads/espresso.jpg', 
+        '/uploads/1788427809020-981719856.jpg', 
         'Kopi', 
         '⭐ BEST SELLER #3! Double shot espresso arabika pilihan dengan crema tebal keemasan, disajikan dengan air mineral dingin dan es batu. Citarasa bersih (clean cup), aroma floral buah segar, 0 kalori gula.', 
         'Double Shot Espresso 100% Biji Arabika Specialty (House Blend Gayo Aceh & Kintamani Bali), Air Mineral Terfiltrasi Oksigen, Es Batu Kristal. 0 Kalori Gula, 100% Bebas Susu (Dairy-Free, Gluten-Free & Vegan).', 
-        3
+        1
+    )
+ON CONFLICT (nama) DO UPDATE 
+SET harga = EXCLUDED.harga,
+    hpp = EXCLUDED.hpp,
+    stock = EXCLUDED.stock,
+    status = EXCLUDED.status,
+    image = EXCLUDED.image,
+    kategori = EXCLUDED.kategori,
+    deskripsi = EXCLUDED.deskripsi,
+    ingredients = EXCLUDED.ingredients,
+    estimasi_menit = EXCLUDED.estimasi_menit,
+    deleted_at = NULL;
+
+-- 3. SEED VOUCHER PROMO DISKON
+INSERT INTO promos (id, kode_promo, deskripsi, tipe, nilai, min_order, max_potongan, kuota, kuota_terpakai, is_active)
+VALUES 
+    (
+        '73db965e-4416-45f9-ad05-42b443f23f68',
+        'DISKON10',
+        'Promo Diskon 10% Spesial Toko RAG',
+        'PERCENTAGE',
+        10,
+        30000,
+        25000,
+        100,
+        0,
+        TRUE
     ),
     (
-        'Butter Croissant French Artisan', 
-        20000, 
-        8500, 
-        40, 
-        TRUE, 
-        '/uploads/croissant.jpg', 
-        'Pastry', 
-        'Pastry klasik khas Prancis dengan lapisan renyah di luar (flaky) dan lembut wangi butter premium di dalam. Dipanggang fresh setiap pagi.', 
-        'Tepung Gandum Premium, French Butter 82% Lemak Nabati/Hewani Murni, Ragi Alami, Gula, Garam Laut, Susu Segar. Mengandung gluten & produk olahan susu.', 
-        4
+        'db7fc3c1-3738-4c6a-97d5-8bd1bd86762e',
+        'HEMAT15K',
+        'Potongan Langsung Rp 15.000',
+        'FIXED',
+        15000,
+        50000,
+        15000,
+        50,
+        0,
+        TRUE
     )
-ON CONFLICT DO NOTHING;
+ON CONFLICT (kode_promo) DO NOTHING;
 
--- 3. SEED KNOWLEDGE BASE (FAQ, Kebijakan, SOP, dan Promosi untuk AI RAG)
+-- 4. SEED KNOWLEDGE BASE (FAQ, Kebijakan, SOP, dan Promosi untuk AI RAG)
 INSERT INTO knowledge_base (category, title, content, tags, is_active)
 VALUES 
     (
         'operasional', 
         'Jam Operasional & Lokasi Toko', 
-        'Kafe & Toko Online kami buka setiap hari Senin s/d Minggu dari pukul 08:00 WIB hingga 22:00 WIB. Layanan take-away dan pesanan online terakhir (last order) diterima pada pukul 21:30 WIB. Lokasi fisik toko berada di Jl. Boulevard Kopi No. 88, Jakarta Selatan.', 
+        'Kafe & Toko Online kami buka setiap hari Senin s/d Minggu dari pukul 08:00 WIB hingga 22:00 WIB. Layanan take-away dan pesanan online terakhir (last order) diterima pada pukul 21:30 WIB. Lokasi fisik kafe berada di Jl. Boulevard Kopi No. 88.', 
         ARRAY['jam buka', 'jam operasional', 'lokasi', 'alamat', 'toko', 'buka', 'tutup', 'last order'], 
         TRUE
     ),
@@ -87,7 +113,7 @@ VALUES
     (
         'pembayaran', 
         'Metode Pembayaran', 
-        'Kami menerima pembayaran melalui QRIS (GoPay, OVO, Dana, ShopeePay, BCA/Mandiri Mobile), Transfer Bank Virtual Account, Kartu Debit/Kredit, serta Tunai (Cash) langsung di kasir.', 
+        'Kami menerima pembayaran melalui QRIS (GoPay, OVO, Dana, ShopeePay, BCA/Mandiri Mobile), Transfer Bank Virtual Account Xendit, Kartu Debit/Kredit, serta Tunai (Cash) langsung di kasir.', 
         ARRAY['pembayaran', 'bayar', 'qris', 'gopay', 'ovo', 'dana', 'transfer', 'kartu debit', 'cash', 'tunai'], 
         TRUE
     ),
@@ -100,9 +126,9 @@ VALUES
     ),
     (
         'promo', 
-        'Promo Loyalty Member & Diskon Jam Kerja (Happy Hour)', 
-        'Dapatkan diskon 15% untuk seluruh menu kopi setiap hari Senin - Jumat pukul 14:00 - 17:00 WIB (Happy Hour). Member terdaftar juga berhak mengumpulkan poin transaksi yang dapat ditukarkan dengan 1 cup kopi gratis setiap 10 pesanan.', 
-        ARRAY['promo', 'diskon', 'happy hour', 'voucher', 'potongan harga', 'member', 'gratis', 'poin'], 
+        'Promo Loyalty Member & Voucher Diskon', 
+        'Gunakan kode promo DISKON10 untuk diskon 10% atau HEMAT15K untuk potongan langsung Rp 15.000 saat checkout di website atau kasir.', 
+        ARRAY['promo', 'diskon', 'voucher', 'potongan harga', 'hemat15k', 'diskon10'], 
         TRUE
     )
 ON CONFLICT DO NOTHING;

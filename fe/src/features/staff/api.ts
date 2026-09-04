@@ -3,11 +3,7 @@ import api from "@/lib/axios";
 export interface StaffMember {
   id: string;
   username: string;
-  email: string;
-  role: "owner" | "admin" | "manager" | "karyawan";
-  branch_id: string | null;
-  branch_name: string | null;
-  kode_cabang: string | null;
+  role: "owner" | "admin" | "karyawan";
   created_at: string;
   today_attendance_status?: string | null;
   today_clock_in?: string | null;
@@ -15,21 +11,13 @@ export interface StaffMember {
 
 export interface CreateStaffPayload {
   username: string;
-  email?: string;
   password: string;
-  role: "manager" | "karyawan";
-  branch_id?: string | null;
+  role: "karyawan";
 }
 
-export async function getAllStaff(branchId?: string | null): Promise<StaffMember[]> {
-  const params: Record<string, string> = {};
-  if (branchId && branchId !== "all" && branchId !== "null" && branchId !== "undefined") {
-    params.branchId = branchId;
-  }
-
+export async function getAllStaff(): Promise<StaffMember[]> {
   const res = await api.get<{ status: string; data: { staff: StaffMember[] } }>(
-    "/api/users/staff",
-    { params }
+    "/api/users/staff"
   );
   return res.data.data.staff || [];
 }
@@ -45,8 +33,7 @@ export async function createStaff(data: CreateStaffPayload): Promise<StaffMember
 export async function updateStaff(
   id: string,
   data: {
-    role?: "manager" | "karyawan" | "admin" | "owner";
-    branch_id?: string | null;
+    role?: "karyawan" | "admin" | "owner";
     password?: string;
   }
 ): Promise<StaffMember> {

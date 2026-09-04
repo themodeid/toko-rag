@@ -32,10 +32,8 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         <AuthProvider>
-          <BranchProvider>
-            {children}
-            <AiChatWidget />
-          </BranchProvider>
+          {children}
+          <AiChatWidget />
         </AuthProvider>
       </body>
     </html>

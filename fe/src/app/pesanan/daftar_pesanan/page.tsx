@@ -6,8 +6,8 @@ import Image from "next/image";
 import FeatherIcon from "feather-icons-react";
 import Sidebar from "@/components/Sidebar";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import BranchSwitcher from "@/components/BranchSwitcher";
-import { useBranch } from "@/context/BranchContext";
+import AttendanceWidget from "@/components/AttendanceWidget";
+import { useAuth } from "@/context/AuthContext";
 import { getProductImageUrl } from "@/lib/imageHelper";
 
 // Types
@@ -19,13 +19,19 @@ import {
   getAllOrderActiveItems,
   selesaiOrder,
   cancelOrder,
-  deleteOrder,
 } from "@/features/cart/api";
-import { getAllProduk } from "@/features/produk/api";
+import { getAllProduk, updateProduk } from "@/features/produk/api";
 
 export default function Antrian() {
   const router = useRouter();
-  const { selectedBranchId } = useBranch();
+  const { logout, user } = useAuth();
+
+  const handleLogout = async () => {
+    const confirm = window.confirm("Apakah Anda yakin ingin logout dari sesi Barista?");
+    if (!confirm) return;
+    await logout();
+    router.push("/login");
+  };
 
   // Data state
   const [orders, setOrders] = useState<Order[]>([]);
@@ -39,6 +45,8 @@ export default function Antrian() {
   const [error, setError] = useState<string | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [selectedReceiptOrder, setSelectedReceiptOrder] = useState<Order | null>(null);
+  const [isStockModalOpen, setIsStockModalOpen] = useState(false);
+  const [stockUpdatingId, setStockUpdatingId] = useState<string | null>(null);
 
   const statusColor: Record<string, string> = {
     ANTRI: "bg-amber-950/40 text-amber-300 border border-amber-800/60",
@@ -74,7 +82,7 @@ export default function Antrian() {
   async function fetchOrders(silent = false) {
     try {
       if (!silent) setLoadingOrders(true);
-      const ordersData = await getAllOrderActiveItems(selectedBranchId);
+      const ordersData = await getAllOrderActiveItems();
 
       setOrders((prev) => {
         // Deteksi apakah ada pesanan baru masuk
@@ -92,6 +100,18 @@ export default function Antrian() {
     }
   }
 
+  const fetchProduk = async () => {
+    setLoadingProduk(true);
+    try {
+      const data = await getAllProduk();
+      setProduk(data.produk);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingProduk(false);
+    }
+  };
+
   const handleDone = async (orderId: string) => {
     try {
       setActionLoading(orderId);
@@ -103,6 +123,8 @@ export default function Antrian() {
   };
 
   const handleCancel = async (orderId: string) => {
+    const confirm = window.confirm("Batalkan pesanan ini?");
+    if (!confirm) return;
     try {
       setActionLoading(orderId);
       await cancelOrder(orderId);
@@ -112,80 +134,128 @@ export default function Antrian() {
     }
   };
 
-  const handleDelete = async (orderId: string) => {
-    const confirm = window.confirm("Apakah Anda yakin ingin menghapus pesanan ini secara permanen dari database?");
-    if (!confirm) return;
-
+  const handleToggleProductStatus = async (item: Produk) => {
     try {
-      setActionLoading(orderId);
-      await deleteOrder(orderId);
-      await fetchOrders(true);
+      setStockUpdatingId(item.id);
+      await updateProduk(item.id, { status: !item.status });
+      await fetchProduk();
     } catch (err) {
-      alert("Gagal menghapus pesanan");
+      alert("Gagal mengubah status ketersediaan");
     } finally {
-      setActionLoading(null);
+      setStockUpdatingId(null);
     }
   };
 
-  // Auto-Polling Real-time setiap 6 detik
+  const handleAdjustProductStock = async (item: Produk, delta: number) => {
+    const newStock = Math.max(0, item.stock + delta);
+    try {
+      setStockUpdatingId(item.id);
+      await updateProduk(item.id, { stock: newStock });
+      await fetchProduk();
+    } catch (err) {
+      alert("Gagal memperbarui stok");
+    } finally {
+      setStockUpdatingId(null);
+    }
+  };
+
+  // Initial fetch
   useEffect(() => {
     fetchOrders();
+    fetchProduk();
+  }, []);
+
+  // Polling pesanan setiap 6 detik
+  useEffect(() => {
     const interval = setInterval(() => {
       fetchOrders(true);
     }, 6000);
     return () => clearInterval(interval);
-  }, [soundEnabled, selectedBranchId]);
+  }, []);
 
   const isLoading = loadingOrders || loadingProduk;
 
   // ================= RENDER =================
   return (
-    <ProtectedRoute allowedRole={["owner", "admin", "manager", "karyawan"]}>
-      <div className="min-h-screen flex flex-col md:flex-row bg-zinc-950 text-zinc-100 font-poppins selection:bg-zinc-800">
+    <ProtectedRoute allowedRole={["owner", "admin", "karyawan"]}>
+      <div className="min-h-screen bg-zinc-950 text-zinc-100 font-poppins selection:bg-zinc-800 flex flex-col md:flex-row">
         <Sidebar type="admin" />
 
       {/* MAIN */}
       <main className="flex-1 p-4 md:p-8 lg:p-12 pb-24 md:pb-12 overflow-y-auto w-full">
         <div className="mb-8 md:mb-12 max-w-6xl mx-auto pt-4 md:pt-0">
           <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
-            <div className="inline-block px-3 py-1 bg-zinc-900 border border-zinc-800 text-zinc-300 rounded-md">
+            <div className="inline-block px-3 py-1 bg-emerald-950/60 border border-emerald-800/60 text-emerald-300 rounded-md">
               <span className="text-xs font-semibold tracking-wider uppercase flex items-center gap-2">
-                <FeatherIcon icon="shield" className="w-3.5 h-3.5 text-zinc-400" />
-                Kitchen & Cashier Screen
+                <FeatherIcon icon="coffee" className="w-3.5 h-3.5 text-emerald-400" />
+                Barista Kitchen & Cashier Station
               </span>
             </div>
 
-            {/* Branch Switcher & Sound Notifier */}
-            <div className="flex items-center gap-3">
-              <BranchSwitcher />
+            {/* Quick Actions Bar */}
+            <div className="flex items-center flex-wrap gap-3">
+              {/* Clock In / Out Absensi Barista */}
+              <AttendanceWidget />
+
+              {/* Tombol Cek Stok Bar */}
+              <button
+                onClick={() => setIsStockModalOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-200 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95"
+                title="Cek & Update Ketersediaan Stok Menu"
+              >
+                <FeatherIcon icon="box" className="w-3.5 h-3.5 text-amber-400" />
+                <span>Stok Bar</span>
+              </button>
+
+              {/* Tombol Buat Pesanan Kasir Walk-in */}
+              <button
+                onClick={() => router.push("/")}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-950/80 hover:bg-blue-900 border border-blue-700/80 text-blue-300 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95"
+                title="Input Pesanan Tamu di Kasir"
+              >
+                <FeatherIcon icon="plus" className="w-3.5 h-3.5" />
+                <span>Order Tamu</span>
+              </button>
+
+              {/* Sound & Polling Indicator */}
               <div className="flex items-center gap-3 bg-zinc-900 border border-zinc-800 px-3 py-1.5 rounded-xl text-xs">
                 <div className="flex items-center gap-2">
                   <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                  <span className="text-zinc-400 font-mono text-[11px]">Auto-Refresh (6s)</span>
+                  <span className="text-zinc-400 font-mono text-[11px]">Live (6s)</span>
                 </div>
-              <div className="w-px h-4 bg-zinc-800"></div>
+                <div className="w-px h-4 bg-zinc-800"></div>
+                <button
+                  onClick={() => {
+                    setSoundEnabled(!soundEnabled);
+                    if (!soundEnabled) playChime();
+                  }}
+                  className={`flex items-center gap-1.5 font-medium transition-colors ${
+                    soundEnabled ? "text-emerald-400" : "text-zinc-500"
+                  }`}
+                  title="Aktifkan/Matikan Suara Bell Pesanan"
+                >
+                  <FeatherIcon icon={soundEnabled ? "volume-2" : "volume-x"} className="w-3.5 h-3.5" />
+                  <span>{soundEnabled ? "Bell Aktif" : "Mute"}</span>
+                </button>
+              </div>
+
+              {/* Logout Button */}
               <button
-                onClick={() => {
-                  setSoundEnabled(!soundEnabled);
-                  if (!soundEnabled) playChime();
-                }}
-                className={`flex items-center gap-1.5 font-medium transition-colors ${
-                  soundEnabled ? "text-emerald-400" : "text-zinc-500"
-                }`}
-                title="Aktifkan/Matikan Suara Bell Pesanan"
+                onClick={handleLogout}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-red-950/40 hover:bg-red-900/60 border border-red-900/60 text-red-400 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95"
+                title="Keluar dari Akun Barista"
               >
-                <FeatherIcon icon={soundEnabled ? "volume-2" : "volume-x"} className="w-3.5 h-3.5" />
-                <span>{soundEnabled ? "Bell Aktif" : "Mute"}</span>
+                <FeatherIcon icon="log-out" className="w-3.5 h-3.5" />
+                <span>Logout</span>
               </button>
-            </div>
             </div>
           </div>
 
           <h1 className="text-3xl lg:text-4xl font-bold tracking-tight text-zinc-100 mb-2">
-            Pesanan Aktif ({orders.length})
+            Pesanan Masuk ({orders.length})
           </h1>
           <p className="text-sm text-zinc-400 max-w-md">
-            Layar pesanan dapur & kasir realtime dengan notifikasi audio bell dan cetak struk thermal.
+            Layar pesanan dapur & kasir realtime dengan notifikasi audio bell, tombol selesai masak, dan cetak struk thermal.
           </p>
         </div>
 
@@ -315,19 +385,6 @@ export default function Antrian() {
                         <span className="hidden sm:inline">Struk</span>
                       </button>
 
-                      <button
-                        onClick={() => handleDelete(order.id)}
-                        disabled={actionLoading === order.id}
-                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-800/80 hover:bg-red-950/80 text-zinc-400 hover:text-red-300 border border-zinc-700/80 hover:border-red-800/80 transition-colors"
-                        title="Hapus Pesanan Permanen"
-                      >
-                        {actionLoading === order.id ? (
-                          <div className="w-3.5 h-3.5 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
-                        ) : (
-                          <FeatherIcon icon="trash-2" className="w-3.5 h-3.5" />
-                        )}
-                      </button>
-
                       {!isFinished && (
                         <>
                           <button
@@ -345,13 +402,13 @@ export default function Antrian() {
                           <button
                             onClick={() => handleDone(order.id)}
                             disabled={actionLoading === order.id}
-                            className="px-3 h-8 flex items-center justify-center gap-1.5 rounded-lg text-xs font-semibold bg-zinc-100 hover:bg-zinc-200 text-zinc-900 transition-all shadow-sm active:scale-[0.98]"
+                            className="px-3 h-8 flex items-center justify-center gap-1.5 rounded-lg text-xs font-semibold bg-emerald-500 hover:bg-emerald-400 text-zinc-950 transition-all shadow-sm active:scale-[0.98]"
                           >
                             {actionLoading === order.id ? (
-                              <div className="w-3.5 h-3.5 border-2 border-zinc-900 border-t-transparent rounded-full animate-spin"></div>
+                              <div className="w-3.5 h-3.5 border-2 border-zinc-950 border-t-transparent rounded-full animate-spin"></div>
                             ) : (
                               <>
-                                Selesai
+                                <span>Selesai Masak</span>
                                 <FeatherIcon icon="check" className="w-3.5 h-3.5" />
                               </>
                             )}
@@ -458,6 +515,102 @@ export default function Antrian() {
               >
                 <FeatherIcon icon="printer" className="w-3.5 h-3.5" />
                 <span>Cetak Thermal</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MODAL CEK STOK BAR & KETERSEDIAAN ================= */}
+      {isStockModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in">
+          <div className="bg-zinc-900 border border-zinc-800 text-zinc-100 w-full max-w-lg rounded-2xl p-6 shadow-2xl space-y-4 max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+              <div>
+                <h3 className="text-base font-bold flex items-center gap-2">
+                  <FeatherIcon icon="box" className="w-4 h-4 text-amber-400" />
+                  <span>Ketersediaan Menu & Stok Bar</span>
+                </h3>
+                <p className="text-xs text-zinc-400 mt-0.5">
+                  Update cepat status menu habis atau tambah stok tanpa kalkulasi modal.
+                </p>
+              </div>
+              <button
+                onClick={() => setIsStockModalOpen(false)}
+                className="text-zinc-400 hover:text-zinc-200 p-1"
+              >
+                <FeatherIcon icon="x" className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3 overflow-y-auto flex-1 pr-1">
+              {produk.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between gap-3 p-3 bg-zinc-950 border border-zinc-800 rounded-xl"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-lg bg-zinc-800 overflow-hidden flex-shrink-0 relative">
+                      <Image
+                        src={getProductImageUrl(item.image)}
+                        alt={item.nama}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-bold text-xs text-zinc-100 truncate">{item.nama}</p>
+                      <p className="text-[11px] text-zinc-400">Rp {item.harga.toLocaleString("id-ID")}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    {/* Status Toggle */}
+                    <button
+                      onClick={() => handleToggleProductStatus(item)}
+                      disabled={stockUpdatingId === item.id}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase transition-all ${
+                        item.status
+                          ? "bg-emerald-950 text-emerald-300 border border-emerald-800"
+                          : "bg-red-950 text-red-300 border border-red-800"
+                      }`}
+                    >
+                      {item.status ? "Tersedia" : "Habis"}
+                    </button>
+
+                    {/* Stock Counter */}
+                    <div className="flex items-center bg-zinc-900 border border-zinc-700 rounded-lg overflow-hidden">
+                      <button
+                        onClick={() => handleAdjustProductStock(item, -5)}
+                        disabled={stockUpdatingId === item.id || item.stock <= 0}
+                        className="px-2 py-1 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 text-xs font-bold"
+                        title="Kurangi 5"
+                      >
+                        -5
+                      </button>
+                      <span className="px-2.5 py-1 text-xs font-mono font-bold text-zinc-200">
+                        {item.stock}
+                      </span>
+                      <button
+                        onClick={() => handleAdjustProductStock(item, 5)}
+                        disabled={stockUpdatingId === item.id}
+                        className="px-2 py-1 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 text-xs font-bold"
+                        title="Tambah 5"
+                      >
+                        +5
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="border-t border-zinc-800 pt-3 flex justify-end">
+              <button
+                onClick={() => setIsStockModalOpen(false)}
+                className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold rounded-xl"
+              >
+                Selesai
               </button>
             </div>
           </div>

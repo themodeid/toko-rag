@@ -4,24 +4,20 @@ import { AppError } from "../../utils/appError";
 
 export const getMeService = async (userId: string) => {
   const result = await pool.query(
-    `SELECT u.id, u.username, u.role, u.branch_id, b.nama as branch_name, u.created_at 
+    `SELECT u.id, u.username, u.role, u.created_at 
      FROM auth u
-     LEFT JOIN branches b ON u.branch_id = b.id
      WHERE u.id = $1`,
     [userId]
   );
   return result.rows[0] || null;
 };
 
-export const getAllStaffService = async (branchId?: string) => {
-  let query = `
+export const getAllStaffService = async () => {
+  const query = `
     SELECT 
       u.id, 
       u.username, 
       u.role, 
-      u.branch_id, 
-      b.nama as branch_name,
-      b.kode_cabang,
       u.created_at,
       (
         SELECT a.status 
@@ -36,27 +32,18 @@ export const getAllStaffService = async (branchId?: string) => {
         ORDER BY a.clock_in DESC LIMIT 1
       ) as today_clock_in
     FROM auth u
-    LEFT JOIN branches b ON u.branch_id = b.id
-    WHERE u.role IN ('manager', 'karyawan', 'admin', 'owner')
+    WHERE u.role IN ('karyawan', 'admin', 'owner')
+    ORDER BY u.created_at DESC
   `;
 
-  const params: any[] = [];
-  if (branchId && branchId !== "all") {
-    params.push(branchId);
-    query += ` AND u.branch_id = $${params.length}`;
-  }
-
-  query += ` ORDER BY u.created_at DESC`;
-
-  const result = await pool.query(query, params);
+  const result = await pool.query(query);
   return result.rows;
 };
 
 export const createStaffService = async (data: {
   username: string;
   password: string;
-  role: "manager" | "karyawan";
-  branch_id?: string | null;
+  role: "karyawan";
 }) => {
   const existing = await pool.query(
     `SELECT id FROM auth WHERE username = $1`,
@@ -68,14 +55,13 @@ export const createStaffService = async (data: {
 
   const hashedPassword = await bcrypt.hash(data.password, 10);
   const result = await pool.query(
-    `INSERT INTO auth (username, password, role, branch_id)
-     VALUES ($1, $2, $3, $4)
-     RETURNING id, username, role, branch_id, created_at`,
+    `INSERT INTO auth (username, password, role)
+     VALUES ($1, $2, $3)
+     RETURNING id, username, role, created_at`,
     [
       data.username,
       hashedPassword,
-      data.role,
-      data.branch_id || null,
+      data.role || "karyawan",
     ]
   );
 
@@ -85,8 +71,7 @@ export const createStaffService = async (data: {
 export const updateStaffService = async (
   id: string,
   data: {
-    role?: "manager" | "karyawan" | "admin" | "owner";
-    branch_id?: string | null;
+    role?: "karyawan" | "admin" | "owner";
     password?: string;
   }
 ) => {
@@ -96,11 +81,6 @@ export const updateStaffService = async (
   if (data.role) {
     params.push(data.role);
     updates.push(`role = $${params.length}`);
-  }
-
-  if (data.branch_id !== undefined) {
-    params.push(data.branch_id);
-    updates.push(`branch_id = $${params.length}`);
   }
 
   if (data.password) {
@@ -117,7 +97,7 @@ export const updateStaffService = async (
     UPDATE auth 
     SET ${updates.join(", ")}
     WHERE id = $1
-    RETURNING id, username, role, branch_id
+    RETURNING id, username, role
   `;
 
   const result = await pool.query(query, params);

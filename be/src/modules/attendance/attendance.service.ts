@@ -2,12 +2,7 @@ import { pool } from "../../config/database";
 import { AppError } from "../../utils/appError";
 import { ClockInInput, ClockOutInput } from "./attendance.schema";
 
-export async function clockInService(authId: string, userBranchId: string | null, input: ClockInInput) {
-  const branchId = input.branchId || userBranchId;
-  if (!branchId) {
-    throw new AppError("Cabang penempatan tidak ditemukan. Harap pilih cabang!", 400);
-  }
-
+export async function clockInService(authId: string, _userBranchId: string | null, input: ClockInInput) {
   // Cek apakah sudah clock-in hari ini
   const existingRes = await pool.query(
     `SELECT id, clock_in, clock_out, status FROM attendances 
@@ -27,10 +22,10 @@ export async function clockInService(authId: string, userBranchId: string | null
   }
 
   const res = await pool.query(
-    `INSERT INTO attendances (auth_id, branch_id, tanggal, clock_in, status, catatan)
-     VALUES ($1, $2, CURRENT_DATE, CURRENT_TIMESTAMP, $3, $4)
+    `INSERT INTO attendances (auth_id, tanggal, clock_in, status, catatan)
+     VALUES ($1, CURRENT_DATE, CURRENT_TIMESTAMP, $2, $3)
      RETURNING *`,
-    [authId, branchId, status, input.catatan || null]
+    [authId, status, input.catatan || null]
   );
 
   return res.rows[0];
@@ -66,9 +61,8 @@ export async function clockOutService(authId: string, input: ClockOutInput) {
 
 export async function getTodayAttendanceService(authId: string) {
   const res = await pool.query(
-    `SELECT a.*, b.nama as branch_name, b.kode_cabang
+    `SELECT a.*
      FROM attendances a
-     LEFT JOIN branches b ON a.branch_id = b.id
      WHERE a.auth_id = $1 AND a.tanggal = CURRENT_DATE`,
     [authId]
   );
@@ -76,7 +70,11 @@ export async function getTodayAttendanceService(authId: string) {
   return res.rows[0] || null;
 }
 
-export async function getAttendanceRecapService(branchId?: string, startDate?: string, endDate?: string) {
+export async function getAttendanceRecapService(
+  authId?: string,
+  startDate?: string,
+  endDate?: string
+) {
   const params: any[] = [];
   let query = `
     SELECT 
@@ -87,18 +85,15 @@ export async function getAttendanceRecapService(branchId?: string, startDate?: s
       a.status,
       a.catatan,
       u.username,
-      u.role,
-      b.nama as branch_name,
-      b.kode_cabang
+      u.role
     FROM attendances a
     JOIN auth u ON a.auth_id = u.id
-    LEFT JOIN branches b ON a.branch_id = b.id
     WHERE 1=1
   `;
 
-  if (branchId && branchId !== "all") {
-    params.push(branchId);
-    query += ` AND a.branch_id = $${params.length}`;
+  if (authId) {
+    params.push(authId);
+    query += ` AND a.auth_id = $${params.length}`;
   }
 
   if (startDate) {

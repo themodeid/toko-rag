@@ -4,12 +4,9 @@ import React, { useState, useEffect } from "react";
 import FeatherIcon from "feather-icons-react";
 import Sidebar from "@/components/Sidebar";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import BranchSwitcher from "@/components/BranchSwitcher";
-import { useBranch } from "@/context/BranchContext";
 import { StaffMember, CreateStaffPayload, getAllStaff, createStaff, updateStaff, deleteStaff } from "@/features/staff/api";
 
 export default function AdminKaryawanPage() {
-  const { selectedBranchId, branches } = useBranch();
   const [staffList, setStaffList] = useState<StaffMember[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -20,16 +17,14 @@ export default function AdminKaryawanPage() {
 
   const [form, setForm] = useState<CreateStaffPayload>({
     username: "",
-    email: "",
     password: "",
     role: "karyawan",
-    branch_id: "",
   });
 
   const loadData = async () => {
     try {
       setLoading(true);
-      const data = await getAllStaff(selectedBranchId);
+      const data = await getAllStaff();
       setStaffList(data);
     } catch (err) {
       console.error("Failed to load staff:", err);
@@ -40,16 +35,14 @@ export default function AdminKaryawanPage() {
 
   useEffect(() => {
     loadData();
-  }, [selectedBranchId]);
+  }, []);
 
   const handleOpenCreate = () => {
     setEditingStaff(null);
     setForm({
       username: "",
-      email: "",
       password: "",
       role: "karyawan",
-      branch_id: selectedBranchId !== "all" ? selectedBranchId : branches[0]?.id || "",
     });
     setIsModalOpen(true);
   };
@@ -58,10 +51,8 @@ export default function AdminKaryawanPage() {
     setEditingStaff(staff);
     setForm({
       username: staff.username,
-      email: staff.email,
       password: "",
-      role: staff.role === "manager" ? "manager" : "karyawan",
-      branch_id: staff.branch_id || "",
+      role: "karyawan",
     });
     setIsModalOpen(true);
   };
@@ -77,8 +68,7 @@ export default function AdminKaryawanPage() {
       setFormLoading(true);
       if (editingStaff) {
         await updateStaff(editingStaff.id, {
-          role: form.role,
-          branch_id: form.branch_id || null,
+          role: "karyawan",
           password: form.password ? form.password : undefined,
         });
       } else {
@@ -86,7 +76,11 @@ export default function AdminKaryawanPage() {
           alert("Password awal wajib diisi untuk pendaftaran baru!");
           return;
         }
-        await createStaff(form);
+        await createStaff({
+          username: form.username,
+          password: form.password,
+          role: "karyawan",
+        });
       }
       setIsModalOpen(false);
       await loadData();
@@ -98,53 +92,49 @@ export default function AdminKaryawanPage() {
   };
 
   const handleDelete = async (staff: StaffMember) => {
-    if (staff.role === "owner") {
-      alert("Akun Owner tidak dapat dihapus!");
+    if (staff.role === "owner" || staff.role === "admin") {
+      alert("Akun Owner/Admin utama tidak dapat dihapus!");
       return;
     }
-
-    const confirm = window.confirm(
-      `Apakah Anda yakin ingin menghapus akun @${staff.username} dari sistem?`
-    );
+    const confirm = window.confirm(`Apakah Anda yakin ingin menghapus akun barista @${staff.username}?`);
     if (!confirm) return;
 
     try {
       await deleteStaff(staff.id);
       await loadData();
     } catch (err: any) {
-      alert(err?.response?.data?.message || "Gagal menghapus staff");
+      alert(err?.response?.data?.message || "Gagal menghapus karyawan");
     }
   };
 
   return (
-    <ProtectedRoute allowedRole={["owner", "admin", "manager"]}>
-      <div className="min-h-screen flex flex-col md:flex-row bg-zinc-950 text-zinc-100 font-poppins selection:bg-zinc-800">
+    <ProtectedRoute allowedRole={["owner", "admin"]}>
+      <div className="min-h-screen flex flex-col md:flex-row bg-zinc-950 text-zinc-100 font-poppins selection:bg-purple-900/30">
         <Sidebar type="admin" />
 
         <main className="flex-1 p-4 md:p-8 lg:p-12 pb-24 md:pb-12 overflow-y-auto space-y-8 w-full max-w-7xl mx-auto">
           {/* Header */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800 pb-6 pt-4 md:pt-0">
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-zinc-900 border border-zinc-800 text-zinc-300 rounded-md mb-2 text-xs font-semibold uppercase tracking-wider">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-purple-950/60 border border-purple-800/60 text-purple-300 rounded-md mb-2 text-xs font-semibold uppercase tracking-wider">
                 <FeatherIcon icon="users" className="w-3.5 h-3.5 text-purple-400" />
-                <span>Human Resources & Staff Directory</span>
+                <span>Barista & Staff Directory</span>
               </div>
               <h1 className="text-3xl font-bold tracking-tight text-zinc-100">
-                Manajemen Karyawan & Staff
+                Manajemen Karyawan & Barista
               </h1>
               <p className="text-sm text-zinc-400 mt-1">
-                Daftarkan barista & branch manager baru, atur penempatan cabang, dan pantau status aktif kerja.
+                Daftarkan akun barista baru, atur password login kasir/dapur, dan pantau status absensi hari ini.
               </p>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              <BranchSwitcher />
               <button
                 onClick={handleOpenCreate}
                 className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl flex items-center gap-2 shadow-lg transition-all active:scale-95"
               >
                 <FeatherIcon icon="user-plus" className="w-4 h-4" />
-                <span>Tambah Staff Baru</span>
+                <span>Tambah Barista Baru</span>
               </button>
             </div>
           </div>
@@ -156,24 +146,23 @@ export default function AdminKaryawanPage() {
                 <thead className="bg-zinc-950/80 text-zinc-400 uppercase tracking-wider font-semibold border-b border-zinc-800">
                   <tr>
                     <th className="px-5 py-3.5">Nama Akun / Username</th>
-                    <th className="px-5 py-3.5">Email Staff</th>
                     <th className="px-5 py-3.5">Jabatan / Role</th>
-                    <th className="px-5 py-3.5">Penempatan Gerai</th>
-                    <th className="px-5 py-3.5">Status Hari Ini</th>
+                    <th className="px-5 py-3.5">Status Hadir Hari Ini</th>
+                    <th className="px-5 py-3.5">Jam Masuk Shift</th>
                     <th className="px-5 py-3.5 text-right">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-800 text-zinc-300">
                   {loading ? (
                     <tr>
-                      <td colSpan={6} className="text-center py-8 text-zinc-500">
-                        Memuat data staff...
+                      <td colSpan={5} className="text-center py-8 text-zinc-500">
+                        Memuat data karyawan...
                       </td>
                     </tr>
                   ) : staffList.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="text-center py-8 text-zinc-500">
-                        Belum ada karyawan terdaftar untuk cabang ini.
+                      <td colSpan={5} className="text-center py-8 text-zinc-500">
+                        Belum ada karyawan barista terdaftar.
                       </td>
                     </tr>
                   ) : (
@@ -185,30 +174,16 @@ export default function AdminKaryawanPage() {
                           </div>
                           <span>@{staff.username}</span>
                         </td>
-                        <td className="px-5 py-4 text-zinc-400">{staff.email}</td>
                         <td className="px-5 py-4">
                           <span
                             className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase ${
                               staff.role === "owner" || staff.role === "admin"
-                                ? "bg-purple-950 text-purple-300 border border-purple-800"
-                                : staff.role === "manager"
                                 ? "bg-amber-950 text-amber-300 border border-amber-800"
                                 : "bg-emerald-950 text-emerald-300 border border-emerald-800"
                             }`}
                           >
-                            {staff.role}
+                            {staff.role === "owner" || staff.role === "admin" ? "👑 Owner Kafe" : "☕ Barista / Kasir"}
                           </span>
-                        </td>
-                        <td className="px-5 py-4">
-                          {staff.role === "owner" || staff.role === "admin" ? (
-                            <span className="text-zinc-500 font-semibold">🏢 Kantor Pusat (HQ)</span>
-                          ) : staff.branch_name ? (
-                            <span className="font-semibold text-zinc-200">
-                              📍 {staff.branch_name}
-                            </span>
-                          ) : (
-                            <span className="text-amber-400 font-medium">Belum Ditempatkan</span>
-                          )}
                         </td>
                         <td className="px-5 py-4">
                           {staff.today_attendance_status ? (
@@ -220,6 +195,9 @@ export default function AdminKaryawanPage() {
                             <span className="text-zinc-500 text-[11px]">Belum Clock-In</span>
                           )}
                         </td>
+                        <td className="px-5 py-4 font-mono text-zinc-400">
+                          {staff.today_clock_in ? new Date(staff.today_clock_in).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "-"}
+                        </td>
                         <td className="px-5 py-4 text-right">
                           {staff.role !== "owner" && (
                             <div className="flex items-center justify-end gap-2">
@@ -227,12 +205,12 @@ export default function AdminKaryawanPage() {
                                 onClick={() => handleOpenEdit(staff)}
                                 className="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-semibold text-xs transition-colors"
                               >
-                                Edit / Mutasi
+                                Edit / Reset Sandi
                               </button>
                               <button
                                 onClick={() => handleDelete(staff)}
                                 className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-zinc-800 transition-colors"
-                                title="Hapus Staff"
+                                title="Hapus Akun"
                               >
                                 <FeatherIcon icon="trash-2" className="w-3.5 h-3.5" />
                               </button>
@@ -254,7 +232,7 @@ export default function AdminKaryawanPage() {
             <div className="bg-zinc-900 border border-zinc-800 text-zinc-100 w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-4">
               <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
                 <h3 className="text-base font-bold">
-                  {editingStaff ? `Edit Akun: @${editingStaff.username}` : "Daftarkan Staff Baru"}
+                  {editingStaff ? `Edit Barista: @${editingStaff.username}` : "Daftarkan Barista Baru"}
                 </h3>
                 <button onClick={() => setIsModalOpen(false)} className="text-zinc-400 hover:text-zinc-200">
                   <FeatherIcon icon="x" className="w-4 h-4" />
@@ -269,20 +247,8 @@ export default function AdminKaryawanPage() {
                     value={form.username}
                     onChange={(e) => setForm({ ...form, username: e.target.value })}
                     disabled={!!editingStaff}
-                    placeholder="Contoh: barista_senopati"
+                    placeholder="Contoh: barista_wahyu"
                     required
-                    className="w-full bg-zinc-950 border border-zinc-700 rounded-lg p-2.5 text-zinc-100 disabled:opacity-50"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-zinc-400 mb-1 font-semibold">Email Staff</label>
-                  <input
-                    type="email"
-                    value={form.email}
-                    onChange={(e) => setForm({ ...form, email: e.target.value })}
-                    disabled={!!editingStaff}
-                    placeholder="barista@kafetokorag.com"
                     className="w-full bg-zinc-950 border border-zinc-700 rounded-lg p-2.5 text-zinc-100 disabled:opacity-50"
                   />
                 </div>
@@ -295,38 +261,10 @@ export default function AdminKaryawanPage() {
                     type="password"
                     value={form.password}
                     onChange={(e) => setForm({ ...form, password: e.target.value })}
-                    placeholder={editingStaff ? "••••••••" : "Password akun staff"}
+                    placeholder={editingStaff ? "••••••••" : "Password akun barista"}
                     required={!editingStaff}
                     className="w-full bg-zinc-950 border border-zinc-700 rounded-lg p-2.5 text-zinc-100"
                   />
-                </div>
-
-                <div>
-                  <label className="block text-zinc-400 mb-1 font-semibold">Jabatan / Role Kerja *</label>
-                  <select
-                    value={form.role}
-                    onChange={(e) => setForm({ ...form, role: e.target.value as "manager" | "karyawan" })}
-                    className="w-full bg-zinc-950 border border-zinc-700 rounded-lg p-2.5 text-zinc-100"
-                  >
-                    <option value="karyawan">☕ Barista / Karyawan (Kasir, Antrean, & Stok Bar)</option>
-                    <option value="manager">👔 Branch Manager (Akses Laporan & Biaya Cabang)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-zinc-400 mb-1 font-semibold">Tugaskan ke Cabang *</label>
-                  <select
-                    value={form.branch_id || ""}
-                    onChange={(e) => setForm({ ...form, branch_id: e.target.value })}
-                    className="w-full bg-zinc-950 border border-zinc-700 rounded-lg p-2.5 text-zinc-100"
-                  >
-                    <option value="">-- Pilih Cabang Penempatan --</option>
-                    {branches.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.nama} ({b.kode_cabang})
-                      </option>
-                    ))}
-                  </select>
                 </div>
 
                 <div className="flex gap-2 pt-2">
@@ -342,7 +280,7 @@ export default function AdminKaryawanPage() {
                     disabled={formLoading}
                     className="flex-1 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold shadow-lg"
                   >
-                    {formLoading ? "Menyimpan..." : "Simpan Data Staff"}
+                    {formLoading ? "Menyimpan..." : "Simpan Data Barista"}
                   </button>
                 </div>
               </form>

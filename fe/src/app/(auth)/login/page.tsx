@@ -80,8 +80,8 @@ export default function EnterprisePortalHubPage() {
           </p>
         </div>
 
-        {/* 3 Dedicated Role Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+        {/* 2 Dedicated Role Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
           {/* Card 1: Owner HQ */}
           <Link
             href="/login/owner"
@@ -96,13 +96,13 @@ export default function EnterprisePortalHubPage() {
 
               <div className="space-y-1.5">
                 <span className="text-[10px] font-bold text-amber-400 font-mono tracking-wider uppercase">
-                  LEVEL 1 • KANTOR PUSAT
+                  MANAJEMEN UTAMA • PEMILIK KAFE
                 </span>
                 <h2 className="text-xl font-bold text-zinc-100 group-hover:text-amber-300 transition-colors">
-                  Owner / Direksi
+                  Owner / Pemilik Kafe
                 </h2>
                 <p className="text-xs text-zinc-400 leading-relaxed">
-                  Konsol nasional multi-cabang, AI Business Analyst, rahasia modal HPP, laporan laba bersih, & master voucher promo.
+                  Laporan keuangan & laba bersih, AI Business Advisor, kelola modal HPP & menu, pendaftaran karyawan barista, dan master voucher diskon.
                 </p>
               </div>
             </div>
@@ -113,38 +113,7 @@ export default function EnterprisePortalHubPage() {
             </div>
           </Link>
 
-          {/* Card 2: Branch Manager */}
-          <Link
-            href="/login/manager"
-            className="group bg-zinc-900/90 hover:bg-zinc-900 border border-purple-500/20 hover:border-purple-500/80 rounded-3xl p-6 sm:p-7 flex flex-col justify-between space-y-6 transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/10 hover:-translate-y-1 relative overflow-hidden"
-          >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/5 rounded-full blur-2xl group-hover:bg-purple-500/10 transition-colors pointer-events-none"></div>
-
-            <div className="space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-purple-950/80 border border-purple-600/50 flex items-center justify-center text-purple-400 shadow-md group-hover:scale-105 transition-transform">
-                <FeatherIcon icon="briefcase" className="w-6 h-6" />
-              </div>
-
-              <div className="space-y-1.5">
-                <span className="text-[10px] font-bold text-purple-400 font-mono tracking-wider uppercase">
-                  LEVEL 2 • PIMPINAN OUTLET
-                </span>
-                <h2 className="text-xl font-bold text-zinc-100 group-hover:text-purple-300 transition-colors">
-                  Branch Manager
-                </h2>
-                <p className="text-xs text-zinc-400 leading-relaxed">
-                  Laporan finansial gerai cabang, catat pengeluaran operasional outlet, evaluasi absensi shift tim, & analisis menu.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between pt-4 border-t border-zinc-800 text-xs font-bold text-purple-400 group-hover:text-purple-300">
-              <span>Buka Portal Manager</span>
-              <FeatherIcon icon="arrow-right" className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </div>
-          </Link>
-
-          {/* Card 3: Barista / KDS */}
+          {/* Card 2: Barista / KDS */}
           <Link
             href="/login/karyawan"
             className="group bg-zinc-900/90 hover:bg-zinc-900 border border-emerald-500/20 hover:border-emerald-500/80 rounded-3xl p-6 sm:p-7 flex flex-col justify-between space-y-6 transition-all duration-300 hover:shadow-2xl hover:shadow-emerald-500/10 hover:-translate-y-1 relative overflow-hidden"
@@ -161,10 +130,10 @@ export default function EnterprisePortalHubPage() {
                   OPERASIONAL • KASIR & DAPUR
                 </span>
                 <h2 className="text-xl font-bold text-zinc-100 group-hover:text-emerald-300 transition-colors">
-                  Barista / Kasir
+                  Barista / Kasir Dapur
                 </h2>
                 <p className="text-xs text-zinc-400 leading-relaxed">
-                  Layar antrean dapur (KDS), notifikasi audio bell pesanan baru, cetak struk thermal 58mm/80mm, & toggle stok bar.
+                  Layar antrean pesanan dapur (KDS), notifikasi audio bell pesanan baru, cetak struk kasir thermal, cek stok bar, & absensi shift kerja.
                 </p>
               </div>
             </div>

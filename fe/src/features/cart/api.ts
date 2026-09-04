@@ -151,13 +151,9 @@ export async function getAllMyOrders(): Promise<Order[]> {
 }
 
 // ================= GET ORDERS WITH ITEMS =================
-export async function getAllOrderActiveItems(branchId?: string): Promise<Order[]> {
-  const params: Record<string, string> = {};
-  if (branchId && branchId !== "all") params.branchId = branchId;
-
+export async function getAllOrderActiveItems(): Promise<Order[]> {
   const res = await api.get<GetActiveOrdersWithItemsResponse>(
-    "/api/orders/ActiveItems",
-    { params }
+    "/api/orders/ActiveItems"
   );
   return res.data.data.map((o) => ({
     id: o.id,

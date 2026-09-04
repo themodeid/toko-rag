@@ -35,21 +35,9 @@ export const getAllUsers = catchAsync(async (req: Request, res: Response) => {
   return successResponse(res, users, "Berhasil mengambil daftar user");
 });
 
-// ===================== STAFF MANAGEMENT (OWNER & MANAGER) =====================
-export const getAllStaff = catchAsync(async (req: Request, res: Response) => {
-  const userRole = (req.user?.role || "").toLowerCase();
-  const userBranchId = (req.user as any)?.branch_id;
-  const requestedBranchId = req.query.branchId as string | undefined;
-
-  let effectiveBranchId = requestedBranchId;
-  if (effectiveBranchId === "all" || effectiveBranchId === "null" || effectiveBranchId === "undefined" || !effectiveBranchId) {
-    effectiveBranchId = undefined;
-  }
-  if (userRole === "manager" && userBranchId) {
-    effectiveBranchId = userBranchId;
-  }
-
-  const staff = await getAllStaffService(effectiveBranchId);
+// ===================== STAFF MANAGEMENT (OWNER) =====================
+export const getAllStaff = catchAsync(async (_req: Request, res: Response) => {
+  const staff = await getAllStaffService();
   return res.status(200).json({
     status: "success",
     message: "Daftar staff berhasil diambil",
@@ -59,15 +47,7 @@ export const getAllStaff = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const createStaff = catchAsync(async (req: Request, res: Response) => {
-  const userRole = (req.user?.role || "").toLowerCase();
-  const userBranchId = (req.user as any)?.branch_id;
-
-  const payload = {
-    ...req.body,
-    branch_id: userRole === "manager" && userBranchId ? userBranchId : req.body.branch_id,
-  };
-
-  const staff = await createStaffService(payload);
+  const staff = await createStaffService(req.body);
   return res.status(201).json({
     status: "success",
     message: "Karyawan baru berhasil didaftarkan",

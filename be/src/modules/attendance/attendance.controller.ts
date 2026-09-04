@@ -50,18 +50,12 @@ export const getTodayAttendance = catchAsync(async (req: Request, res: Response)
 
 export const getAttendanceRecap = catchAsync(async (req: Request, res: Response) => {
   const userRole = (req.user?.role || "").toLowerCase();
-  const userBranchId = (req.user as any)?.branch_id;
-  const requestedBranchId = req.query.branchId as string | undefined;
-
-  let effectiveBranchId = requestedBranchId;
-  if (userRole === "manager" && userBranchId) {
-    effectiveBranchId = userBranchId;
-  }
+  const authId = userRole === "karyawan" ? req.user?.id : undefined;
 
   const startDate = req.query.startDate as string | undefined;
   const endDate = req.query.endDate as string | undefined;
 
-  const records = await getAttendanceRecapService(effectiveBranchId, startDate, endDate);
+  const records = await getAttendanceRecapService(authId, startDate, endDate);
 
   return res.status(200).json({
     status: "success",

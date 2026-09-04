@@ -62,8 +62,7 @@ export interface AnalyticsSummary {
 
 export const getFinancialAnalyticsService = async (
   period: "daily" | "monthly" | "yearly" = "daily",
-  dateParam?: string,
-  branchId?: string
+  dateParam?: string
 ): Promise<AnalyticsSummary> => {
   let dateFilterOrder = "";
   let dateFilterExpense = "";
@@ -97,20 +96,11 @@ export const getFinancialAnalyticsService = async (
     chartLabelExpr = "TO_CHAR(o.created_at, 'Mon')";
   }
 
-  // Branch filter condition
-  const hasBranchFilter = Boolean(branchId && branchId !== "all");
-  const branchOrderClause = hasBranchFilter ? "AND o.branch_id = $2" : "";
-  const branchExpenseClause = hasBranchFilter ? "AND e.branch_id = $2" : "";
-
   const queryParams: any[] = [formattedDate];
-  if (hasBranchFilter) {
-    queryParams.push(branchId);
-  }
 
   // Common order filter for valid non-canceled sales
   const validOrderCondition = `
     ${dateFilterOrder}
-    ${branchOrderClause}
     AND o.status_pesanan != 'DIBATALKAN'
     AND (
       o.status_pembayaran IN ('PAID', 'SETTLEMENT') 
@@ -135,7 +125,7 @@ export const getFinancialAnalyticsService = async (
   const expenseQuery = `
     SELECT COALESCE(SUM(e.jumlah), 0) AS total_expenses
     FROM expenses e
-    WHERE ${dateFilterExpense} ${branchExpenseClause}
+    WHERE ${dateFilterExpense}
   `;
 
   // 3. Query Payment Method Breakdown
@@ -169,7 +159,7 @@ export const getFinancialAnalyticsService = async (
       COUNT(e.id) AS total_count,
       COALESCE(SUM(e.jumlah), 0) AS total_amount
     FROM expenses e
-    WHERE ${dateFilterExpense} ${branchExpenseClause}
+    WHERE ${dateFilterExpense}
     GROUP BY COALESCE(e.kategori, 'OPERASIONAL')
     ORDER BY total_amount DESC
   `;
@@ -208,24 +198,7 @@ export const getFinancialAnalyticsService = async (
     LIMIT 10
   `;
 
-  // 8. Query Branch Breakdown (Bila mode konsolidasi / semua cabang)
-  const branchBreakdownQuery = `
-    SELECT 
-      b.id,
-      b.nama,
-      b.kode_cabang,
-      COALESCE(SUM(o.total_price), 0) AS omzet,
-      COALESCE(COUNT(DISTINCT o.id), 0) AS orders
-    FROM branches b
-    LEFT JOIN orders o ON b.id = o.branch_id 
-      AND ${dateFilterOrder}
-      AND o.status_pesanan != 'DIBATALKAN'
-      AND o.status_pembayaran NOT IN ('FAILED', 'EXPIRED')
-    GROUP BY b.id, b.nama, b.kode_cabang
-    ORDER BY omzet DESC
-  `;
-
-  const [revRes, expRes, payRes, ordTypeRes, expCatRes, chartRes, topProdRes, branchRes] =
+  const [revRes, expRes, payRes, ordTypeRes, expCatRes, chartRes, topProdRes] =
     await Promise.all([
       pool.query(revenueQuery, queryParams),
       pool.query(expenseQuery, queryParams),
@@ -234,7 +207,6 @@ export const getFinancialAnalyticsService = async (
       pool.query(expenseCategoryQuery, queryParams),
       pool.query(chartQuery, queryParams),
       pool.query(topProductsQuery, queryParams),
-      pool.query(branchBreakdownQuery, [formattedDate]),
     ]);
 
   const totalOmzet = Number(revRes.rows[0]?.total_omzet || 0);
@@ -292,20 +264,9 @@ export const getFinancialAnalyticsService = async (
     };
   });
 
-  const branchPerformance = branchRes.rows.map((row) => ({
-    id: row.id,
-    nama: row.nama,
-    kode_cabang: row.kode_cabang,
-    omzet: Number(row.omzet),
-    orders: Number(row.orders),
-    expenses: 0,
-    netProfit: Number(row.omzet),
-  }));
-
   return {
     period,
     selectedDate: formattedDate,
-    branchId: branchId || "all",
     totalOmzet,
     totalHpp,
     grossProfit,
@@ -320,16 +281,13 @@ export const getFinancialAnalyticsService = async (
     expenseCategories,
     chartData,
     topProducts,
-    branchPerformance,
   };
 };
 
 // ================= EXPENSES SERVICE =================
-
 export const getExpensesService = async (
   dateParam?: string,
-  period: "daily" | "monthly" | "yearly" = "daily",
-  branchId?: string
+  period: "daily" | "monthly" | "yearly" = "daily"
 ) => {
   let dateFilter = "";
   let param = dateParam;
@@ -351,11 +309,6 @@ export const getExpensesService = async (
   }
 
   const queryParams: any[] = [param];
-  let branchFilter = "";
-  if (branchId && branchId !== "all") {
-    queryParams.push(branchId);
-    branchFilter = `AND e.branch_id = $${queryParams.length}`;
-  }
 
   const query = `
     SELECT 
@@ -365,23 +318,20 @@ export const getExpensesService = async (
       e.jumlah, 
       e.tanggal, 
       e.catatan, 
-      e.branch_id,
-      b.nama AS branch_name,
       e.created_at
     FROM expenses e
-    LEFT JOIN branches b ON e.branch_id = b.id
-    WHERE ${dateFilter} ${branchFilter}
+    WHERE ${dateFilter}
     ORDER BY e.tanggal DESC, e.created_at DESC
   `;
   const result = await pool.query(query, queryParams);
   return result.rows;
 };
 
-export const createExpenseService = async (data: CreateExpenseDTO & { branch_id?: string }) => {
+export const createExpenseService = async (data: CreateExpenseDTO) => {
   const result = await pool.query(
     `
-    INSERT INTO expenses (nama, kategori, jumlah, tanggal, catatan, branch_id)
-    VALUES ($1, $2, $3, COALESCE($4::date, CURRENT_DATE), $5, $6)
+    INSERT INTO expenses (nama, kategori, jumlah, tanggal, catatan)
+    VALUES ($1, $2, $3, COALESCE($4::date, CURRENT_DATE), $5)
     RETURNING *
     `,
     [
@@ -390,7 +340,6 @@ export const createExpenseService = async (data: CreateExpenseDTO & { branch_id?
       data.jumlah,
       data.tanggal || null,
       data.catatan || null,
-      data.branch_id || "a0000000-0000-0000-0000-000000000001",
     ]
   );
   return result.rows[0];

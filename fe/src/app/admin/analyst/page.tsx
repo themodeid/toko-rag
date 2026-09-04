@@ -4,7 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import FeatherIcon from "feather-icons-react";
 import Sidebar from "@/components/Sidebar";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import BranchSwitcher from "@/components/BranchSwitcher";
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
 import {
   getAdminCustomerInsights,
   streamAdminRagChat,
@@ -13,13 +14,23 @@ import {
 } from "@/features/rag/adminApi";
 
 export default function AdminAnalystPage() {
+  const router = useRouter();
+  const { logout } = useAuth();
+
+  const handleLogout = async () => {
+    const confirm = window.confirm("Apakah Anda yakin ingin logout dari sesi Owner?");
+    if (!confirm) return;
+    await logout();
+    router.push("/login");
+  };
+
   const [insights, setInsights] = useState<AdminCustomerInsightsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [messages, setMessages] = useState<AdminChatMessage[]>([
     {
       role: "assistant",
       content:
-        "Halo Owner & Manager! 👋 Saya adalah **AI Business & Data Analyst** toko Anda.\n\nSaya telah menganalisis seluruh data transaksi kasir, margin laba produk, jam-jam sibuk, hingga **riwayat pertanyaan yang diajukan pelanggan di widget chat**.\n\nAda hal strategis atau analitik data apa yang ingin Anda diskusikan hari ini?",
+        "Halo Owner! 👋 Saya adalah **AI Business & Data Analyst** toko Anda.\n\nSaya telah menganalisis seluruh data transaksi kasir, margin laba produk, jam-jam sibuk, hingga **riwayat pertanyaan yang diajukan pelanggan di widget chat**.\n\nAda hal strategis atau analitik data apa yang ingin Anda diskusikan hari ini?",
     },
   ]);
   const [inputMessage, setInputMessage] = useState("");
@@ -43,9 +54,9 @@ export default function AdminAnalystPage() {
       prompt: "Berdasarkan data pesanan, pukul berapa saja jam-jam paling sibuk (peak hours) di toko kita dan bagaimana rekomendasi jadwal alokasi barista?",
     },
     {
-      title: "🏢 Komparasi Performa Antar Cabang",
-      desc: "Perbandingan omzet & biaya antar cabang",
-      prompt: "Bandingkan performa penjualan dan biaya operasional antar gerai cabang kita. Berikan rekomendasi cabang mana yang perlu evaluasi.",
+      title: "🎯 Ide Strategi & Promo Penjualan",
+      desc: "Rekomendasi promo & loyalty menarik",
+      prompt: "Berdasarkan data produk dan preferensi pelanggan saat ini, berikan 3 rekomendasi promo atau paket bundling kreatif yang bisa mendongkrak omzet toko minggu ini.",
     },
   ];
 
@@ -124,8 +135,8 @@ export default function AdminAnalystPage() {
   const formatRp = (val: number) => `Rp ${Math.round(val || 0).toLocaleString("id-ID")}`;
 
   return (
-    <ProtectedRoute allowedRole={["owner", "admin", "manager"]}>
-      <div className="min-h-screen flex flex-col md:flex-row bg-zinc-950 text-zinc-100 font-poppins selection:bg-zinc-800">
+    <ProtectedRoute allowedRole={["owner", "admin"]}>
+      <div className="min-h-screen flex flex-col md:flex-row bg-zinc-950 text-zinc-100 font-poppins selection:bg-purple-900/30">
         <Sidebar type="admin" />
 
         <main className="flex-1 p-4 md:p-8 lg:p-10 pb-24 md:pb-10 overflow-y-auto w-full max-w-7xl mx-auto flex flex-col gap-6">
@@ -144,9 +155,8 @@ export default function AdminAnalystPage() {
               </p>
             </div>
 
-            {/* Branch Switcher & Quick Live Counters */}
+            {/* Quick Live Counters */}
             <div className="flex flex-wrap items-center gap-3">
-              <BranchSwitcher />
               <div className="flex items-center gap-3 bg-zinc-900 border border-zinc-800 p-2 rounded-xl text-xs font-mono">
                 <div className="px-3 py-1 bg-zinc-950 rounded-lg border border-zinc-800">
                   <span className="text-zinc-500 block text-[10px]">Chat Customer Terekam</span>
@@ -161,6 +171,16 @@ export default function AdminAnalystPage() {
                   </span>
                 </div>
               </div>
+
+              {/* Logout Button */}
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-1.5 px-3 py-2 bg-red-950/40 hover:bg-red-900/60 border border-red-900/60 text-red-400 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95"
+                title="Keluar dari Akun Owner"
+              >
+                <FeatherIcon icon="log-out" className="w-3.5 h-3.5" />
+                <span>Logout</span>
+              </button>
             </div>
           </div>
 

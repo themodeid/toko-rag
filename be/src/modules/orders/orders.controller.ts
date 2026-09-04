@@ -118,18 +118,15 @@ export const simulatePayment = catchAsync(async (req: Request, res: Response) =>
 export const cancelOrder = catchAsync(async (req: Request, res: Response) => {
   const id = req.params.id as string;
   const userId = req.user?.id;
-  const userRole = req.user?.role || "user";
-
-  if (!userId) {
-    throw new AppError("Unauthorized", 401);
-  }
+  const userRole = req.user?.role || "GUEST";
 
   await cancelOrderService(id, userId, userRole);
 
   // Invalidate caches
   await Promise.all([
     delCache("orders:active"),
-    delCache(`orders:active:${userId}`),
+    userId ? delCache(`orders:active:${userId}`) : Promise.resolve(),
+    delCachePattern("orders:active:*"),
     delCachePattern("produk:*"),
   ]);
 
