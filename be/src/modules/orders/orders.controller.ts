@@ -64,11 +64,25 @@ export const getGuestOrders = catchAsync(async (req: Request, res: Response) => 
     });
   }
 
+  const sortedIds = [...order_ids].sort().join(",");
+  const cacheKey = `orders:guest:${sortedIds}`;
+  const cachedData = await getCache(cacheKey);
+
+  if (cachedData) {
+    return res.status(200).json({
+      status: "success",
+      message: "Data dari cache 🚀",
+      total: cachedData.length,
+      data: cachedData,
+    });
+  }
+
   const orders = await getGuestOrdersWithItemsService(order_ids);
+  await setCache(cacheKey, orders, 30);
 
   return res.status(200).json({
     status: "success",
-    message: "Berhasil mengambil riwayat pesanan",
+    message: "Data dari database 🐢",
     total: orders.length,
     data: orders,
   });
@@ -193,13 +207,25 @@ export const getOrdersActiveWithItems = catchAsync(
     const userBranchId = (req.user as any)?.branch_id;
     const requestedBranchId = req.query.branchId as string | undefined;
 
-    // Jika karyawan atau manager, batasi hanya ke cabang mereka
     let effectiveBranchId = requestedBranchId;
     if (["manager", "karyawan"].includes(userRole) && userBranchId) {
       effectiveBranchId = userBranchId;
     }
 
+    const cacheKey = `orders:active:kitchen:${effectiveBranchId || "all"}`;
+    const cachedData = await getCache(cacheKey);
+
+    if (cachedData) {
+      return res.status(200).json({
+        status: "success",
+        message: "Data dari cache 🚀",
+        total: cachedData.length,
+        data: cachedData,
+      });
+    }
+
     const orders = await getOrdersActiveWithItemsService(effectiveBranchId);
+    await setCache(cacheKey, orders, 30);
 
     return res.status(200).json({
       status: "success",
@@ -229,7 +255,7 @@ export const getMyOrdersActiveWithItems = catchAsync(
     }
 
     const orders = await getMyOrdersActiveWithItemsService(userId);
-    await setCache(cacheKey, orders, 60);
+    await setCache(cacheKey, orders, 30);
 
     return res.status(200).json({
       status: "success",
@@ -246,7 +272,20 @@ export const getMyAllOrdersWithItems = catchAsync(
     const userId = req.user?.id;
     if (!userId) throw new AppError("Unauthorized", 401);
 
+    const cacheKey = `orders:all:${userId}`;
+    const cachedData = await getCache(cacheKey);
+
+    if (cachedData) {
+      return res.status(200).json({
+        status: "success",
+        message: "Data dari cache 🚀",
+        total: cachedData.length,
+        data: cachedData,
+      });
+    }
+
     const orders = await getMyAllOrdersWithItemsService(userId);
+    await setCache(cacheKey, orders, 60);
 
     return res.status(200).json({
       status: "success",

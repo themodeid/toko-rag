@@ -285,6 +285,44 @@ export const handleMidtransWebhookService = async (
       return { success: false, message: "Order not found" };
     }
 
+    // Tolak jika pesanan sudah dibatalkan atau sudah expired
+    if (
+      order.status_pesanan === "DIBATALKAN" ||
+      order.status_pembayaran === "CANCELLED" ||
+      order.status_pembayaran === "EXPIRED"
+    ) {
+      await client.query("ROLLBACK");
+      throw new AppError(
+        "Pesanan ini sudah dibatalkan atau kadaluarsa dan tidak dapat dibayar lagi.",
+        400
+      );
+    }
+
+    // Periksa apakah waktu pembayaran sudah melewati batas kadaluarsa
+    const orderAgeMs = Date.now() - new Date(order.created_at).getTime();
+    const maxExpiryMs = ENV.ORDER_EXPIRATION_MINUTES * 60 * 1000;
+    if (orderAgeMs > maxExpiryMs && order.status_pembayaran === "UNPAID") {
+      const itemsResult = await client.query(
+        `SELECT produk_id, quantity FROM order_items WHERE order_id = $1`,
+        [orderId]
+      );
+      for (const item of itemsResult.rows) {
+        await client.query(
+          `UPDATE produk SET stock = stock + $1 WHERE id = $2`,
+          [item.quantity, item.produk_id]
+        );
+      }
+      await client.query(
+        `UPDATE orders SET status_pembayaran = 'EXPIRED', status_pesanan = 'DIBATALKAN' WHERE id = $1`,
+        [orderId]
+      );
+      await client.query("COMMIT");
+      throw new AppError(
+        "Batas waktu pembayaran pesanan ini telah kadaluarsa. Silakan buat pesanan baru.",
+        400
+      );
+    }
+
     const isPaid =
       transactionStatus === "settlement" ||
       (transactionStatus === "capture" && (fraudStatus === "accept" || !fraudStatus));
@@ -666,8 +704,14 @@ export const getGuestOrdersWithItemsService = async (orderIds: string[]) => {
       o.order_type,
       o.table_number,
       o.total_price,
-      o.status_pesanan,
-      o.status_pembayaran,
+      CASE 
+        WHEN o.status_pesanan = 'MENUNGGU_PEMBAYARAN' AND o.created_at < NOW() - ($2 || ' minutes')::INTERVAL THEN 'DIBATALKAN'
+        ELSE o.status_pesanan 
+      END AS status_pesanan,
+      CASE 
+        WHEN o.status_pesanan = 'MENUNGGU_PEMBAYARAN' AND o.created_at < NOW() - ($2 || ' minutes')::INTERVAL THEN 'EXPIRED'
+        ELSE o.status_pembayaran 
+      END AS status_pembayaran,
       o.payment_type,
       o.snap_token,
       o.created_at,
@@ -694,7 +738,7 @@ export const getGuestOrdersWithItemsService = async (orderIds: string[]) => {
     GROUP BY o.id
     ORDER BY o.created_at DESC
   `;
-  const result = await pool.query(query, [validIds]);
+  const result = await pool.query(query, [validIds, ENV.ORDER_EXPIRATION_MINUTES]);
   return result.rows;
 };
 
@@ -729,10 +773,11 @@ export const getMyOrdersActiveWithItemsService = async (userId: string) => {
     LEFT JOIN daily_queue dq ON dq.order_id = o.id
     WHERE o.auth_id = $1
       AND o.status_pesanan IN ('MENUNGGU_PEMBAYARAN', 'ANTRI', 'DIPROSES')
+      AND NOT (o.status_pesanan = 'MENUNGGU_PEMBAYARAN' AND o.created_at < NOW() - ($2 || ' minutes')::INTERVAL)
     GROUP BY o.id
     ORDER BY o.created_at DESC
   `;
-  const result = await pool.query(query, [userId]);
+  const result = await pool.query(query, [userId, ENV.ORDER_EXPIRATION_MINUTES]);
   return result.rows;
 };
 
@@ -742,8 +787,14 @@ export const getMyAllOrdersWithItemsService = async (userId: string) => {
       o.id,
       o.auth_id,
       o.total_price,
-      o.status_pesanan,
-      o.status_pembayaran,
+      CASE 
+        WHEN o.status_pesanan = 'MENUNGGU_PEMBAYARAN' AND o.created_at < NOW() - ($2 || ' minutes')::INTERVAL THEN 'DIBATALKAN'
+        ELSE o.status_pesanan 
+      END AS status_pesanan,
+      CASE 
+        WHEN o.status_pesanan = 'MENUNGGU_PEMBAYARAN' AND o.created_at < NOW() - ($2 || ' minutes')::INTERVAL THEN 'EXPIRED'
+        ELSE o.status_pembayaran 
+      END AS status_pembayaran,
       o.payment_type,
       o.snap_token,
       o.created_at,
@@ -769,7 +820,7 @@ export const getMyAllOrdersWithItemsService = async (userId: string) => {
     GROUP BY o.id
     ORDER BY o.created_at DESC
   `;
-  const result = await pool.query(query, [userId]);
+  const result = await pool.query(query, [userId, ENV.ORDER_EXPIRATION_MINUTES]);
   return result.rows;
 };
 
