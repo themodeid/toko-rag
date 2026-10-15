@@ -41,7 +41,17 @@ export const loginService = async (data: LoginInput) => {
     [data.username]
   );
 
-  const user = result.rows[0];
+  let user = result.rows[0];
+  if (!user) {
+    const staffRes = await pool.query(
+      `SELECT id, username, password_hash as password, role
+       FROM tb_staff
+       WHERE username = $1`,
+      [data.username]
+    );
+    user = staffRes.rows[0];
+  }
+
   if (!user) {
     throw new AppError("Username atau password salah", 401);
   }

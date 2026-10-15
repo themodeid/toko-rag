@@ -115,7 +115,7 @@ export default function EnterprisePortalHubPage() {
 
           {/* Card 2: Barista / KDS */}
           <Link
-            href="/login/karyawan"
+            href="/kasir/login"
             className="group bg-zinc-900/90 hover:bg-zinc-900 border border-emerald-500/20 hover:border-emerald-500/80 rounded-3xl p-6 sm:p-7 flex flex-col justify-between space-y-6 transition-all duration-300 hover:shadow-2xl hover:shadow-emerald-500/10 hover:-translate-y-1 relative overflow-hidden"
           >
             <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl group-hover:bg-emerald-500/10 transition-colors pointer-events-none"></div>

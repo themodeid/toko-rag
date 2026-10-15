@@ -140,7 +140,7 @@ export default function OwnerLoginPage() {
               Login Branch Manager
             </Link>
             <span> atau </span>
-            <Link href="/login/karyawan" className="text-emerald-400 hover:underline font-semibold">
+            <Link href="/kasir/login" className="text-emerald-400 hover:underline font-semibold">
               Login Barista
             </Link>
           </div>

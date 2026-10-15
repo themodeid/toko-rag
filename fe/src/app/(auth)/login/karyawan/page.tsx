@@ -29,12 +29,12 @@ export default function BaristaLoginPage() {
       await refreshUser();
 
       const userRole = (user.role || "").toLowerCase();
-      if (userRole !== "karyawan" && userRole !== "owner" && userRole !== "admin" && userRole !== "manager") {
+      if (userRole !== "karyawan" && userRole !== "kasir" && userRole !== "owner" && userRole !== "admin" && userRole !== "manager") {
         setError(`Akses Ditolak: Akun @${username} terdaftar sebagai '${user.role}'. Portal ini khusus Barista & Staff.`);
         return;
       }
 
-      router.replace("/pesanan/daftar_pesanan");
+      router.replace("/kasir");
     } catch (err: any) {
       setError(err?.response?.data?.message || "Username atau password salah");
     } finally {
