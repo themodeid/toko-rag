@@ -25,6 +25,8 @@ pnpm-debug.log*
 # Build / output
 dist/
 build/
+.next/
+**/.next/
 public/
 .cache/
 .tmp/
@@ -48,3 +50,7 @@ Thumbs.db
 # Docker overrides (safe to ignore)
 docker-compose.override.yml
 terminalCode.md
+
+# Database Backups
+backups/
+*.sql.gz

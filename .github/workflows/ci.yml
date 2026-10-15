@@ -1,0 +1,81 @@
+name: Toko+RAG Beverage Kiosk CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master, 'feature/**' ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  backend-ci:
+    name: Backend CI (Unit Tests & Build)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: be/package-lock.json
+
+      - name: Install Backend Dependencies
+        working-directory: be
+        run: npm ci
+
+      - name: Run Backend Logic Tests (Profanity Filter)
+        working-directory: be
+        run: npx ts-node src/__tests__/profanity.test.ts
+
+      - name: Run Backend Logic Tests (Kiosk Order & Queue Estimation)
+        working-directory: be
+        run: npx ts-node src/__tests__/kiosk.logic.test.ts
+
+      - name: Build Backend TypeScript
+        working-directory: be
+        run: npm run build
+
+  frontend-ci:
+    name: Frontend CI (Typecheck & Build Validation)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: fe/package-lock.json
+
+      - name: Install Frontend Dependencies
+        working-directory: fe
+        run: npm ci
+
+      - name: Typecheck Frontend TypeScript
+        working-directory: fe
+        run: npx tsc --noEmit
+
+      - name: Build Next.js Application
+        working-directory: fe
+        env:
+          NEXT_PUBLIC_API_BASE_URL: http://localhost:5000
+        run: npm run build
+
+  infra-validation:
+    name: Infrastructure Config Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Validate Docker Compose Configurations
+        run: |
+          docker compose config --quiet
+          docker compose -f docker-compose.prod.yml config --quiet

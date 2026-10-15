@@ -1,0 +1,3 @@
+DROP TABLE IF EXISTS tb_biaya_operasional CASCADE;
+DROP TABLE IF EXISTS tb_resep_menu CASCADE;
+DROP TABLE IF EXISTS tb_bahan_baku CASCADE;

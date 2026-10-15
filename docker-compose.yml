@@ -43,53 +43,49 @@ services:
 # Backend & Frontend dijalankan langsung di terminal lokal (npm run dev)
 # ==============================================================================
 
-#   backend:
-#     build:
-#       context: ./be
-#       dockerfile: Dockerfile
-#     container_name: ${BACKEND_CONTAINER_NAME:-backend-api}
-#     ports:
-#       - "${BACKEND_PORT:-5000}:${BACKEND_PORT:-5000}"
-#     restart: unless-stopped
-#     depends_on:
-#       postgres-db:
-#         condition: service_healthy
-#       redis:
-#         condition: service_healthy
-#     env_file:
-#       - .env
-#     environment:
-#       PORT: ${BACKEND_PORT:-5000}
-#       DATABASE_URL: ${DATABASE_URL_DOCKER}
-#       REDIS_URL: ${REDIS_URL_DOCKER}
-#       JWT_SECRET: ${JWT_SECRET}
-#       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1d}
-#       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:4000,http://localhost:3000}
-#       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-#       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.0-flash}
-#     volumes:
-#       - ./be:/app
-#       - /app/node_modules
-#     command: npm run dev
+  backend:
+    build:
+      context: ./be
+      dockerfile: Dockerfile
+    container_name: ${BACKEND_CONTAINER_NAME:-backend-api}
+    ports:
+      - "${BACKEND_PORT:-5000}:5000"
+    restart: unless-stopped
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      PORT: 5000
+      DATABASE_URL: ${DATABASE_URL_DOCKER:-postgresql://adam_dev:adamwahyukur@postgres-db:5432/toko_online_adam}
+      REDIS_URL: ${REDIS_URL_DOCKER:-redis://redis:6379}
+      JWT_SECRET: ${JWT_SECRET:-super_secret_jwt_key_toko_online_adam}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1d}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:4000,http://localhost:3000}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.0-flash}
 
-#   frontend:
-#     build:
-#       context: ./fe
-#       dockerfile: dockerfile
-#     container_name: ${FRONTEND_CONTAINER_NAME:-frontend-app}
-#     ports:
-#       - "${FRONTEND_PORT:-4000}:${FRONTEND_PORT:-4000}"
-#     restart: unless-stopped
-#     depends_on:
-#       backend:
-#         condition: service_started
-#     env_file:
-#       - .env
-#     environment:
-#       PORT: ${FRONTEND_PORT:-4000}
-#       HOSTNAME: 0.0.0.0
-#       NEXT_PUBLIC_API_BASE_URL: http://${APP_PUBLIC_HOST:-localhost}:${BACKEND_PORT:-5000}
-#       INTERNAL_API_URL: http://backend:${BACKEND_PORT:-5000}/api
+  frontend:
+    build:
+      context: ./fe
+      dockerfile: dockerfile
+    container_name: ${FRONTEND_CONTAINER_NAME:-frontend-app}
+    ports:
+      - "${FRONTEND_PORT:-4000}:4000"
+    restart: unless-stopped
+    depends_on:
+      - backend
+    env_file:
+      - .env
+    environment:
+      PORT: 4000
+      HOSTNAME: 0.0.0.0
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:5000
+      INTERNAL_API_URL: http://backend:5000/api
+
 
 volumes:
   postgres_main_data:

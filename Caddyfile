@@ -1,0 +1,32 @@
+# =============================================================================
+# CADDY REVERSE PROXY CONFIGURATION (ARTISAN BEVERAGE KIOSK & KDS)
+# =============================================================================
+# - Pada VPS Produksi: otomatis HTTPS via Let's Encrypt jika domain publik disetel
+# - Pada Pengujian Lokal: berjalan aman di port :8080 atau :80
+# =============================================================================
+
+{$APP_DOMAIN::8080} {
+    # Logging akses Caddy ke stdout
+    log {
+        output stdout
+        format console
+    }
+
+    # Kompresi modern
+    encode zstd gzip
+
+    # 1. Seluruh rute API diteruskan ke Backend Express
+    handle /api/* {
+        reverse_proxy backend:5000
+    }
+
+    # 2. File statis uploads (foto produk minuman) diteruskan ke Backend
+    handle /uploads/* {
+        reverse_proxy backend:5000
+    }
+
+    # 3. Seluruh rute antarmuka pengguna diteruskan ke Frontend Next.js
+    handle {
+        reverse_proxy frontend:4000
+    }
+}

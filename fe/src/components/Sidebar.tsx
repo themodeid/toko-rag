@@ -32,6 +32,11 @@ export default function Sidebar({ type }: SidebarProps) {
       pathname === path ? activeColor : hoverColor
     }`;
 
+  // If inside /admin, the Rinci AdminLayout handles the sidebar
+  if (pathname.startsWith("/admin")) {
+    return null;
+  }
+
   // ==========================================
   // 1. WORKSPACE OWNER (HQ & EXECUTIVE HUB)
   // ==========================================
