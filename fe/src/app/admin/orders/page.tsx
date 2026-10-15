@@ -14,7 +14,7 @@ export default function AdminOrdersPage() {
     try {
       setLoading(true);
       const res = await getAllOrderActiveItems();
-      setOrders(res);
+      setOrders(res || []);
     } catch (err) {
       console.error("Failed to load orders:", err);
     } finally {
@@ -24,7 +24,7 @@ export default function AdminOrdersPage() {
 
   useEffect(() => {
     fetchOrders();
-    const interval = setInterval(fetchOrders, 10000); // Polling every 10s for kitchen
+    const interval = setInterval(fetchOrders, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -41,7 +41,7 @@ export default function AdminOrdersPage() {
   };
 
   const handleCancel = async (orderId: string) => {
-    if (!confirm("Batalkan pesanan ini?")) return;
+    if (!window.confirm("Yakin ingin membatalkan pesanan ini?")) return;
     try {
       setActionLoading(orderId);
       await cancelOrder(orderId);
@@ -69,26 +69,27 @@ export default function AdminOrdersPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-zinc-200">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-zinc-800/80">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
-            Orders & Kitchen Queue
+          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+            <span>📋</span>
+            <span>Orders & Kitchen Queue</span>
           </h1>
-          <p className="text-xs text-zinc-500 mt-0.5">
-            Manajemen antrian dapur & status pesanan pelanggan secara real-time.
+          <p className="text-xs text-zinc-400 mt-1">
+            Manajemen antrian dapur, status pesanan pelanggan, dan rekap transaksi QRIS secara real-time.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="inline-flex bg-zinc-200/70 p-0.5 rounded-lg text-xs font-medium text-zinc-600">
+          <div className="inline-flex bg-zinc-900 border border-zinc-800 p-0.5 rounded-xl text-xs font-mono">
             {["ALL", "PENDING", "PAID", "DIPROSES", "SELESAI"].map((st) => (
               <button
                 key={st}
                 onClick={() => setStatusFilter(st)}
-                className={`px-3 py-1 rounded-md transition ${
+                className={`px-3 py-1 rounded-lg transition ${
                   statusFilter === st
-                    ? "bg-white text-zinc-900 shadow-xs font-semibold"
-                    : "hover:text-zinc-900"
+                    ? "bg-amber-500 text-zinc-950 font-bold shadow-xs"
+                    : "text-zinc-400 hover:text-white"
                 }`}
               >
                 {st}
@@ -98,7 +99,8 @@ export default function AdminOrdersPage() {
 
           <button
             onClick={fetchOrders}
-            className="p-2 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-600 transition"
+            className="p-2 rounded-lg border border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white transition"
+            title="Refresh Antrian"
           >
             <svg
               className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
@@ -119,11 +121,11 @@ export default function AdminOrdersPage() {
 
       {/* Orders Grid / Cards */}
       {loading && orders.length === 0 ? (
-        <div className="p-12 text-center text-xs text-zinc-400 bg-white rounded-2xl border border-zinc-200">
+        <div className="p-16 text-center text-xs font-mono text-zinc-500 bg-zinc-900/40 border border-zinc-800/80 rounded-2xl">
           Memuat antrian pesanan...
         </div>
       ) : filteredOrders.length === 0 ? (
-        <div className="p-12 text-center text-xs text-zinc-400 bg-white rounded-2xl border border-zinc-200">
+        <div className="p-16 text-center text-xs font-mono text-zinc-500 bg-zinc-900/40 border border-zinc-800/80 rounded-2xl">
           Tidak ada pesanan aktif dengan status ini.
         </div>
       ) : (
@@ -133,33 +135,33 @@ export default function AdminOrdersPage() {
             return (
               <div
                 key={ord.id}
-                className="bg-white border border-zinc-200/90 rounded-2xl p-5 shadow-xs flex flex-col justify-between space-y-4"
+                className="bg-zinc-900/60 border border-zinc-800/80 rounded-2xl p-5 flex flex-col justify-between space-y-4 transition hover:border-zinc-700"
               >
                 <div>
                   {/* Order Top Bar */}
-                  <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
+                  <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80">
                     <div>
-                      <span className="font-mono font-bold text-xs text-zinc-900">
+                      <span className="font-mono font-bold text-xs text-amber-400">
                         #{ord.id.substring(0, 8)}
                       </span>
-                      <p className="text-[11px] text-zinc-400 mt-0.5">
+                      <p className="text-[11px] font-mono text-zinc-500 mt-0.5">
                         {ord.createdAt
                           ? new Date(ord.createdAt).toLocaleTimeString("id-ID", {
                               hour: "2-digit",
                               minute: "2-digit",
-                            })
+                            }) + " WIB"
                           : ""}
                       </p>
                     </div>
 
                     <div className="flex items-center gap-1.5">
                       <span
-                        className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
+                        className={`text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-full border ${
                           ord.statusPesanan?.toLowerCase() === "selesai"
-                            ? "bg-emerald-100 text-emerald-800"
+                            ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
                             : ord.statusPesanan?.toLowerCase() === "diproses"
-                            ? "bg-blue-100 text-blue-800"
-                            : "bg-amber-100 text-amber-800"
+                            ? "bg-sky-500/10 border-sky-500/30 text-sky-400"
+                            : "bg-amber-500/10 border-amber-500/30 text-amber-400"
                         }`}
                       >
                         {ord.statusPesanan || "PENDING"}
@@ -170,54 +172,54 @@ export default function AdminOrdersPage() {
                   {/* Customer Info */}
                   <div className="py-2.5 flex items-center justify-between text-xs">
                     <div>
-                      <p className="font-bold text-zinc-800">
+                      <p className="font-bold text-white">
                         {ord.customerName || ord.namaUser || "Pelanggan"}
                       </p>
-                      <p className="text-[11px] text-zinc-400">
+                      <p className="text-[11px] font-mono text-zinc-400">
                         {ord.orderType === "DINE_IN"
                           ? `Dine-In • Meja ${ord.tableNumber || "-"}`
                           : "Take Away"}
                       </p>
                     </div>
-                    <span className="font-mono font-bold text-zinc-900">
+                    <span className="font-mono font-bold text-white tabular-nums">
                       {formatRupiah(Number(ord.totalPrice) || 0)}
                     </span>
                   </div>
 
                   {/* Items List */}
-                  <div className="mt-2 space-y-1.5 bg-zinc-50 p-2.5 rounded-xl border border-zinc-100 text-xs">
+                  <div className="mt-2 space-y-1.5 bg-zinc-950 p-3 rounded-xl border border-zinc-800 text-xs">
                     {ord.items && ord.items.length > 0 ? (
                       ord.items.map((it, idx) => (
                         <div
                           key={idx}
-                          className="flex items-center justify-between text-zinc-700"
+                          className="flex items-center justify-between text-zinc-300"
                         >
                           <span>
-                            <span className="font-bold text-zinc-900 font-mono mr-1.5">
+                            <span className="font-bold text-amber-400 font-mono mr-1.5">
                               {it.quantity}x
                             </span>
                             {it.nama}
                           </span>
-                          <span className="font-mono text-[11px] text-zinc-500">
+                          <span className="font-mono text-[11px] text-zinc-400 tabular-nums">
                             {formatRupiah(it.subtotal || it.harga * it.quantity)}
                           </span>
                         </div>
                       ))
                     ) : (
-                      <p className="text-[11px] text-zinc-400 italic">
-                        Pesanan langsung POS
+                      <p className="text-[11px] text-zinc-500 italic font-mono">
+                        Pesanan langsung KDS / POS
                       </p>
                     )}
                   </div>
                 </div>
 
                 {/* Actions */}
-                <div className="pt-2 border-t border-zinc-100 flex items-center gap-2">
+                <div className="pt-2 border-t border-zinc-800/80 flex items-center gap-2 font-mono">
                   {!isFinished && (
                     <button
                       onClick={() => handleComplete(ord.id)}
                       disabled={actionLoading === ord.id}
-                      className="flex-1 py-2 bg-[#243324] hover:bg-[#1A261A] text-white text-xs font-semibold rounded-lg transition text-center"
+                      className="flex-1 py-2 bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold rounded-lg transition text-center shadow-xs disabled:opacity-50"
                     >
                       {actionLoading === ord.id ? "Memproses..." : "Tandai Selesai ✓"}
                     </button>
@@ -225,7 +227,7 @@ export default function AdminOrdersPage() {
                   <button
                     onClick={() => handleCancel(ord.id)}
                     disabled={actionLoading === ord.id}
-                    className="px-3 py-2 border border-zinc-200 text-red-600 hover:bg-red-50 text-xs font-medium rounded-lg transition"
+                    className="px-3 py-2 border border-zinc-800 text-red-400 hover:bg-red-500/10 text-xs font-medium rounded-lg transition"
                   >
                     Batal
                   </button>

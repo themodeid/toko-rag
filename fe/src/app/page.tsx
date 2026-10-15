@@ -37,11 +37,6 @@ export default function KioskMenuPage() {
   const [trackOrderCodeInput, setTrackOrderCodeInput] = useState<string>("");
   const [isTrackingModalOpen, setIsTrackingModalOpen] = useState<boolean>(false);
 
-  // Customization modal state
-  const [selectedBeverage, setSelectedBeverage] = useState<Minuman | null>(null);
-  const [tempSuhu, setTempSuhu] = useState<"ICE" | "HOT">("ICE");
-  const [tempSugar, setTempSugar] = useState<"LESS" | "NORMAL" | "EXTRA">("NORMAL");
-  const [tempNotes, setTempNotes] = useState<string>("");
 
   useEffect(() => {
     async function loadData() {
@@ -88,26 +83,13 @@ export default function KioskMenuPage() {
     [cart]
   );
 
-  // Open customization modal
-  const handleOpenCustomize = (beverage: Minuman) => {
+  // Direct add to cart without customization popup
+  const handleDirectAddToCart = (beverage: Minuman) => {
     if (!beverage.is_available) return;
-    setSelectedBeverage(beverage);
-    setTempSuhu("ICE");
-    setTempSugar("NORMAL");
-    setTempNotes("");
-  };
-
-  // Add to cart from customize modal
-  const handleAddToCart = () => {
-    if (!selectedBeverage) return;
 
     setCart((prev) => {
       const existingIndex = prev.findIndex(
-        (item) =>
-          item.minuman.id === selectedBeverage.id &&
-          item.suhu === tempSuhu &&
-          item.sugar_level === tempSugar &&
-          (item.catatan || "") === tempNotes.trim()
+        (item) => item.minuman.id === beverage.id
       );
 
       if (existingIndex > -1) {
@@ -119,16 +101,14 @@ export default function KioskMenuPage() {
       return [
         ...prev,
         {
-          minuman: selectedBeverage,
+          minuman: beverage,
           qty: 1,
-          suhu: tempSuhu,
-          sugar_level: tempSugar,
-          catatan: tempNotes.trim() ? tempNotes.trim() : undefined,
+          suhu: "ICE",
+          sugar_level: "NORMAL",
         },
       ];
     });
 
-    setSelectedBeverage(null);
     setIsCartOpen(true);
   };
 
@@ -399,7 +379,7 @@ export default function KioskMenuPage() {
 
                   <button
                     disabled={!bev.is_available}
-                    onClick={() => handleOpenCustomize(bev)}
+                    onClick={() => handleDirectAddToCart(bev)}
                     className={`px-3.5 py-1.5 rounded-lg text-xs font-medium font-mono transition flex items-center space-x-1.5 ${
                       bev.is_available
                         ? "bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold shadow-sm"
@@ -443,129 +423,6 @@ export default function KioskMenuPage() {
         </div>
       )}
 
-      {/* CUSTOMIZATION MODAL */}
-      {selectedBeverage && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-md w-full p-5 space-y-4 shadow-2xl">
-            <div className="flex justify-between items-start">
-              <div>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-400">
-                  {selectedBeverage.kategori?.nama || (selectedBeverage as any).nama_kategori || "Beverage"}
-                </span>
-                <h3 className="text-lg font-bold text-white mt-1">
-                  {selectedBeverage.nama}
-                </h3>
-                <p className="text-xs text-zinc-400 mt-0.5">
-                  Rp {selectedBeverage.harga.toLocaleString("id-ID")}
-                </p>
-              </div>
-              <button
-                onClick={() => setSelectedBeverage(null)}
-                className="text-zinc-400 hover:text-white text-sm font-mono"
-              >
-                ✕
-              </button>
-            </div>
-
-            {selectedBeverage.image_url && (
-              <div className="w-full h-36 rounded-xl overflow-hidden bg-zinc-950 border border-zinc-800">
-                <img
-                  src={getProductImageUrl(selectedBeverage.image_url)}
-                  alt={selectedBeverage.nama}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = "/uploads/matcha.jpg";
-                  }}
-                />
-              </div>
-            )}
-
-            {/* Suhu Options */}
-            <div>
-              <label className="text-xs font-mono text-zinc-400 uppercase tracking-wider block mb-1.5">
-                Pilihan Suhu
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setTempSuhu("ICE")}
-                  className={`py-2 px-3 rounded-lg text-xs font-mono font-medium border text-center transition ${
-                    tempSuhu === "ICE"
-                      ? "bg-sky-500/10 border-sky-500 text-sky-400 font-bold"
-                      : "bg-zinc-800/60 border-zinc-700/60 text-zinc-300 hover:border-zinc-600"
-                  }`}
-                >
-                  ❄️ Dingin (Ice)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTempSuhu("HOT")}
-                  className={`py-2 px-3 rounded-lg text-xs font-mono font-medium border text-center transition ${
-                    tempSuhu === "HOT"
-                      ? "bg-amber-500/10 border-amber-500 text-amber-400 font-bold"
-                      : "bg-zinc-800/60 border-zinc-700/60 text-zinc-300 hover:border-zinc-600"
-                  }`}
-                >
-                  🔥 Panas (Hot)
-                </button>
-              </div>
-            </div>
-
-            {/* Sugar Level */}
-            <div>
-              <label className="text-xs font-mono text-zinc-400 uppercase tracking-wider block mb-1.5">
-                Tingkat Gula (Sugar Level)
-              </label>
-              <div className="grid grid-cols-3 gap-2">
-                {(["LESS", "NORMAL", "EXTRA"] as const).map((lvl) => (
-                  <button
-                    key={lvl}
-                    type="button"
-                    onClick={() => setTempSugar(lvl)}
-                    className={`py-2 px-2 rounded-lg text-xs font-mono text-center border transition ${
-                      tempSugar === lvl
-                        ? "bg-amber-500/10 border-amber-500 text-amber-400 font-bold"
-                        : "bg-zinc-800/60 border-zinc-700/60 text-zinc-300 hover:border-zinc-600"
-                    }`}
-                  >
-                    {lvl === "LESS"
-                      ? "Sedikit (50%)"
-                      : lvl === "NORMAL"
-                      ? "Normal (100%)"
-                      : "Extra (120%)"}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Catatan Tambahan */}
-            <div>
-              <label className="text-xs font-mono text-zinc-400 uppercase tracking-wider block mb-1.5">
-                Catatan Khusus (Opsional)
-              </label>
-              <input
-                type="text"
-                maxLength={60}
-                value={tempNotes}
-                onChange={(e) => setTempNotes(e.target.value)}
-                placeholder="Contoh: Pisahkan es, sedikit susu..."
-                className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-2 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-amber-500"
-              />
-            </div>
-
-            {/* Submit Add */}
-            <div className="pt-2">
-              <button
-                onClick={handleAddToCart}
-                className="w-full py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold font-mono text-sm transition"
-              >
-                + Tambahkan ke Pesanan
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* CHECKOUT DRAWER / MODAL */}
       {isCartOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex justify-end">
@@ -597,20 +454,7 @@ export default function KioskMenuPage() {
                       <p className="text-sm font-semibold text-white">
                         {item.minuman.nama}
                       </p>
-                      <div className="flex items-center gap-2 mt-1 text-[11px] font-mono text-zinc-400">
-                        <span className="px-1.5 py-0.5 rounded bg-zinc-800 border border-zinc-700/60">
-                          {item.suhu === "ICE" ? "❄️ Ice" : "🔥 Hot"}
-                        </span>
-                        <span className="px-1.5 py-0.5 rounded bg-zinc-800 border border-zinc-700/60">
-                          Gula: {item.sugar_level}
-                        </span>
-                      </div>
-                      {item.catatan && (
-                        <p className="text-[11px] text-zinc-400 mt-1 italic">
-                          "{item.catatan}"
-                        </p>
-                      )}
-                      <p className="text-xs font-mono font-bold text-amber-400 mt-1.5">
+                      <p className="text-xs font-mono font-bold text-amber-400 mt-1">
                         Rp {(item.minuman.harga * item.qty).toLocaleString("id-ID")}
                       </p>
                     </div>

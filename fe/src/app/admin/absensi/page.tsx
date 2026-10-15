@@ -41,10 +41,7 @@ export default function AdminAbsensiPage() {
 
   return (
     <ProtectedRoute allowedRole={["owner", "admin", "karyawan"]}>
-      <div className="min-h-screen flex flex-col md:flex-row bg-zinc-950 text-zinc-100 font-poppins selection:bg-zinc-800">
-        <Sidebar type="admin" />
-
-        <main className="flex-1 p-4 md:p-8 lg:p-12 pb-24 md:pb-12 overflow-y-auto space-y-8 w-full max-w-7xl mx-auto">
+      <div className="space-y-6">
           {/* Header */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800 pb-6 pt-4 md:pt-0">
             <div>
@@ -222,7 +219,6 @@ export default function AdminAbsensiPage() {
               </table>
             </div>
           </div>
-        </main>
       </div>
     </ProtectedRoute>
   );

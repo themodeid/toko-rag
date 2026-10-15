@@ -202,7 +202,7 @@ export default function KasirKdsDashboardPage() {
               Omset Digital QRIS
             </span>
             <span className="text-2xl font-bold text-emerald-400 mt-1 block">
-              Rp {summary ? summary.total_revenue_today.toLocaleString("id-ID") : 0}
+              Rp {Number(summary?.total_revenue_today || (summary as any)?.total_omset_hari_ini || 0).toLocaleString("id-ID")}
             </span>
           </div>
 
@@ -318,7 +318,7 @@ export default function KasirKdsDashboardPage() {
                               {item.qty}x {item.nama_minuman}
                             </span>
                             <span className="font-mono text-zinc-400">
-                              Rp {item.subtotal.toLocaleString("id-ID")}
+                              Rp {Number(item.subtotal || 0).toLocaleString("id-ID")}
                             </span>
                           </div>
                           <div className="flex items-center gap-1.5 mt-1 font-mono text-[10px] text-zinc-400">
@@ -416,7 +416,7 @@ export default function KasirKdsDashboardPage() {
                       {bev.nama}
                     </p>
                     <span className="text-xs font-mono text-zinc-400">
-                      Rp {bev.harga.toLocaleString("id-ID")} • {bev.kategori?.nama || (bev as any).nama_kategori || "Beverage"}
+                      Rp {Number(bev.harga || 0).toLocaleString("id-ID")} • {bev.kategori?.nama || (bev as any).nama_kategori || "Beverage"}
                     </span>
                   </div>
 

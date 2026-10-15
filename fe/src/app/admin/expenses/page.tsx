@@ -24,7 +24,7 @@ export default function ExpensesPage() {
     try {
       setLoading(true);
       const res = await getExpenses(period);
-      setExpenses(res);
+      setExpenses(res || []);
     } catch (err) {
       console.error("Failed to fetch expenses:", err);
     } finally {
@@ -74,93 +74,97 @@ export default function ExpensesPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-zinc-200">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-zinc-800/80">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
-            Operating Expenses (OPEX)
+          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+            <span>💸</span>
+            <span>Operating Expenses (OPEX)</span>
           </h1>
-          <p className="text-xs text-zinc-500 mt-0.5">
+          <p className="text-xs text-zinc-400 mt-1">
             Pencatatan pengeluaran operasional outlet: sewa tempat, tagihan listrik, air, internet, gaji & maintenance.
           </p>
         </div>
 
         <button
           onClick={() => setIsModalOpen(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-[#243324] hover:bg-[#1A261A] text-white text-xs font-semibold rounded-xl shadow-xs transition"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold font-mono rounded-xl shadow-xs transition"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-          </svg>
-          <span>Catat Pengeluaran Baru</span>
+          <span>+ Catat Pengeluaran Baru</span>
         </button>
       </div>
 
       {/* Summary Banner */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white p-4 rounded-xl border border-zinc-200 shadow-xs">
-          <p className="text-[11px] font-bold text-zinc-400 uppercase">Total Beban Operasional ({period.toUpperCase()})</p>
-          <p className="text-2xl font-bold text-zinc-900 mt-1">{formatRupiah(totalExpenses)}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono">
+        <div className="bg-zinc-900/60 p-4 rounded-xl border border-zinc-800/80">
+          <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">
+            Total Beban ({period.toUpperCase()})
+          </p>
+          <p className="text-2xl font-bold text-white tabular-nums mt-1">{formatRupiah(totalExpenses)}</p>
         </div>
-        <div className="bg-white p-4 rounded-xl border border-zinc-200 shadow-xs">
-          <p className="text-[11px] font-bold text-zinc-400 uppercase">Jumlah Transaksi Biaya</p>
-          <p className="text-2xl font-bold text-zinc-900 mt-1">{expenses.length} Transaksi</p>
+        <div className="bg-zinc-900/60 p-4 rounded-xl border border-zinc-800/80">
+          <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">
+            Jumlah Transaksi
+          </p>
+          <p className="text-2xl font-bold text-zinc-300 tabular-nums mt-1">{expenses.length} Transaksi</p>
         </div>
-        <div className="bg-[#EAF5EC] p-4 rounded-xl border border-[#C5E8CB] shadow-xs">
-          <p className="text-[11px] font-bold text-[#1E6533] uppercase">Pengurang Laba Kotor</p>
-          <p className="text-xs text-[#2D7343] mt-2 font-medium">
-            Biaya ini secara otomatis memotong Gross Profit di halaman Overview untuk menghasilkan Operating Profit riil.
+        <div className="bg-emerald-950/20 p-4 rounded-xl border border-emerald-500/30">
+          <p className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">
+            Pengurang Laba Kotor
+          </p>
+          <p className="text-xs text-zinc-400 mt-1.5 font-sans">
+            Biaya ini secara otomatis memotong Gross Profit di Overview untuk menghasilkan Operating Profit riil.
           </p>
         </div>
       </div>
 
       {/* Table */}
-      <div className="bg-white border border-zinc-200 rounded-xl overflow-hidden shadow-xs">
+      <div className="bg-zinc-900/60 border border-zinc-800/80 rounded-xl overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-zinc-50 border-b border-zinc-200 text-zinc-500 font-semibold uppercase tracking-wider">
+            <thead className="bg-zinc-950/80 border-b border-zinc-800 text-zinc-400 font-mono uppercase tracking-wider text-[11px]">
               <tr>
-                <th className="px-4 py-3">Tanggal</th>
-                <th className="px-4 py-3">Kategori</th>
-                <th className="px-4 py-3">Nama Pengeluaran</th>
-                <th className="px-4 py-3">Keterangan</th>
-                <th className="px-4 py-3 text-right">Nominal (Rp)</th>
+                <th className="px-4 py-3.5">Tanggal</th>
+                <th className="px-4 py-3.5">Kategori</th>
+                <th className="px-4 py-3.5">Nama Pengeluaran</th>
+                <th className="px-4 py-3.5">Keterangan</th>
+                <th className="px-4 py-3.5 text-right">Nominal (Rp)</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100 font-normal text-zinc-800">
+            <tbody className="divide-y divide-zinc-800/80 font-normal text-zinc-200">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-zinc-400">
+                  <td colSpan={5} className="px-4 py-12 text-center font-mono text-zinc-500">
                     Memuat data pengeluaran...
                   </td>
                 </tr>
               ) : expenses.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-zinc-400">
+                  <td colSpan={5} className="px-4 py-12 text-center font-mono text-zinc-500">
                     Belum ada pengeluaran yang dicatat di periode ini.
                   </td>
                 </tr>
               ) : (
                 expenses.map((exp) => (
-                  <tr key={exp.id} className="hover:bg-zinc-50/80 transition">
-                    <td className="px-4 py-3 font-mono text-zinc-500">
+                  <tr key={exp.id} className="hover:bg-zinc-800/30 transition">
+                    <td className="px-4 py-3.5 font-mono text-zinc-400">
                       {new Date(exp.tanggal_biaya).toLocaleDateString("id-ID", {
                         day: "numeric",
                         month: "short",
                         year: "numeric",
                       })}
                     </td>
-                    <td className="px-4 py-3">
-                      <span className="px-2 py-0.5 bg-zinc-100 rounded text-[11px] font-medium text-zinc-600">
+                    <td className="px-4 py-3.5">
+                      <span className="px-2 py-0.5 bg-zinc-800 border border-zinc-700/60 rounded text-[11px] font-mono text-zinc-300">
                         {exp.kategori}
                       </span>
                     </td>
-                    <td className="px-4 py-3 font-semibold text-zinc-900">
+                    <td className="px-4 py-3.5 font-semibold text-white">
                       {exp.nama_pengeluaran}
                     </td>
-                    <td className="px-4 py-3 text-zinc-400">
+                    <td className="px-4 py-3.5 text-zinc-400">
                       {exp.keterangan || "-"}
                     </td>
-                    <td className="px-4 py-3 font-mono font-bold text-zinc-900 text-right">
+                    <td className="px-4 py-3.5 font-mono font-bold text-amber-400 tabular-nums text-right">
                       {formatRupiah(Number(exp.nominal))}
                     </td>
                   </tr>
@@ -173,24 +177,24 @@ export default function ExpensesPage() {
 
       {/* Modal Add Expense */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-zinc-200">
-            <h2 className="text-base font-bold text-zinc-900 mb-1">
-              Catat Beban Operasional
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-zinc-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-zinc-800 text-white animate-in fade-in">
+            <h2 className="text-base font-bold font-mono text-white mb-1">
+              Catat Beban Operasional Baru
             </h2>
-            <p className="text-xs text-zinc-500 mb-4">
+            <p className="text-xs text-zinc-400 mb-4">
               Pengeluaran rutin outlet untuk menjaga operasional berjalan lancar.
             </p>
 
             <form onSubmit={handleAddExpense} className="space-y-3.5 text-xs">
               <div>
-                <label className="block font-semibold text-zinc-700 mb-1">
+                <label className="block font-mono text-zinc-400 mb-1">
                   Kategori Pengeluaran
                 </label>
                 <select
                   value={kategori}
                   onChange={(e) => setKategori(e.target.value)}
-                  className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-xs"
+                  className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-white focus:outline-none focus:border-amber-500 font-sans"
                 >
                   <option value="Sewa Tempat">Sewa Tempat</option>
                   <option value="Listrik & Air">Listrik & Air</option>
@@ -202,8 +206,8 @@ export default function ExpensesPage() {
               </div>
 
               <div>
-                <label className="block font-semibold text-zinc-700 mb-1">
-                  Nama Pengeluaran
+                <label className="block font-mono text-zinc-400 mb-1">
+                  Nama Pengeluaran *
                 </label>
                 <input
                   type="text"
@@ -211,14 +215,14 @@ export default function ExpensesPage() {
                   placeholder="Contoh: Token Listrik PLN 2200W"
                   value={namaPengeluaran}
                   onChange={(e) => setNamaPengeluaran(e.target.value)}
-                  className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-xs"
+                  className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-white placeholder-zinc-600 focus:outline-none focus:border-amber-500 font-sans"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-zinc-700 mb-1">
-                    Nominal (Rp)
+                  <label className="block font-mono text-zinc-400 mb-1">
+                    Nominal (Rp) *
                   </label>
                   <input
                     type="number"
@@ -227,11 +231,11 @@ export default function ExpensesPage() {
                     placeholder="Contoh: 500000"
                     value={nominal || ""}
                     onChange={(e) => setNominal(parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-xs"
+                    className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-white focus:outline-none focus:border-amber-500 font-mono tabular-nums"
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold text-zinc-700 mb-1">
+                  <label className="block font-mono text-zinc-400 mb-1">
                     Tanggal
                   </label>
                   <input
@@ -239,13 +243,13 @@ export default function ExpensesPage() {
                     required
                     value={tanggalBiaya}
                     onChange={(e) => setTanggalBiaya(e.target.value)}
-                    className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-xs"
+                    className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-white focus:outline-none focus:border-amber-500 font-mono"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block font-semibold text-zinc-700 mb-1">
+                <label className="block font-mono text-zinc-400 mb-1">
                   Keterangan Tambahan (Opsional)
                 </label>
                 <textarea
@@ -253,22 +257,22 @@ export default function ExpensesPage() {
                   placeholder="Catatan nomor invoice, periode, dll..."
                   value={keterangan}
                   onChange={(e) => setKeterangan(e.target.value)}
-                  className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-xs"
+                  className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-white placeholder-zinc-600 focus:outline-none focus:border-amber-500 font-sans"
                 ></textarea>
               </div>
 
-              <div className="flex justify-end gap-2 pt-4 border-t border-zinc-100">
+              <div className="flex justify-end gap-2 pt-4 border-t border-zinc-800">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 border border-zinc-200 text-zinc-600 rounded-lg hover:bg-zinc-50"
+                  className="px-4 py-2 border border-zinc-800 text-zinc-400 rounded-lg hover:bg-zinc-800 hover:text-white font-mono"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 bg-[#243324] hover:bg-[#1A261A] text-white font-semibold rounded-lg"
+                  className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold font-mono rounded-lg transition"
                 >
                   {submitting ? "Menyimpan..." : "Simpan Pengeluaran"}
                 </button>

@@ -55,18 +55,24 @@ export class KasirService {
       SELECT 
         o.id,
         o.no_antrian,
+        o.no_antrian AS order_code,
         o.nama_pelanggan,
         o.total_bayar,
+        o.total_bayar AS total_amount,
         o.metode_pembayaran,
+        o.metode_pembayaran AS payment_method,
         o.status_pembayaran,
+        o.status_pembayaran AS status_bayar,
         o.status_antrian,
         o.estimasi_menit,
+        o.estimasi_menit AS estimasi_selesai_menit,
         o.waktu_bayar,
         o.waktu_selesai,
         o.created_at,
         COALESCE(
           json_agg(
             json_build_object(
+              'id', oi.id,
               'item_id', oi.id,
               'nama_minuman', m.nama,
               'qty', oi.qty,
@@ -120,7 +126,7 @@ export class KasirService {
         status_antrian = $1,
         waktu_selesai = CASE WHEN $2 = true THEN CURRENT_TIMESTAMP ELSE waktu_selesai END
       WHERE id = $3
-      RETURNING id, no_antrian, nama_pelanggan, status_antrian, waktu_selesai;
+      RETURNING id, no_antrian, no_antrian AS order_code, nama_pelanggan, status_antrian, waktu_selesai;
     `;
     const { rows } = await query(sql, [newStatus, isCompleted, orderId]);
     if (rows.length === 0) {
@@ -135,9 +141,13 @@ export class KasirService {
   static async getSummaryToday() {
     const sql = `
       SELECT
+        COUNT(*)::int AS total_orders_today,
         COUNT(*)::int AS total_pesanan_hari_ini,
+        COALESCE(SUM(CASE WHEN status_pembayaran = 'PAID' THEN total_bayar ELSE 0 END), 0)::int AS total_revenue_today,
         COALESCE(SUM(CASE WHEN status_pembayaran = 'PAID' THEN total_bayar ELSE 0 END), 0)::int AS total_omset_hari_ini,
-        COUNT(CASE WHEN status_antrian IN ('MENUNGGU_RACIK', 'SEDANG_DIRACIK') THEN 1 END)::int AS antrian_menunggu
+        COUNT(CASE WHEN status_antrian IN ('MENUNGGU_RACIK', 'SEDANG_DIRACIK') THEN 1 END)::int AS active_queue_count,
+        COUNT(CASE WHEN status_antrian IN ('MENUNGGU_RACIK', 'SEDANG_DIRACIK') THEN 1 END)::int AS antrian_menunggu,
+        COUNT(CASE WHEN status_antrian = 'SELESAI' THEN 1 END)::int AS completed_today
       FROM tb_orders
       WHERE created_at >= CURRENT_DATE;
     `;

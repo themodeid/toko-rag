@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import FeatherIcon from "feather-icons-react";
-import Sidebar from "@/components/Sidebar";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
@@ -136,10 +135,7 @@ export default function AdminAnalystPage() {
 
   return (
     <ProtectedRoute allowedRole={["owner", "admin"]}>
-      <div className="min-h-screen flex flex-col md:flex-row bg-zinc-950 text-zinc-100 font-poppins selection:bg-purple-900/30">
-        <Sidebar type="admin" />
-
-        <main className="flex-1 p-4 md:p-8 lg:p-10 pb-24 md:pb-10 overflow-y-auto w-full max-w-7xl mx-auto flex flex-col gap-6">
+      <div className="space-y-6 max-w-7xl">
           {/* Header */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800 pb-5 pt-4 md:pt-0">
             <div>
@@ -281,8 +277,7 @@ export default function AdminAnalystPage() {
               </form>
             </div>
           </div>
-        </main>
-      </div>
+        </div>
     </ProtectedRoute>
   );
 }
