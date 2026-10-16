@@ -197,7 +197,7 @@ export default function PublicQueueTVPage() {
           </div>
 
           <div className="mt-4 pt-3 border-t border-emerald-500/20 text-xs font-mono text-emerald-400 text-center">
-            Tunjukkan bukti nomor antrian kepada staf barista saat mengambil.
+            Sebutkan nama pemesan kepada barista/kasir saat mengambil minuman di meja bar.
           </div>
         </section>
       </main>

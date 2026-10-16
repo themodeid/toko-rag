@@ -2,54 +2,21 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import {
-  Minuman,
-  KategoriMinuman,
-  CartItem,
-  CheckoutPayload,
-} from "@/features/kiosk/types";
+import { Minuman, KategoriMinuman } from "@/features/kiosk/types";
 import {
   fetchBeverages,
   fetchBeverageCategories,
-  checkoutKioskOrder,
   fetchActiveQueue,
 } from "@/features/kiosk/api";
-import { validateCustomerName } from "@/lib/profanityFilter";
 import { getProductImageUrl } from "@/lib/imageHelper";
 
-export default function KioskMenuPage() {
-  const router = useRouter();
-
-  // Data states
+export default function DigitalMenuShowcasePage() {
   const [categories, setCategories] = useState<KategoriMinuman[]>([]);
   const [beverages, setBeverages] = useState<Minuman[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
   const [activeQueueCount, setActiveQueueCount] = useState<number>(0);
-
-  // Cart state
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
-  const [customerName, setCustomerName] = useState<string>("");
-  const [nameError, setNameError] = useState<string>("");
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [trackOrderCodeInput, setTrackOrderCodeInput] = useState<string>("");
-  const [isTrackingModalOpen, setIsTrackingModalOpen] = useState<boolean>(false);
-  const [loggedRole, setLoggedRole] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const token = localStorage.getItem("token") || localStorage.getItem("kasir_token");
-      const role = localStorage.getItem("role");
-      if (token && role) {
-        setLoggedRole(role.toLowerCase());
-      } else {
-        setLoggedRole(null);
-      }
-    }
-  }, []);
 
   useEffect(() => {
     async function loadData() {
@@ -72,239 +39,142 @@ export default function KioskMenuPage() {
     loadData();
   }, []);
 
-  // Filtered beverages
   const filteredBeverages = useMemo(() => {
     return beverages.filter((b) => {
-      const matchCategory =
+      const matchCat =
         selectedCategory === "ALL" ||
         String(b.kategori_id) === String(selectedCategory);
       const matchSearch =
         b.nama.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (b.deskripsi && b.deskripsi.toLowerCase().includes(searchQuery.toLowerCase()));
-      return matchCategory && matchSearch;
+        (b.deskripsi &&
+          b.deskripsi.toLowerCase().includes(searchQuery.toLowerCase()));
+      return matchCat && matchSearch;
     });
   }, [beverages, selectedCategory, searchQuery]);
 
-  // Cart calculations
-  const totalCartQty = useMemo(
-    () => cart.reduce((sum, item) => sum + item.qty, 0),
-    [cart]
-  );
-
-  const totalCartPrice = useMemo(
-    () => cart.reduce((sum, item) => sum + item.minuman.harga * item.qty, 0),
-    [cart]
-  );
-
-  // Direct add to cart without customization popup
-  const handleDirectAddToCart = (beverage: Minuman) => {
-    if (!beverage.is_available) return;
-
-    setCart((prev) => {
-      const existingIndex = prev.findIndex(
-        (item) => item.minuman.id === beverage.id
-      );
-
-      if (existingIndex > -1) {
-        const next = [...prev];
-        next[existingIndex].qty += 1;
-        return next;
-      }
-
-      return [
-        ...prev,
-        {
-          minuman: beverage,
-          qty: 1,
-          suhu: "ICE",
-          sugar_level: "NORMAL",
-        },
-      ];
-    });
-
-    setIsCartOpen(true);
-  };
-
-  // Update item qty
-  const updateItemQty = (index: number, delta: number) => {
-    setCart((prev) => {
-      const next = [...prev];
-      const newQty = next[index].qty + delta;
-      if (newQty <= 0) {
-        next.splice(index, 1);
-      } else {
-        next[index].qty = newQty;
-      }
-      return next;
-    });
-  };
-
-  // Real-time name validation
-  const handleNameChange = (val: string) => {
-    setCustomerName(val);
-    if (!val.trim()) {
-      setNameError("Nama pemesan wajib diisi");
-      return;
-    }
-    const check = validateCustomerName(val);
-    if (!check.isValid) {
-      setNameError(check.message || "Nama tidak valid");
-    } else {
-      setNameError("");
-    }
-  };
-
-  // Handle Checkout
-  const handleCheckout = async () => {
-    const check = validateCustomerName(customerName);
-    if (!check.isValid) {
-      setNameError(check.message || "Nama tidak sopan atau tidak valid");
-      return;
-    }
-
-    if (cart.length === 0) return;
-
-    try {
-      setIsSubmitting(true);
-      const idempotencyKey = `kiosk_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-      const payload: CheckoutPayload = {
-        nama_pelanggan: customerName.trim(),
-        idempotency_key: idempotencyKey,
-        auto_pay: true,
-        items: cart.map((c) => ({
-          minuman_id: c.minuman.id,
-          qty: c.qty,
-          suhu: c.suhu,
-          sugar_level: c.sugar_level,
-          catatan: c.catatan,
-        })),
-      };
-
-      const createdOrder = await checkoutKioskOrder(payload);
-      setCart([]);
-      setIsCartOpen(false);
-      router.push(`/order/${createdOrder.id}`);
-    } catch (err: any) {
-      const msg = err.response?.data?.message || "Gagal membuat pesanan";
-      alert(msg);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleTrackSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!trackOrderCodeInput.trim()) return;
-    router.push(`/order/${encodeURIComponent(trackOrderCodeInput.trim())}`);
-  };
-
   return (
-    <div className="min-h-screen bg-[#09090b] text-[#f4f4f5] font-sans antialiased selection:bg-amber-500/20 selection:text-amber-300">
-      {/* TOP NOTIFICATION BAR */}
-      <header className="sticky top-0 z-40 border-b border-zinc-800/80 bg-[#09090b]/90 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+    <div className="min-h-screen bg-[#09090b] text-[#f4f4f5] font-sans antialiased selection:bg-amber-500/20 flex flex-col justify-between">
+      {/* PUBLIC HEADER */}
+      <header className="border-b border-zinc-800/80 bg-[#09090b]/90 backdrop-blur-md sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-amber-400 font-bold text-lg shadow-inner">
+            <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-xl text-amber-400">
               ☕
             </div>
             <div>
-              <div className="flex items-center space-x-2">
-                <span className="font-semibold tracking-tight text-white text-base">
-                  Artisan Beverage Bar
+              <h1 className="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-2">
+                <span>Artisan Beverage Bar</span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/30 uppercase font-semibold">
+                  Katalog Menu
                 </span>
-                <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700/60">
-                  Self-Service Kiosk
-                </span>
-              </div>
-              <p className="text-xs text-zinc-400 font-mono">
-                Bebas Antri • Zero-Login • Wajib Digital QRIS
+              </h1>
+              <p className="text-[11px] text-zinc-400 font-mono">
+                Pesan & Bayar Langsung di Meja Kasir
               </p>
             </div>
           </div>
 
-          <div className="flex items-center space-x-2 sm:space-x-3">
+          <div className="flex items-center space-x-2 sm:space-x-3 font-mono text-xs">
             <Link
               href="/antrian"
-              className="hidden sm:inline-flex items-center space-x-2 text-xs font-mono px-3 py-1.5 rounded-md bg-zinc-900 border border-zinc-800 text-zinc-300 hover:border-zinc-700 transition"
+              className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white transition flex items-center gap-1.5"
+              title="Lihat Papan Antrean TV Publik"
             >
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span>Layar Antrian ({activeQueueCount})</span>
+              <span>📺</span>
+              <span className="hidden sm:inline">Papan Antrian</span>
+              {activeQueueCount > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full bg-amber-500 text-zinc-950 text-[10px] font-bold">
+                  {activeQueueCount}
+                </span>
+              )}
             </Link>
 
-            <button
-              onClick={() => setIsTrackingModalOpen(true)}
-              className="text-xs font-mono px-3 py-1.5 rounded-md bg-zinc-900 border border-zinc-800 text-zinc-300 hover:border-zinc-700 transition"
+            <Link
+              href="/kasir"
+              className="px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold transition flex items-center gap-1.5 shadow-sm shadow-amber-500/20"
+              title="Masuk ke Meja Kasir POS & KDS"
             >
-              🔍 Cek Pesanan
-            </button>
-
-            {loggedRole === "owner" || loggedRole === "admin" ? (
-              <div className="flex items-center space-x-1.5">
-                <Link
-                  href="/admin"
-                  className="text-xs font-mono px-2.5 py-1.5 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 transition flex items-center gap-1"
-                  title="Buka Hub Owner HQ"
-                >
-                  <span>👑</span>
-                  <span className="hidden sm:inline">Owner Hub</span>
-                </Link>
-                <Link
-                  href="/kasir"
-                  className="text-xs font-mono px-2.5 py-1.5 rounded-md bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white transition flex items-center gap-1"
-                  title="Buka KDS Barista"
-                >
-                  <span>🧑‍🍳</span>
-                  <span className="hidden sm:inline">KDS</span>
-                </Link>
-              </div>
-            ) : loggedRole === "kasir" || loggedRole === "karyawan" ? (
-              <Link
-                href="/kasir"
-                className="text-xs font-mono px-2.5 py-1.5 rounded-md bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20 transition flex items-center gap-1"
-                title="Buka KDS Barista"
-              >
-                <span>🧑‍🍳</span>
-                <span>KDS Barista</span>
-              </Link>
-            ) : (
-              <Link
-                href="/login"
-                className="text-xs font-mono px-2.5 py-1.5 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-900 border border-transparent hover:border-zinc-800 transition flex items-center gap-1"
-                title="Login Portal Staff (Kasir / Owner)"
-              >
-                <span>🔐</span>
-                <span>Staff</span>
-              </Link>
-            )}
+              <span>🧑‍🍳</span>
+              <span>Station Kasir →</span>
+            </Link>
           </div>
         </div>
       </header>
 
-      {/* HERO BANNER & SEARCH */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800/60 pb-6">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
-              Pilih Minuman Favoritmu
-            </h1>
-            <p className="text-sm text-zinc-400 mt-1">
-              Diracik segar oleh barista dengan biji kopi & teh artisan pilihan.
+      {/* MAIN SHOWCASE */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6 flex-1 w-full">
+        {/* COUNTER ORDER ANNOUNCEMENT BANNER */}
+        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-950/30 via-zinc-900/60 to-zinc-900/40 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg shadow-amber-500/5">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-400">
+                Alur Pemesanan Kedai
+              </span>
+            </div>
+            <p className="text-xs sm:text-sm font-semibold text-white">
+              Silakan pesan & lakukan pembayaran cashless langsung di Meja Kasir.
+            </p>
+            <p className="text-xs text-zinc-400">
+              Minuman Anda akan diracik oleh barista dan dipanggil di meja bar sesuai <span className="text-amber-400 font-bold font-mono">Nama Pemesan</span> Anda.
             </p>
           </div>
 
-          {/* Search Box */}
-          <div className="relative w-full md:w-80">
+          <div className="flex items-center gap-3">
+            <Link
+              href="/kasir"
+              className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold font-mono text-xs transition shadow-md whitespace-nowrap"
+            >
+              Buka POS Kasir →
+            </Link>
+          </div>
+        </div>
+
+        {/* SEARCH & CATEGORY CHIPS */}
+        <div className="flex flex-col sm:flex-row gap-3 items-center justify-between pt-2">
+          {/* Category Chips */}
+          <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0 scrollbar-none font-mono text-xs">
+            <button
+              onClick={() => setSelectedCategory("ALL")}
+              className={`px-3.5 py-1.5 rounded-lg whitespace-nowrap transition ${
+                selectedCategory === "ALL"
+                  ? "bg-amber-500 text-zinc-950 font-bold shadow-sm"
+                  : "bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-white hover:border-zinc-700"
+              }`}
+            >
+              Semua Menu
+            </button>
+            {categories.map((c) => (
+              <button
+                key={c.id}
+                onClick={() => setSelectedCategory(c.id)}
+                className={`px-3.5 py-1.5 rounded-lg whitespace-nowrap transition ${
+                  selectedCategory === c.id
+                    ? "bg-amber-500 text-zinc-950 font-bold shadow-sm"
+                    : "bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-white hover:border-zinc-700"
+                }`}
+              >
+                {c.nama}
+              </button>
+            ))}
+          </div>
+
+          {/* Search Input */}
+          <div className="relative w-full sm:w-64">
+            <span className="absolute left-3 top-2.5 text-zinc-500 text-xs">
+              🔍
+            </span>
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari kopi, matcha, teh..."
-              className="w-full bg-zinc-900/90 border border-zinc-800 rounded-lg px-3.5 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/30 transition"
+              placeholder="Cari menu favorit..."
+              className="w-full bg-zinc-900 border border-zinc-800 rounded-xl pl-8 pr-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500 transition font-mono"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-2.5 text-zinc-500 hover:text-zinc-300 text-xs font-mono"
+                className="absolute right-3 top-2.5 text-zinc-500 hover:text-white text-xs font-mono"
               >
                 ✕
               </button>
@@ -312,334 +182,98 @@ export default function KioskMenuPage() {
           </div>
         </div>
 
-        {/* CATEGORY TABS */}
-        <div className="flex items-center gap-2 overflow-x-auto py-4 no-scrollbar">
-          <button
-            onClick={() => setSelectedCategory("ALL")}
-            className={`px-3.5 py-1.5 rounded-md text-xs font-mono whitespace-nowrap transition border ${
-              selectedCategory === "ALL"
-                ? "bg-zinc-100 text-zinc-950 border-white font-medium"
-                : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-zinc-700"
-            }`}
-          >
-            Semua Menu
-          </button>
-          {categories.map((cat: any) => (
-            <button
-              key={cat.id}
-              onClick={() => setSelectedCategory(String(cat.id))}
-              className={`px-3.5 py-1.5 rounded-md text-xs font-mono whitespace-nowrap transition border ${
-                String(selectedCategory) === String(cat.id)
-                  ? "bg-zinc-100 text-zinc-950 border-white font-medium"
-                  : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-zinc-700"
-              }`}
-            >
-              {cat.icon ? `${cat.icon} ` : ""}
-              {cat.nama_kategori || cat.nama}
-            </button>
-          ))}
-        </div>
-      </section>
-
-      {/* CATALOG GRID */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-32">
+        {/* MENU GRID */}
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pt-6">
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-              <div
-                key={i}
-                className="h-64 rounded-xl bg-zinc-900/50 border border-zinc-800/80 animate-pulse"
-              ></div>
-            ))}
+          <div className="py-24 text-center font-mono text-xs text-zinc-500">
+            Memuat daftar menu artisan...
           </div>
         ) : filteredBeverages.length === 0 ? (
-          <div className="py-20 text-center border border-dashed border-zinc-800 rounded-xl mt-4">
-            <span className="text-4xl">🍵</span>
-            <p className="mt-3 text-sm text-zinc-300 font-medium">
-              Tidak ada minuman yang cocok
-            </p>
-            <p className="text-xs text-zinc-500 mt-1">
-              Coba gunakan kata kunci lain atau pilih kategori Semua Menu.
+          <div className="py-24 text-center border border-dashed border-zinc-800 rounded-2xl">
+            <span className="text-3xl">☕</span>
+            <p className="text-sm text-zinc-400 mt-2 font-mono">
+              Tidak ada menu minuman yang cocok dengan pencarian Anda
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredBeverages.map((bev: any) => (
-              <div
-                key={bev.id}
-                className="group relative rounded-xl border border-zinc-800/80 bg-zinc-900/40 hover:bg-zinc-900/80 hover:border-zinc-700 transition flex flex-col justify-between overflow-hidden p-4"
-              >
-                <div>
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="text-xs font-mono px-2 py-0.5 rounded bg-zinc-800/80 text-zinc-400 border border-zinc-700/50">
-                      {bev.kategori?.nama || bev.nama_kategori || "Beverage"}
-                    </span>
-                    <div className="flex items-center space-x-1 text-xs text-amber-400 font-mono">
-                      <span>★</span>
-                      <span className="font-semibold">
-                        {(bev.rating_rata_rata || bev.avg_rating) > 0
-                          ? Number(bev.rating_rata_rata || bev.avg_rating).toFixed(1)
-                          : "5.0"}
-                      </span>
-                      {(bev.total_ulasan || 0) > 0 && (
-                        <span className="text-zinc-500 text-[10px]">
-                          ({bev.total_ulasan})
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {bev.image_url ? (
-                    <div className="relative w-full h-36 rounded-lg overflow-hidden my-3 bg-zinc-950 border border-zinc-800/80">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {filteredBeverages.map((bev) => {
+              const isAvailable = bev.is_available && (bev as any).stock !== 0;
+              return (
+                <div
+                  key={bev.id}
+                  className={`group rounded-2xl border p-3.5 flex flex-col justify-between transition relative overflow-hidden ${
+                    isAvailable
+                      ? "bg-zinc-900/50 border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900 shadow-sm"
+                      : "bg-zinc-950 border-zinc-900 opacity-60"
+                  }`}
+                >
+                  <div className="space-y-3">
+                    {/* Beverage Image */}
+                    <div className="w-full h-36 rounded-xl overflow-hidden bg-zinc-950 relative border border-zinc-800">
                       <img
                         src={getProductImageUrl(bev.image_url)}
                         alt={bev.nama}
                         className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = "/uploads/matcha.jpg";
-                        }}
+                        loading="lazy"
                       />
+                      {!isAvailable && (
+                        <div className="absolute inset-0 bg-black/75 flex items-center justify-center font-mono text-[11px] font-bold text-rose-400 uppercase tracking-wider">
+                          Habis (Sold Out)
+                        </div>
+                      )}
+                      {bev.kategori?.nama && (
+                        <span className="absolute top-2 left-2 text-[9px] font-mono px-2 py-0.5 rounded bg-zinc-900/90 text-zinc-300 border border-zinc-800 backdrop-blur-sm">
+                          {bev.kategori.nama}
+                        </span>
+                      )}
                     </div>
-                  ) : (
-                    <div className="w-full h-24 rounded-lg my-3 bg-zinc-950 border border-zinc-800/50 flex items-center justify-center text-2xl text-zinc-600">
-                      🍵
+
+                    {/* Details */}
+                    <div>
+                      <h3 className="text-sm font-bold text-white group-hover:text-amber-400 transition truncate">
+                        {bev.nama}
+                      </h3>
+                      {bev.deskripsi && (
+                        <p className="text-[11px] text-zinc-400 line-clamp-2 mt-1 leading-relaxed">
+                          {bev.deskripsi}
+                        </p>
+                      )}
                     </div>
-                  )}
-
-                  <h3 className="text-base font-semibold text-white group-hover:text-amber-400 transition">
-                    {bev.nama}
-                  </h3>
-                  <p className="text-xs text-zinc-400 mt-1 line-clamp-2 leading-relaxed">
-                    {bev.deskripsi || "Minuman segar racikan khusus barista."}
-                  </p>
-                </div>
-
-                <div className="mt-5 pt-3 border-t border-zinc-800/60 flex items-center justify-between">
-                  <div>
-                    <span className="text-[10px] text-zinc-500 block uppercase font-mono tracking-wider">
-                      Harga
-                    </span>
-                    <span className="text-base font-bold font-mono text-zinc-100">
-                      Rp {bev.harga.toLocaleString("id-ID")}
-                    </span>
                   </div>
 
-                  <button
-                    disabled={!bev.is_available}
-                    onClick={() => handleDirectAddToCart(bev)}
-                    className={`px-3.5 py-1.5 rounded-lg text-xs font-medium font-mono transition flex items-center space-x-1.5 ${
-                      bev.is_available
-                        ? "bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold shadow-sm"
-                        : "bg-zinc-800 text-zinc-500 cursor-not-allowed"
-                    }`}
-                  >
-                    <span>{bev.is_available ? "+ Pesan" : "Habis"}</span>
-                  </button>
+                  {/* Price Tag */}
+                  <div className="mt-4 pt-2.5 border-t border-zinc-800/80 flex items-center justify-between font-mono">
+                    <span className="text-sm font-bold text-amber-400">
+                      Rp {Number(bev.harga || 0).toLocaleString("id-ID")}
+                    </span>
+                    <span className="text-[10px] text-zinc-500">
+                      Pesan di Kasir
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </main>
 
-      {/* FLOATING CART DOCK (BOTTOM) */}
-      {cart.length > 0 && !isCartOpen && (
-        <div className="fixed bottom-5 inset-x-0 z-30 max-w-lg mx-auto px-4">
-          <button
-            onClick={() => setIsCartOpen(true)}
-            className="w-full bg-zinc-900/95 border border-amber-500/40 hover:border-amber-500 rounded-xl p-3.5 shadow-2xl backdrop-blur-md flex items-center justify-between text-left transition transform hover:-translate-y-0.5"
-          >
-            <div className="flex items-center space-x-3">
-              <span className="w-8 h-8 rounded-full bg-amber-500 text-zinc-950 font-bold font-mono text-sm flex items-center justify-center">
-                {totalCartQty}
-              </span>
-              <div>
-                <p className="text-xs text-zinc-400 font-mono">
-                  Pesanan Anda Siap
-                </p>
-                <p className="text-sm font-bold text-white font-mono">
-                  Rp {totalCartPrice.toLocaleString("id-ID")}
-                </p>
-              </div>
-            </div>
-            <span className="text-xs font-mono font-semibold text-amber-400 flex items-center space-x-1">
-              <span>Buka Keranjang</span>
-              <span>→</span>
-            </span>
-          </button>
-        </div>
-      )}
-
-      {/* CHECKOUT DRAWER / MODAL */}
-      {isCartOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex justify-end">
-          <div className="bg-zinc-900 border-l border-zinc-800 w-full max-w-md h-full flex flex-col justify-between p-5 overflow-y-auto">
-            <div className="space-y-5">
-              <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-                <div className="flex items-center space-x-2">
-                  <span className="text-lg">🛒</span>
-                  <h2 className="text-lg font-bold text-white">
-                    Keranjang Pesanan
-                  </h2>
-                </div>
-                <button
-                  onClick={() => setIsCartOpen(false)}
-                  className="text-zinc-400 hover:text-white text-sm font-mono"
-                >
-                  ✕ Tutup
-                </button>
-              </div>
-
-              {/* LIST ITEMS */}
-              <div className="space-y-3">
-                {cart.map((item, idx) => (
-                  <div
-                    key={idx}
-                    className="p-3 rounded-lg bg-zinc-800/40 border border-zinc-800 flex items-start justify-between gap-3"
-                  >
-                    <div>
-                      <p className="text-sm font-semibold text-white">
-                        {item.minuman.nama}
-                      </p>
-                      <p className="text-xs font-mono font-bold text-amber-400 mt-1">
-                        Rp {(item.minuman.harga * item.qty).toLocaleString("id-ID")}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center space-x-2 bg-zinc-800 rounded-md p-1 border border-zinc-700/80">
-                      <button
-                        onClick={() => updateItemQty(idx, -1)}
-                        className="w-6 h-6 flex items-center justify-center text-xs font-mono text-zinc-300 hover:text-white"
-                      >
-                        -
-                      </button>
-                      <span className="text-xs font-mono font-bold px-1 text-white">
-                        {item.qty}
-                      </span>
-                      <button
-                        onClick={() => updateItemQty(idx, 1)}
-                        className="w-6 h-6 flex items-center justify-center text-xs font-mono text-zinc-300 hover:text-white"
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* CUSTOMER NAME WITH PROFANITY GUARDRAIL */}
-              <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-mono font-semibold text-zinc-300 uppercase tracking-wider">
-                    Nama Pemesan <span className="text-rose-400">*</span>
-                  </label>
-                  <span className="text-[10px] font-mono text-zinc-500">
-                    Wajib Nama Sopan
-                  </span>
-                </div>
-                <input
-                  type="text"
-                  value={customerName}
-                  onChange={(e) => handleNameChange(e.target.value)}
-                  placeholder="Ketik nama Anda (cth: Adam, Kartika)..."
-                  maxLength={30}
-                  className={`w-full bg-zinc-900 border rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none transition font-medium ${
-                    nameError
-                      ? "border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500"
-                      : "border-zinc-700 focus:border-amber-500"
-                  }`}
-                />
-                {nameError ? (
-                  <p className="text-xs text-rose-400 font-mono flex items-center space-x-1">
-                    <span>⚠️</span>
-                    <span>{nameError}</span>
-                  </p>
-                ) : (
-                  <p className="text-[11px] text-zinc-500 font-mono">
-                    Nama ini akan dipanggil oleh kasir/barista saat pesanan selesai.
-                  </p>
-                )}
-              </div>
-
-              {/* PAYMENT INFO (DIGITAL ONLY) */}
-              <div className="p-3.5 rounded-lg bg-zinc-950/80 border border-zinc-800 flex items-center space-x-3">
-                <div className="text-xl">💳</div>
-                <div>
-                  <p className="text-xs font-semibold text-white">
-                    Metode Pembayaran: QRIS Digital
-                  </p>
-                  <p className="text-[11px] text-zinc-400">
-                    Toko ini menerapkan 100% cashless. Pembayaran diverifikasi otomatis.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* CHECKOUT BUTTON */}
-            <div className="border-t border-zinc-800 pt-4 space-y-3">
-              <div className="flex justify-between items-center text-sm font-mono">
-                <span className="text-zinc-400">Total Tagihan</span>
-                <span className="text-lg font-bold text-white">
-                  Rp {totalCartPrice.toLocaleString("id-ID")}
-                </span>
-              </div>
-
-              <button
-                disabled={isSubmitting || !customerName.trim() || !!nameError || cart.length === 0}
-                onClick={handleCheckout}
-                className={`w-full py-3 rounded-xl font-bold font-mono text-sm transition flex items-center justify-center space-x-2 ${
-                  isSubmitting || !customerName.trim() || !!nameError || cart.length === 0
-                    ? "bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700"
-                    : "bg-amber-500 hover:bg-amber-400 text-zinc-950 shadow-lg shadow-amber-500/20"
-                }`}
-              >
-                <span>{isSubmitting ? "Memproses Pesanan..." : "⚡ Pesan & Bayar Langsung (Auto-Paid)"}</span>
-                <span>→</span>
-              </button>
-            </div>
+      {/* FOOTER */}
+      <footer className="border-t border-zinc-800/80 bg-zinc-950 px-6 py-4 mt-8">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-mono text-zinc-500">
+          <div>☕ Artisan Beverage Bar • 100% Cashless POS & Barista KDS</div>
+          <div className="flex items-center space-x-4">
+            <Link href="/kasir" className="hover:text-amber-400 transition">
+              Station Kasir
+            </Link>
+            <Link href="/antrian" className="hover:text-amber-400 transition">
+              Layar TV Antrian
+            </Link>
+            <Link href="/login" className="hover:text-amber-400 transition">
+              Portal Staf
+            </Link>
           </div>
         </div>
-      )}
-
-      {/* TRACK ORDER MODAL */}
-      {isTrackingModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl max-w-sm w-full p-5 space-y-4 shadow-2xl">
-            <div className="flex justify-between items-center">
-              <h3 className="text-base font-bold text-white">
-                Cek Status Pesanan
-              </h3>
-              <button
-                onClick={() => setIsTrackingModalOpen(false)}
-                className="text-zinc-400 hover:text-white font-mono text-sm"
-              >
-                ✕
-              </button>
-            </div>
-            <form onSubmit={handleTrackSubmit} className="space-y-3">
-              <div>
-                <label className="text-xs font-mono text-zinc-400 block mb-1">
-                  Masukkan ID Pesanan atau Kode Antrian
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={trackOrderCodeInput}
-                  onChange={(e) => setTrackOrderCodeInput(e.target.value)}
-                  placeholder="Contoh: c4b1e5a7... atau #K-01"
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500 font-mono"
-                />
-              </div>
-              <button
-                type="submit"
-                className="w-full py-2 rounded-lg bg-zinc-100 hover:bg-white text-zinc-950 font-semibold font-mono text-xs transition"
-              >
-                Lacak Status
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
+      </footer>
     </div>
   );
 }
