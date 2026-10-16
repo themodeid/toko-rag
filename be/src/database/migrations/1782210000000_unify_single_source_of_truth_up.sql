@@ -16,6 +16,9 @@ CREATE TABLE IF NOT EXISTS tb_biaya_operasional (
     keterangan TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+ALTER TABLE tb_biaya_operasional ADD COLUMN IF NOT EXISTS nama_biaya VARCHAR(150);
+UPDATE tb_biaya_operasional SET nama_biaya = COALESCE(keterangan, 'Biaya Operasional') WHERE nama_biaya IS NULL;
+
 
 -- 3. Update batasan role tb_staff agar mendukung owner dan admin
 ALTER TABLE tb_staff DROP CONSTRAINT IF EXISTS tb_staff_role_check;
