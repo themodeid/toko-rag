@@ -170,6 +170,7 @@ export default function KioskMenuPage() {
       const payload: CheckoutPayload = {
         nama_pelanggan: customerName.trim(),
         idempotency_key: idempotencyKey,
+        auto_pay: true,
         items: cart.map((c) => ({
           minuman_id: c.minuman.id,
           qty: c.qty,
@@ -592,7 +593,7 @@ export default function KioskMenuPage() {
                     : "bg-amber-500 hover:bg-amber-400 text-zinc-950 shadow-lg shadow-amber-500/20"
                 }`}
               >
-                <span>{isSubmitting ? "Memproses..." : "Lanjut Bayar QRIS"}</span>
+                <span>{isSubmitting ? "Memproses Pesanan..." : "⚡ Pesan & Bayar Langsung (Auto-Paid)"}</span>
                 <span>→</span>
               </button>
             </div>

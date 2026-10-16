@@ -83,6 +83,7 @@ export interface Review {
 export interface CheckoutPayload {
   nama_pelanggan: string;
   idempotency_key?: string;
+  auto_pay?: boolean;
   items: {
     minuman_id: string;
     qty: number;

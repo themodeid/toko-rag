@@ -14,6 +14,7 @@ export interface CreateOrderInput {
   nama_pelanggan: string;
   items: CreateOrderItemInput[];
   idempotency_key?: string;
+  auto_pay?: boolean;
 }
 
 export class OrderService {
@@ -134,23 +135,32 @@ export class OrderService {
       const xenditInvoiceId = `inv_tokorag_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
       const xenditQrString = `00020101021226670016ID.CO.XENDIT.WWW01189360091100202209165204581253033605802ID5914ARTISAN_COFFEE6007JAKARTA62070703A016304${noAntrian.replace(/[^a-zA-Z0-9]/g, "")}`;
 
+      // Mode Auto-Pay (Uji Coba Langsung Lunas) atau Normal QRIS PENDING
+      const isAutoPay = input.auto_pay !== false;
+      const initialStatusBayar = isAutoPay ? "PAID" : "PENDING";
+      const initialStatusAntrian = isAutoPay ? "MENUNGGU_RACIK" : "MENUNGGU_BAYAR";
+      const waktuBayar = isAutoPay ? new Date() : null;
+
       // 5. Simpan Header Pesanan (tb_orders)
       const orderInsertSql = `
         INSERT INTO tb_orders (
           no_antrian, nama_pelanggan, total_bayar, metode_pembayaran,
           status_pembayaran, status_antrian, estimasi_menit, idempotency_key,
-          xendit_invoice_id, xendit_qr_string, xendit_payment_method
-        ) VALUES ($1, $2, $3, 'QRIS', 'PENDING', 'MENUNGGU_BAYAR', $4, $5, $6, $7, 'QRIS')
-        RETURNING id, no_antrian, nama_pelanggan, total_bayar, metode_pembayaran, status_pembayaran, status_antrian, estimasi_menit, created_at, xendit_invoice_id, xendit_qr_string;
+          xendit_invoice_id, xendit_qr_string, xendit_payment_method, waktu_bayar
+        ) VALUES ($1, $2, $3, 'QRIS', $4, $5, $6, $7, $8, $9, 'QRIS', $10)
+        RETURNING id, no_antrian, nama_pelanggan, total_bayar, metode_pembayaran, status_pembayaran, status_antrian, estimasi_menit, created_at, xendit_invoice_id, xendit_qr_string, waktu_bayar;
       `;
       const orderRes = await client.query(orderInsertSql, [
         noAntrian,
         nama_pelanggan.trim(),
         totalBayar,
+        initialStatusBayar,
+        initialStatusAntrian,
         estimasiMenit,
         idempotency_key || null,
         xenditInvoiceId,
         xenditQrString,
+        waktuBayar,
       ]);
       const newOrder = orderRes.rows[0];
 
@@ -172,6 +182,19 @@ export class OrderService {
             vItem.catatan || null,
           ]
         );
+      }
+
+      // Jika Auto-Paid, langsung potong stok minuman dan naikkan total_terjual secara atomik
+      if (isAutoPay) {
+        for (const vItem of verifiedItems) {
+          await client.query(
+            `UPDATE tb_minuman 
+             SET stock = GREATEST(0, stock - $1),
+                 total_terjual = total_terjual + $1
+             WHERE id = $2;`,
+            [vItem.qty, vItem.minuman_id]
+          );
+        }
       }
 
       await client.query("COMMIT");

@@ -8,13 +8,14 @@ export const validateBody = (schema: ZodSchema) => {
       req.body = schema.parse(req.body);
       next();
     } catch (error: any) {
-      if (error.errors) {
-        const errorMessages = error.errors.map(
+      const issues = error.issues || error.errors;
+      if (issues && Array.isArray(issues) && issues.length > 0) {
+        const errorMessages = issues.map(
           (err: any) => `${err.path.join(".")}: ${err.message}`
         );
         
         // Create detailed validation error information
-        const validationDetails = error.errors.map((err: any) => ({
+        const validationDetails = issues.map((err: any) => ({
           path: err.path.join("."),
           message: err.message,
           code: err.code,
@@ -24,13 +25,13 @@ export const validateBody = (schema: ZodSchema) => {
         
         return next(
           new AppError(
-            `Validation error: ${errorMessages.join(", ")}`,
+            `Validasi gagal: ${errorMessages.join(", ")}`,
             400,
             { validationErrors: validationDetails }
           )
         );
       }
-      next(new AppError("Validation error", 400, { originalError: error.message }));
+      next(new AppError(error.message || "Validasi data gagal", 400, { originalError: error.message }));
     }
   };
 };

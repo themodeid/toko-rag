@@ -16,7 +16,12 @@ export const checkoutOrderSchema = z.object({
   items: z
     .array(
       z.object({
-        minuman_id: z.string().uuid("ID minuman harus berformat UUID"),
+        minuman_id: z
+          .string()
+          .regex(
+            /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/,
+            "ID minuman harus berformat UUID"
+          ),
         qty: z.number().int().min(1, "Jumlah minimal 1"),
         suhu: z.enum(["ICE", "HOT"]).default("ICE"),
         sugar_level: z.enum(["LESS", "NORMAL", "EXTRA"]).default("NORMAL"),
@@ -25,6 +30,7 @@ export const checkoutOrderSchema = z.object({
     )
     .min(1, "Pesanan harus memiliki minimal 1 item minuman"),
   idempotency_key: z.string().max(100, "Idempotency key maksimal 100 karakter").optional(),
+  auto_pay: z.boolean().default(true).optional(),
 });
 
 export const updateOrderStatusSchema = z.object({
