@@ -33,7 +33,7 @@ export default function KasirUnifiedPortalPage() {
   // Orders & KDS State
   const [orders, setOrders] = useState<Order[]>([]);
   const [summary, setSummary] = useState<KasirSummary | null>(null);
-  const [selectedFilter, setSelectedFilter] = useState<string>("ACTIVE");
+  const [selectedFilter, setSelectedFilter] = useState<string>("ALL");
   const [loadingOrders, setLoadingOrders] = useState<boolean>(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
@@ -316,40 +316,37 @@ export default function KasirUnifiedPortalPage() {
     ).length;
   }, [orders]);
 
+  const kitchenOrdersCount = useMemo(() => {
+    return orders.filter(
+      (o) =>
+        o.status_antrian === "MENUNGGU_RACIK" ||
+        o.status_antrian === "SEDANG_DIRACIK"
+    ).length;
+  }, [orders]);
+
+  const readyOrdersCount = useMemo(() => {
+    return orders.filter((o) => o.status_antrian === "SIAP_DIAMBIL").length;
+  }, [orders]);
+
   // Filtered orders for KDS
-  const filteredOrders = orders.filter((o) => {
-    if (selectedFilter === "ACTIVE") {
+  const filteredOrders = useMemo(() => {
+    return orders.filter((o) => {
+      if (selectedFilter === "DAPUR") {
+        return (
+          o.status_antrian === "MENUNGGU_RACIK" ||
+          o.status_antrian === "SEDANG_DIRACIK"
+        );
+      }
+      if (selectedFilter === "SIAP_DIAMBIL") {
+        return o.status_antrian === "SIAP_DIAMBIL";
+      }
       return (
         o.status_antrian === "MENUNGGU_RACIK" ||
         o.status_antrian === "SEDANG_DIRACIK" ||
         o.status_antrian === "SIAP_DIAMBIL"
       );
-    }
-    if (selectedFilter === "MENUNGGU_RACIK")
-      return o.status_antrian === "MENUNGGU_RACIK";
-    if (selectedFilter === "SEDANG_DIRACIK")
-      return o.status_antrian === "SEDANG_DIRACIK";
-    if (selectedFilter === "SIAP_DIAMBIL")
-      return o.status_antrian === "SIAP_DIAMBIL";
-    return true;
-  });
-
-  // Single Active Order: Deteksi pesanan yang saat ini sedang diracik
-  const activeBrewingOrder = useMemo(
-    () => orders.find((o) => o.status_antrian === "SEDANG_DIRACIK"),
-    [orders]
-  );
-
-  // FIFO: Cari pesanan paling awal masuk yang menunggu racik
-  const earliestWaitingOrderId = useMemo(() => {
-    const waiting = orders
-      .filter((o) => o.status_antrian === "MENUNGGU_RACIK")
-      .sort(
-        (a, b) =>
-          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-      );
-    return waiting[0]?.id;
-  }, [orders]);
+    });
+  }, [orders, selectedFilter]);
 
   return (
     <div className="min-h-screen bg-[#09090b] text-[#f4f4f5] font-sans flex flex-col selection:bg-amber-500/20">
@@ -818,27 +815,22 @@ export default function KasirUnifiedPortalPage() {
       ======================================================== */}
       {activeMainTab === "KDS" && (
         <div className="flex flex-col flex-1">
-          {/* SOP ALUR RACIK & SERAH BARISTA */}
+          {/* SOP ALUR RACIK & SERAH BARISTA (2 LANGKAH KILAT) */}
           <section className="max-w-7xl mx-auto w-full px-4 sm:px-6 pt-4 pb-1">
             <div className="bg-zinc-900/90 border border-zinc-800 rounded-xl p-3 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs font-mono">
               <div className="flex items-center gap-2 text-zinc-400">
                 <span className="text-base">📋</span>
-                <span className="font-bold text-white uppercase tracking-wider text-[11px]">SOP Alur Barista:</span>
+                <span className="font-bold text-white uppercase tracking-wider text-[11px]">SOP Alur Meja Barista:</span>
               </div>
               <div className="flex flex-wrap items-center gap-2 text-[11px]">
-                <div className="flex items-center gap-1.5 bg-zinc-950 px-2.5 py-1 rounded-lg border border-zinc-800">
-                  <span className="w-4 h-4 rounded-full bg-zinc-800 text-zinc-300 font-bold flex items-center justify-center text-[10px]">1</span>
-                  <span className="text-zinc-300">Ambil Antrean (FIFO)</span>
-                </div>
-                <span className="text-zinc-600">→</span>
                 <div className="flex items-center gap-1.5 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/30 text-amber-300">
-                  <span className="w-4 h-4 rounded-full bg-amber-500 text-zinc-950 font-bold flex items-center justify-center text-[10px]">2</span>
-                  <span>Fokus 1 Racikan Aktif</span>
+                  <span className="w-4 h-4 rounded-full bg-amber-500 text-zinc-950 font-bold flex items-center justify-center text-[10px]">1</span>
+                  <span>Langsung Racik Pesanan Masuk</span>
                 </div>
                 <span className="text-zinc-600">→</span>
                 <div className="flex items-center gap-1.5 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/30 text-emerald-300">
-                  <span className="w-4 h-4 rounded-full bg-emerald-500 text-zinc-950 font-bold flex items-center justify-center text-[10px]">3</span>
-                  <span>Panggil Nama & Serahkan</span>
+                  <span className="w-4 h-4 rounded-full bg-emerald-500 text-zinc-950 font-bold flex items-center justify-center text-[10px]">2</span>
+                  <span>Minuman Jadi ➔ Panggil Nama ke Bar & Serahkan</span>
                 </div>
               </div>
             </div>
@@ -868,7 +860,7 @@ export default function KasirUnifiedPortalPage() {
                   Antrean Racik Menunggu
                 </span>
                 <span className="text-lg font-bold text-amber-500 animate-pulse">
-                  {summary.active_queue_count} Tiket
+                  {kitchenOrdersCount} Tiket
                 </span>
               </div>
               <div className="p-3.5 rounded-xl bg-zinc-900 border border-zinc-800">
@@ -882,59 +874,20 @@ export default function KasirUnifiedPortalPage() {
             </section>
           )}
 
-          {/* ACTIVE BREWING FOCUS BANNER (SINGLE ACTIVE ORDER INVARIANT) */}
-          {activeBrewingOrder && (
-            <section className="max-w-7xl mx-auto w-full px-4 sm:px-6 pt-1 pb-3">
-              <div className="p-4 rounded-xl bg-amber-500/15 border-2 border-amber-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg shadow-amber-500/10">
-                <div className="flex items-center space-x-3">
-                  <span className="text-2xl animate-spin">☕</span>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-amber-500 text-zinc-950 font-black">
-                        Fokus 1 Racikan Aktif
-                      </span>
-                      <span className="text-xs font-mono text-amber-300">
-                        Wajib selesaikan keranjang ini sebelum beralih ke pesanan berikutnya
-                      </span>
-                    </div>
-                    <p className="text-sm font-bold text-white mt-0.5">
-                      Pesanan #{activeBrewingOrder.order_code} • {activeBrewingOrder.nama_pelanggan} ({activeBrewingOrder.items?.length || 0} Minuman)
-                    </p>
-                  </div>
-                </div>
-                <button
-                  disabled={updatingId === activeBrewingOrder.id}
-                  onClick={() =>
-                    handleUpdateStatus(activeBrewingOrder.id, "SIAP_DIAMBIL")
-                  }
-                  className="px-5 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold font-mono text-xs transition shadow-md flex items-center justify-center space-x-1.5 cursor-pointer"
-                >
-                  <span>
-                    {updatingId === activeBrewingOrder.id
-                      ? "Memproses..."
-                      : "🔔 Selesai Racik (Panggil ke Bar)"}
-                  </span>
-                  <span>→</span>
-                </button>
-              </div>
-            </section>
-          )}
-
-          {/* KDS FILTER TABS */}
+          {/* KDS FILTER TABS (LEAN & SIMPLE) */}
           <section className="max-w-7xl mx-auto w-full px-4 sm:px-6 pt-2 pb-4">
             <div className="flex items-center space-x-2 font-mono text-xs overflow-x-auto pb-1 scrollbar-none">
               {[
-                { id: "ACTIVE", label: "Antrean Aktif" },
-                { id: "MENUNGGU_RACIK", label: "Menunggu Racik" },
-                { id: "SEDANG_DIRACIK", label: "Sedang Diracik" },
-                { id: "SIAP_DIAMBIL", label: "Siap Diambil di Bar" },
+                { id: "ALL", label: `Semua Antrean (${activeOrdersCount})` },
+                { id: "DAPUR", label: `🔥 Antrean Dapur (${kitchenOrdersCount})` },
+                { id: "SIAP_DIAMBIL", label: `🔔 Siap Di Meja Bar (${readyOrdersCount})` },
               ].map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setSelectedFilter(tab.id)}
-                  className={`px-3 py-1.5 rounded-lg transition whitespace-nowrap ${
+                  className={`px-4 py-2 rounded-xl transition whitespace-nowrap font-mono text-xs font-bold ${
                     selectedFilter === tab.id
-                      ? "bg-zinc-100 text-zinc-950 font-bold"
+                      ? "bg-zinc-100 text-zinc-950 shadow-sm"
                       : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white"
                   }`}
                 >
@@ -967,48 +920,42 @@ export default function KasirUnifiedPortalPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredOrders.map((order) => {
                   const isUpdating = updatingId === order.id;
-                  const isBeingBrewed = order.status_antrian === "SEDANG_DIRACIK";
-                  const isEarliestWaiting =
-                    order.id === earliestWaitingOrderId &&
-                    order.status_antrian === "MENUNGGU_RACIK";
-                  const canStartBrewing =
-                    !activeBrewingOrder && isEarliestWaiting;
+                  const isReady = order.status_antrian === "SIAP_DIAMBIL";
 
                   return (
                     <div
                       key={order.id}
                       className={`rounded-2xl border p-5 flex flex-col justify-between space-y-4 transition ${
-                        isBeingBrewed
-                          ? "bg-amber-950/20 border-amber-500 ring-2 ring-amber-500/40 shadow-xl shadow-amber-500/5"
-                          : order.status_antrian === "SIAP_DIAMBIL"
-                          ? "bg-emerald-950/20 border-emerald-500/50"
-                          : "bg-zinc-900 border-zinc-800"
+                        isReady
+                          ? "bg-emerald-950/20 border-emerald-500/60 ring-1 ring-emerald-500/30 shadow-xl shadow-emerald-500/5"
+                          : "bg-zinc-900 border-zinc-800 hover:border-amber-500/40"
                       }`}
                     >
                       {/* Ticket Header */}
-                      <div className="flex items-start justify-between border-b border-zinc-800/80 pb-3">
+                      <div className="flex items-start justify-between border-b border-zinc-800 pb-3">
                         <div>
-                          <span className="text-2xl font-black font-mono text-amber-400 tracking-tight">
-                            #{order.order_code}
+                          <span className="text-3xl font-black font-mono text-amber-400 tracking-tight block">
+                            {order.order_code?.startsWith("#") ? order.order_code : `#${order.order_code}`}
                           </span>
-                          <h3 className="text-sm font-bold text-white mt-0.5 truncate max-w-[180px]">
-                            {order.nama_pelanggan}
-                          </h3>
+                          <div className="flex items-baseline gap-1.5 mt-1">
+                            <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">Pemesan:</span>
+                            <h3 className="text-xl sm:text-2xl font-black text-amber-300 uppercase tracking-wide truncate max-w-[200px]">
+                              {order.nama_pelanggan}
+                            </h3>
+                          </div>
                         </div>
 
-                        <div className="text-right font-mono">
+                        <div className="text-right font-mono flex flex-col items-end">
                           <span
-                            className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
-                              order.status_antrian === "SEDANG_DIRACIK"
-                                ? "bg-amber-500 text-zinc-950 animate-pulse"
-                                : order.status_antrian === "SIAP_DIAMBIL"
-                                ? "bg-emerald-500 text-zinc-950"
-                                : "bg-zinc-800 text-zinc-400"
+                            className={`inline-block px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border ${
+                              isReady
+                                ? "bg-emerald-500 text-zinc-950 border-emerald-400 animate-pulse shadow-xs"
+                                : "bg-amber-500/20 text-amber-300 border-amber-500/40"
                             }`}
                           >
-                            {order.status_antrian.replace("_", " ")}
+                            {isReady ? "🔔 SIAP DI MEJA BAR" : "🔥 SEDANG DIRACIK"}
                           </span>
-                          <span className="text-[10px] text-zinc-500 block mt-1">
+                          <span className="text-[11px] text-zinc-400 font-bold block mt-1.5">
                             {new Date(order.created_at).toLocaleTimeString("id-ID", {
                               hour: "2-digit",
                               minute: "2-digit",
@@ -1018,113 +965,74 @@ export default function KasirUnifiedPortalPage() {
                         </div>
                       </div>
 
-                      {/* Items List */}
-                      <div className="space-y-2 flex-1">
+                      {/* Items List (Glancable from 1m) */}
+                      <div className="space-y-2.5 flex-1 py-1">
                         {order.items?.map((item) => (
                           <div
                             key={item.id}
-                            className="flex items-start justify-between text-xs font-mono"
+                            className="p-3 rounded-xl bg-zinc-950/80 border border-zinc-800/80 flex flex-col gap-1.5"
                           >
-                            <div className="space-y-0.5">
-                              <span className="font-bold text-white">
-                                {item.qty}x {item.nama_minuman}
+                            <div className="flex items-center gap-2.5">
+                              <span className="px-2.5 py-1 rounded-lg bg-amber-500 text-zinc-950 font-black font-mono text-sm leading-none shrink-0 shadow-xs">
+                                {item.qty}x
                               </span>
-                              <div className="flex items-center space-x-1.5 text-[10px] text-zinc-400">
-                                <span>{item.suhu === "ICE" ? "❄️ Ice" : "🔥 Hot"}</span>
-                                <span>•</span>
-                                <span>Gula: {item.sugar_level}</span>
-                              </div>
-                              {item.catatan && (
-                                <p className="text-[10px] text-amber-400/80 italic">
-                                  Catatan: {item.catatan}
-                                </p>
-                              )}
+                              <span className="text-sm sm:text-base font-bold text-white tracking-wide">
+                                {item.nama_minuman}
+                              </span>
                             </div>
+
+                            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                              {item.suhu === "ICE" ? (
+                                <span className="px-2 py-0.5 rounded-md bg-sky-500/20 text-sky-300 border border-sky-500/40 text-[10px] font-bold font-mono">
+                                  ❄️ ICE / DINGIN
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded-md bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] font-bold font-mono">
+                                  🔥 HOT / PANAS
+                                </span>
+                              )}
+
+                              <span className="px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-300 border border-zinc-700 text-[10px] font-mono">
+                                🍬 Gula: {item.sugar_level}
+                              </span>
+                            </div>
+
+                            {item.catatan && (
+                              <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-mono">
+                                ⚠️ <span className="font-semibold">Catatan:</span> {item.catatan}
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
 
-                      {/* Action & Verification Box */}
-                      <div className="border-t border-zinc-800/80 pt-3 space-y-2">
-                        {/* Status: MENUNGGU RACIK */}
-                        {order.status_antrian === "MENUNGGU_RACIK" && (
-                          <div>
-                            {activeBrewingOrder ? (
-                              <button
-                                disabled
-                                className="w-full py-2.5 rounded-lg bg-zinc-800/60 border border-zinc-700/40 text-zinc-500 font-mono text-xs cursor-not-allowed flex items-center justify-center gap-1.5"
-                                title="Selesaikan racikan yang sedang aktif dulu"
-                              >
-                                <span>🔒 Selesaikan Racikan #{activeBrewingOrder.order_code} Dulu</span>
-                              </button>
-                            ) : !isEarliestWaiting ? (
-                              <button
-                                disabled
-                                className="w-full py-2.5 rounded-lg bg-zinc-800/40 border border-zinc-800 text-zinc-500 font-mono text-xs cursor-not-allowed flex items-center justify-center gap-1.5"
-                                title="Harus meracik sesuai urutan antrean masuk (FIFO)"
-                              >
-                                <span>⏳ Antrean: Tunggu Giliran</span>
-                              </button>
-                            ) : (
-                              <button
-                                disabled={isUpdating}
-                                onClick={() =>
-                                  handleUpdateStatus(order.id, "SEDANG_DIRACIK")
-                                }
-                                className="w-full py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold font-mono text-xs transition shadow-md shadow-amber-500/20 flex items-center justify-center gap-1.5 cursor-pointer"
-                              >
-                                {isUpdating ? "Memproses..." : "▶ Mulai Racik Minuman"}
-                              </button>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Status: SEDANG RACIK */}
-                        {order.status_antrian === "SEDANG_DIRACIK" && (
+                      {/* Action Button: 2-Tahap Kilat */}
+                      <div className="border-t border-zinc-800/80 pt-3">
+                        {isReady ? (
                           <button
                             disabled={isUpdating}
-                            onClick={() =>
-                              handleUpdateStatus(order.id, "SIAP_DIAMBIL")
-                            }
-                            className="w-full py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold font-mono text-xs transition shadow-sm cursor-pointer"
+                            onClick={() => handleUpdateStatus(order.id, "SELESAI")}
+                            className="w-full py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-black font-mono text-xs sm:text-sm transition shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
                           >
-                            {isUpdating ? "Memproses..." : "🔔 Panggil: Siap Diambil di Bar"}
-                          </button>
-                        )}
-
-                        {/* Status: SIAP DIAMBIL (Verifikasi via Nama Pemesan) */}
-                        {order.status_antrian === "SIAP_DIAMBIL" && (
-                          <div className="space-y-2">
-                            <div className="p-3 rounded-xl bg-amber-500/15 border border-amber-500/40 text-left space-y-1">
-                              <span className="text-[10px] uppercase font-mono font-bold text-amber-400 block tracking-wider">
-                                📢 Panggil Pemesan ke Bar:
-                              </span>
-                              <p className="text-lg font-black font-mono text-white tracking-wide truncate">
-                                {order.nama_pelanggan}
-                              </p>
-                              <span className="text-[10px] text-zinc-400 font-sans block">
-                                Konfirmasi nama pemesan saat serah terima.
-                              </span>
-                            </div>
-
-                            <button
-                              disabled={isUpdating}
-                              onClick={() =>
-                                handleUpdateStatus(order.id, "SELESAI")
-                              }
-                              className="w-full py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold font-mono text-xs transition shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
-                            >
+                            <span>
                               {isUpdating
                                 ? "Memproses..."
-                                : "✓ Nama Pemesan Cocok (Selesai Serah)"}
-                            </button>
-                          </div>
-                        )}
-
-                        {order.status_antrian === "SELESAI" && (
-                          <p className="text-center text-xs font-mono text-zinc-500 italic">
-                            Pesanan selesai disajikan
-                          </p>
+                                : `✓ Serahkan ke ${order.nama_pelanggan} (Selesai)`}
+                            </span>
+                          </button>
+                        ) : (
+                          <button
+                            disabled={isUpdating}
+                            onClick={() => handleUpdateStatus(order.id, "SIAP_DIAMBIL")}
+                            className="w-full py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-black font-mono text-xs sm:text-sm transition shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
+                          >
+                            <span>
+                              {isUpdating
+                                ? "Memproses..."
+                                : "🔔 Minuman Jadi (Panggil ke Meja Bar)"}
+                            </span>
+                            <span>→</span>
+                          </button>
                         )}
                       </div>
                     </div>
@@ -1232,14 +1140,14 @@ export default function KasirUnifiedPortalPage() {
                     <div className="flex items-start justify-between border-b border-zinc-800/80 pb-3">
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="text-xl font-black font-mono text-amber-400">
-                            #{order.order_code}
+                          <span className="text-2xl font-black font-mono text-amber-400">
+                            {order.order_code?.startsWith("#") ? order.order_code : `#${order.order_code}`}
                           </span>
                           <span className="px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-mono text-[10px] font-bold">
                             ✓ DISERAHKAN
                           </span>
                         </div>
-                        <h3 className="text-sm font-bold text-white mt-1">
+                        <h3 className="text-base font-bold text-white mt-1 uppercase">
                           {order.nama_pelanggan}
                         </h3>
                       </div>
@@ -1271,12 +1179,17 @@ export default function KasirUnifiedPortalPage() {
                       {order.items?.map((item) => (
                         <div
                           key={item.id}
-                          className="flex items-start justify-between text-xs font-mono"
+                          className="p-2.5 rounded-xl bg-zinc-950/70 border border-zinc-800/80 flex items-center justify-between text-xs font-mono"
                         >
-                          <div className="space-y-0.5">
-                            <span className="font-semibold text-zinc-200">
-                              {item.qty}x {item.nama_minuman}
-                            </span>
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="px-2 py-0.5 rounded-md bg-amber-500 text-zinc-950 font-black text-xs">
+                                {item.qty}x
+                              </span>
+                              <span className="font-bold text-white">
+                                {item.nama_minuman}
+                              </span>
+                            </div>
                             <div className="flex items-center space-x-1.5 text-[10px] text-zinc-400">
                               <span>{item.suhu === "ICE" ? "❄️ Ice" : "🔥 Hot"}</span>
                               <span>•</span>
@@ -1288,7 +1201,7 @@ export default function KasirUnifiedPortalPage() {
                               </p>
                             )}
                           </div>
-                          <span className="text-zinc-400">
+                          <span className="text-zinc-300 font-bold">
                             Rp {(item.subtotal || 0).toLocaleString("id-ID")}
                           </span>
                         </div>
