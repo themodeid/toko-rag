@@ -13,6 +13,7 @@ export async function login(data: LoginPayload): Promise<AuthResponse> {
   const role = res.data.user.role;
 
   localStorage.setItem("token", token);
+  localStorage.setItem("kasir_token", token);
   localStorage.setItem("role", role);
   return { token, role };
 }
@@ -23,7 +24,6 @@ export async function register(data: RegisterPayload): Promise<AuthResponse> {
 }
 
 export async function logout() {
-
   const refreshToken = localStorage.getItem("refreshToken");
 
   if (refreshToken) {
@@ -31,5 +31,7 @@ export async function logout() {
   }
 
   localStorage.removeItem("token");
+  localStorage.removeItem("kasir_token");
+  localStorage.removeItem("role");
   localStorage.removeItem("refreshToken");
 }

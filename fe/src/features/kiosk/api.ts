@@ -91,6 +91,7 @@ export async function kasirLogin(payload: {
   if (res.data.data?.token) {
     localStorage.setItem("kasir_token", res.data.data.token);
     localStorage.setItem("token", res.data.data.token);
+    localStorage.setItem("role", res.data.data.staff?.role || "kasir");
   }
   return res.data.data;
 }

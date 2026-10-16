@@ -31,8 +31,14 @@ export default function KasirKdsDashboardPage() {
   const [beveragesList, setBeveragesList] = useState<Minuman[]>([]);
   const [togglingStockId, setTogglingStockId] = useState<string | null>(null);
 
+  const [currentUserRole, setCurrentUserRole] = useState<string>("");
+
   const checkAuth = () => {
-    const token = typeof window !== "undefined" ? localStorage.getItem("kasir_token") : null;
+    if (typeof window === "undefined") return false;
+    const token = localStorage.getItem("token") || localStorage.getItem("kasir_token");
+    const role = (localStorage.getItem("role") || "").toLowerCase();
+    setCurrentUserRole(role);
+
     if (!token) {
       router.push("/kasir/login");
       return false;
@@ -109,6 +115,7 @@ export default function KasirKdsDashboardPage() {
   const handleLogout = () => {
     localStorage.removeItem("kasir_token");
     localStorage.removeItem("token");
+    localStorage.removeItem("role");
     router.push("/kasir/login");
   };
 
@@ -150,20 +157,42 @@ export default function KasirKdsDashboardPage() {
             </div>
           </div>
 
-          <div className="flex items-center space-x-3 font-mono text-xs">
+          <div className="flex items-center space-x-2 sm:space-x-3 font-mono text-xs">
+            {/* Quick Switch to Kiosk */}
+            <Link
+              href="/"
+              className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white hover:border-zinc-700 transition flex items-center gap-1.5"
+              title="Buka Menu Kiosk Pembeli"
+            >
+              <span>☕</span>
+              <span className="hidden sm:inline">Kiosk Pembeli</span>
+            </Link>
+
+            {/* Quick Switch to Owner if user is Owner/Admin */}
+            {(currentUserRole === "owner" || currentUserRole === "admin") && (
+              <Link
+                href="/admin"
+                className="px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 transition flex items-center gap-1.5"
+                title="Buka Hub Owner HQ"
+              >
+                <span>👑</span>
+                <span>Hub Owner</span>
+              </Link>
+            )}
+
             <button
               onClick={handleOpenStockModal}
               className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white hover:border-zinc-700 transition"
             >
-              📦 Kelola Stok Menu
+              📦 Kelola Stok
             </button>
 
             <Link
               href="/antrian"
               target="_blank"
-              className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white transition"
+              className="hidden sm:inline-flex px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white transition"
             >
-              📺 Buka TV Antrian
+              📺 TV Antrian
             </Link>
 
             <button

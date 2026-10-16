@@ -8,7 +8,7 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("token") || localStorage.getItem("kasir_token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -26,6 +26,8 @@ api.interceptors.response.use(
 
       if (!isAuthPage) {
         localStorage.removeItem("token");
+        localStorage.removeItem("kasir_token");
+        localStorage.removeItem("role");
         window.location.href = "/login";
       }
     }

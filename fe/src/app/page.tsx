@@ -36,7 +36,19 @@ export default function KioskMenuPage() {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [trackOrderCodeInput, setTrackOrderCodeInput] = useState<string>("");
   const [isTrackingModalOpen, setIsTrackingModalOpen] = useState<boolean>(false);
+  const [loggedRole, setLoggedRole] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("token") || localStorage.getItem("kasir_token");
+      const role = localStorage.getItem("role");
+      if (token && role) {
+        setLoggedRole(role.toLowerCase());
+      } else {
+        setLoggedRole(null);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     async function loadData() {
@@ -222,13 +234,44 @@ export default function KioskMenuPage() {
               🔍 Cek Pesanan
             </button>
 
-            <Link
-              href="/kasir/login"
-              className="text-xs font-mono px-2.5 py-1.5 rounded-md text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/60 transition"
-              title="Portal Khusus Kasir"
-            >
-              Staff
-            </Link>
+            {loggedRole === "owner" || loggedRole === "admin" ? (
+              <div className="flex items-center space-x-1.5">
+                <Link
+                  href="/admin"
+                  className="text-xs font-mono px-2.5 py-1.5 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 transition flex items-center gap-1"
+                  title="Buka Hub Owner HQ"
+                >
+                  <span>👑</span>
+                  <span className="hidden sm:inline">Owner Hub</span>
+                </Link>
+                <Link
+                  href="/kasir"
+                  className="text-xs font-mono px-2.5 py-1.5 rounded-md bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white transition flex items-center gap-1"
+                  title="Buka KDS Barista"
+                >
+                  <span>🧑‍🍳</span>
+                  <span className="hidden sm:inline">KDS</span>
+                </Link>
+              </div>
+            ) : loggedRole === "kasir" || loggedRole === "karyawan" ? (
+              <Link
+                href="/kasir"
+                className="text-xs font-mono px-2.5 py-1.5 rounded-md bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20 transition flex items-center gap-1"
+                title="Buka KDS Barista"
+              >
+                <span>🧑‍🍳</span>
+                <span>KDS Barista</span>
+              </Link>
+            ) : (
+              <Link
+                href="/login"
+                className="text-xs font-mono px-2.5 py-1.5 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-900 border border-transparent hover:border-zinc-800 transition flex items-center gap-1"
+                title="Login Portal Staff (Kasir / Owner)"
+              >
+                <span>🔐</span>
+                <span>Staff</span>
+              </Link>
+            )}
           </div>
         </div>
       </header>
