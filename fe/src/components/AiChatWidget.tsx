@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 import FeatherIcon from "feather-icons-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -10,6 +11,7 @@ import { Produk } from "@/features/produk/types";
 import { getProductImageUrl } from "@/lib/imageHelper";
 
 export default function AiChatWidget() {
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -275,6 +277,11 @@ export default function AiChatWidget() {
       </div>
     );
   };
+
+  // Do not render on admin or cashier operational screens to prevent UI clutter and overlap
+  if (pathname?.startsWith("/admin") || pathname?.startsWith("/kasir")) {
+    return null;
+  }
 
   return (
     <div className="fixed bottom-36 md:bottom-6 right-3 sm:right-4 md:right-8 z-50 flex flex-col items-end pointer-events-auto font-poppins">
