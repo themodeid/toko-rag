@@ -249,34 +249,12 @@ export default function AdminLayout({
             </p>
             <div className="space-y-0.5">
               <Link
-                href="/"
-                className="flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-zinc-400 hover:bg-zinc-800/60 hover:text-white transition"
-              >
-                <div className="flex items-center gap-2.5">
-                  <span className="text-sm">☕</span>
-                  <span>Kiosk Pembeli</span>
-                </div>
-                <span className="text-[10px] font-mono text-zinc-500">→</span>
-              </Link>
-
-              <Link
                 href="/kasir"
                 className="flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-zinc-400 hover:bg-zinc-800/60 hover:text-white transition"
               >
                 <div className="flex items-center gap-2.5">
                   <span className="text-sm">🧑‍🍳</span>
-                  <span>KDS Barista</span>
-                </div>
-                <span className="text-[10px] font-mono text-zinc-500">→</span>
-              </Link>
-
-              <Link
-                href="/antrian"
-                className="flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-zinc-400 hover:bg-zinc-800/60 hover:text-white transition"
-              >
-                <div className="flex items-center gap-2.5">
-                  <span className="text-sm">📺</span>
-                  <span>Layar TV Antrian</span>
+                  <span>Station Kasir & Barista</span>
                 </div>
                 <span className="text-[10px] font-mono text-zinc-500">→</span>
               </Link>
