@@ -128,11 +128,16 @@ export default function OrderTrackingPage() {
     );
   }
 
-  const { order, antrian_sebelumnya, estimasi_sisa_menit } = orderData;
-  const isPaid = order.status_bayar === "PAID";
-  const isPendingPay = order.status_bayar === "PENDING";
+  const { order, antrian_sebelumnya = 0, estimasi_sisa_menit = 3 } = orderData;
+  const isPaid = (order?.status_bayar || (order as any)?.status_pembayaran) === "PAID";
+  const isPendingPay = (order?.status_bayar || (order as any)?.status_pembayaran) === "PENDING";
+  const statusAntrian = order?.status_antrian || (order as any)?.status_antrian || "MENUNGGU_RACIK";
   const isReadyOrDone =
-    order.status_antrian === "SIAP_DIAMBIL" || order.status_antrian === "SELESAI";
+    statusAntrian === "SIAP_DIAMBIL" || statusAntrian === "SELESAI";
+  const orderCode = order?.order_code || (order as any)?.no_antrian || order?.id || "-";
+  const customerName = order?.nama_pelanggan || "Pelanggan";
+  const totalAmount = Number(order?.total_amount ?? (order as any)?.total_bayar ?? 0);
+  const items = order?.items || (orderData as any)?.items || [];
 
   return (
     <div className="min-h-screen bg-[#09090b] text-[#f4f4f5] font-sans antialiased selection:bg-amber-500/20 selection:text-amber-300">
@@ -163,10 +168,10 @@ export default function OrderTrackingPage() {
               </span>
               <div className="flex items-baseline space-x-3 mt-1">
                 <h1 className="text-3xl sm:text-4xl font-extrabold font-mono text-amber-400 tracking-tight">
-                  {order.order_code}
+                  {orderCode}
                 </h1>
                 <span className="text-sm font-semibold text-zinc-200">
-                  atas nama <span className="text-white underline decoration-amber-500/40">{order.nama_pelanggan}</span>
+                  atas nama <span className="text-white underline decoration-amber-500/40">{customerName}</span>
                 </span>
               </div>
             </div>
@@ -213,9 +218,9 @@ export default function OrderTrackingPage() {
                       Estimasi Waktu Selesai
                     </span>
                     <p className="text-base font-bold text-amber-400">
-                      {order.status_antrian === "SELESAI"
+                      {statusAntrian === "SELESAI"
                         ? "Sudah Disajikan"
-                        : order.status_antrian === "SIAP_DIAMBIL"
+                        : statusAntrian === "SIAP_DIAMBIL"
                         ? "Siap Diambil di Bar!"
                         : `~${estimasi_sisa_menit} Menit`}
                     </p>
@@ -232,7 +237,7 @@ export default function OrderTrackingPage() {
                   {/* Step 1 */}
                   <div
                     className={`p-2.5 rounded-lg border text-center transition ${
-                      order.status_antrian !== "MENUNGGU_BAYAR"
+                      statusAntrian !== "MENUNGGU_BAYAR"
                         ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-400 font-semibold"
                         : "bg-zinc-800/40 border-zinc-800 text-zinc-500"
                     }`}
@@ -242,10 +247,10 @@ export default function OrderTrackingPage() {
                   {/* Step 2 */}
                   <div
                     className={`p-2.5 rounded-lg border text-center transition ${
-                      order.status_antrian === "MENUNGGU_RACIK"
+                      statusAntrian === "MENUNGGU_RACIK"
                         ? "bg-amber-500/10 border-amber-500 text-amber-400 font-bold animate-pulse"
                         : ["SEDANG_DIRACIK", "SIAP_DIAMBIL", "SELESAI"].includes(
-                            order.status_antrian
+                            statusAntrian
                           )
                         ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-400"
                         : "bg-zinc-800/40 border-zinc-800 text-zinc-500"
@@ -256,9 +261,9 @@ export default function OrderTrackingPage() {
                   {/* Step 3 */}
                   <div
                     className={`p-2.5 rounded-lg border text-center transition ${
-                      order.status_antrian === "SEDANG_DIRACIK"
+                      statusAntrian === "SEDANG_DIRACIK"
                         ? "bg-amber-500/10 border-amber-500 text-amber-400 font-bold animate-pulse"
-                        : ["SIAP_DIAMBIL", "SELESAI"].includes(order.status_antrian)
+                        : ["SIAP_DIAMBIL", "SELESAI"].includes(statusAntrian)
                         ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-400"
                         : "bg-zinc-800/40 border-zinc-800 text-zinc-500"
                     }`}
@@ -268,9 +273,9 @@ export default function OrderTrackingPage() {
                   {/* Step 4 */}
                   <div
                     className={`p-2.5 rounded-lg border text-center transition ${
-                      order.status_antrian === "SIAP_DIAMBIL"
+                      statusAntrian === "SIAP_DIAMBIL"
                         ? "bg-emerald-500 border-emerald-400 text-zinc-950 font-bold animate-bounce"
-                        : order.status_antrian === "SELESAI"
+                        : statusAntrian === "SELESAI"
                         ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-400"
                         : "bg-zinc-800/40 border-zinc-800 text-zinc-500"
                     }`}
@@ -280,13 +285,13 @@ export default function OrderTrackingPage() {
                 </div>
               </div>
 
-              {order.status_antrian === "SIAP_DIAMBIL" && (
+              {statusAntrian === "SIAP_DIAMBIL" && (
                 <div className="p-4 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-sm flex items-center space-x-3">
                   <span className="text-3xl">🔔</span>
                   <div>
                     <p className="font-bold">Minuman Anda Sudah Siap Diambil!</p>
                     <p className="text-xs text-emerald-400 mt-0.5">
-                      Silakan menuju meja bar dan tunjukkan nomor antrian {order.order_code}.
+                      Silakan menuju meja bar dan tunjukkan nomor antrian {orderCode}.
                     </p>
                   </div>
                 </div>
@@ -325,7 +330,7 @@ export default function OrderTrackingPage() {
                     Total Pembayaran:
                   </span>
                   <p className="text-2xl font-bold font-mono text-white">
-                    Rp {order.total_amount.toLocaleString("id-ID")}
+                    Rp {totalAmount.toLocaleString("id-ID")}
                   </p>
                 </div>
 
@@ -354,7 +359,7 @@ export default function OrderTrackingPage() {
             Rincian Pesanan
           </h3>
           <div className="divide-y divide-zinc-800/80">
-            {order.items?.map((item) => (
+            {items.map((item: any) => (
               <div
                 key={item.id}
                 className="py-3 flex items-start justify-between gap-3 text-sm"
@@ -384,7 +389,7 @@ export default function OrderTrackingPage() {
                 </div>
 
                 <span className="font-mono font-bold text-white text-xs">
-                  Rp {item.subtotal.toLocaleString("id-ID")}
+                  Rp {(Number(item.subtotal) || 0).toLocaleString("id-ID")}
                 </span>
               </div>
             ))}
@@ -393,13 +398,13 @@ export default function OrderTrackingPage() {
           <div className="border-t border-zinc-800 pt-3 flex justify-between items-center font-mono">
             <span className="text-xs text-zinc-400">Total Transaksi</span>
             <span className="text-base font-bold text-amber-400">
-              Rp {order.total_amount.toLocaleString("id-ID")}
+              Rp {totalAmount.toLocaleString("id-ID")}
             </span>
           </div>
         </div>
 
         {/* RATING & REVIEW CARD (Hanya jika siap diambil / selesai) */}
-        {isReadyOrDone && order.items && order.items.length > 0 && (
+        {isReadyOrDone && items.length > 0 && (
           <div className="rounded-xl border border-amber-500/30 bg-zinc-900/70 p-5 space-y-4">
             <div>
               <div className="flex items-center space-x-2">
@@ -414,7 +419,7 @@ export default function OrderTrackingPage() {
             </div>
 
             <div className="space-y-4">
-              {order.items.map((item) => {
+              {items.map((item: any) => {
                 const isReviewed = reviewedBeverages[item.minuman_id];
                 const currentRating = reviewRatings[item.minuman_id] || 5;
 

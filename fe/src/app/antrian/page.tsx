@@ -29,8 +29,21 @@ export default function PublicQueueTVPage() {
     async function loadQueue() {
       try {
         const data = await fetchActiveQueue();
-        setSedangDiracik(data.sedang_diracik || []);
-        setSiapDiambil(data.siap_diambil || []);
+        if (Array.isArray(data)) {
+          setSedangDiracik(
+            data.filter(
+              (o: any) =>
+                o.status_antrian === "SEDANG_DIRACIK" ||
+                o.status_antrian === "MENUNGGU_RACIK"
+            )
+          );
+          setSiapDiambil(
+            data.filter((o: any) => o.status_antrian === "SIAP_DIAMBIL")
+          );
+        } else if (data) {
+          setSedangDiracik(data.sedang_diracik || []);
+          setSiapDiambil(data.siap_diambil || []);
+        }
       } catch (err) {
         console.error("Gagal memuat antrian publik", err);
       }
@@ -120,13 +133,13 @@ export default function PublicQueueTVPage() {
                     className="p-4 rounded-xl bg-zinc-950 border border-amber-500/30 text-center space-y-1 shadow-inner"
                   >
                     <span className="text-2xl sm:text-3xl font-extrabold font-mono text-amber-400 block tracking-tight">
-                      {order.order_code}
+                      {order.order_code || (order as any).no_antrian || "-"}
                     </span>
                     <p className="text-xs font-semibold text-zinc-200 truncate">
                       {order.nama_pelanggan}
                     </p>
                     <span className="text-[10px] text-zinc-500 font-mono block">
-                      ~{order.estimasi_selesai_menit} mnt
+                      ~{order.estimasi_selesai_menit || (order as any).estimasi_menit || 3} mnt
                     </span>
                   </div>
                 ))}
@@ -169,7 +182,7 @@ export default function PublicQueueTVPage() {
                     className="p-4 rounded-xl bg-zinc-950 border-2 border-emerald-500 text-center space-y-1 shadow-lg shadow-emerald-500/10 animate-pulse"
                   >
                     <span className="text-2xl sm:text-3xl font-black font-mono text-emerald-400 block tracking-tight">
-                      {order.order_code}
+                      {order.order_code || (order as any).no_antrian || "-"}
                     </span>
                     <p className="text-xs font-bold text-white truncate">
                       {order.nama_pelanggan}

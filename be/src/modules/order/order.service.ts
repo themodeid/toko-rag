@@ -201,6 +201,12 @@ export class OrderService {
 
       return {
         ...newOrder,
+        order_code: newOrder.no_antrian,
+        total_amount: Number(newOrder.total_bayar) || 0,
+        total_bayar: Number(newOrder.total_bayar) || 0,
+        status_bayar: newOrder.status_pembayaran,
+        payment_method: newOrder.metode_pembayaran,
+        estimasi_selesai_menit: Number(newOrder.estimasi_menit) || 3,
         items: verifiedItems,
       };
     } catch (error) {
@@ -329,28 +335,35 @@ export class OrderService {
    * Pembeli: Pantau Status Pesanan & Estimasi Waktu Selesai (Live Tracker)
    */
   static async getOrderStatus(orderId: string) {
+    const cleanId = orderId.trim().replace(/^#/, "");
     const orderSql = `
       SELECT 
         o.id,
         o.no_antrian,
+        o.no_antrian AS order_code,
         o.nama_pelanggan,
         o.total_bayar,
+        o.total_bayar AS total_amount,
         o.metode_pembayaran,
+        o.metode_pembayaran AS payment_method,
         o.status_pembayaran,
+        o.status_pembayaran AS status_bayar,
         o.status_antrian,
         o.estimasi_menit,
+        o.estimasi_menit AS estimasi_selesai_menit,
         o.waktu_bayar,
+        o.waktu_bayar AS paid_at,
         o.waktu_selesai,
         o.created_at
       FROM tb_orders o
-      WHERE o.id = $1;
+      WHERE o.id::text = $1 OR UPPER(o.no_antrian) = UPPER($1) OR UPPER(o.no_antrian) = UPPER($2);
     `;
-    const { rows: orderRows } = await query(orderSql, [orderId]);
+    const { rows: orderRows } = await query(orderSql, [orderId, cleanId]);
     if (orderRows.length === 0) {
       throw new AppError("Pesanan tidak ditemukan", 404);
     }
 
-    const order = orderRows[0];
+    const orderRow = orderRows[0];
 
     // Ambil rincian item
     const itemsSql = `
@@ -369,7 +382,14 @@ export class OrderService {
       JOIN tb_minuman m ON oi.minuman_id = m.id
       WHERE oi.order_id = $1;
     `;
-    const { rows: itemRows } = await query(itemsSql, [orderId]);
+    const { rows: itemRows } = await query(itemsSql, [orderRow.id]);
+
+    const items = itemRows.map((item) => ({
+      ...item,
+      qty: Number(item.qty) || 1,
+      harga_satuan: Number(item.harga_satuan) || 0,
+      subtotal: Number(item.subtotal) || 0,
+    }));
 
     // Hitung berapa antrian yang ada persis di depannya
     const aheadSql = `
@@ -378,13 +398,24 @@ export class OrderService {
       WHERE status_antrian IN ('MENUNGGU_RACIK', 'SEDANG_DIRACIK')
         AND created_at < $1;
     `;
-    const { rows: aheadRows } = await query(aheadSql, [order.created_at]);
+    const { rows: aheadRows } = await query(aheadSql, [orderRow.created_at]);
     const antrianDiDepan = aheadRows[0]?.antrian_di_depan || 0;
+    const estimasiSisaMenit = antrianDiDepan * 3 + (Number(orderRow.estimasi_menit) || 3);
+
+    const formattedOrder = {
+      ...orderRow,
+      total_amount: Number(orderRow.total_bayar) || 0,
+      total_bayar: Number(orderRow.total_bayar) || 0,
+      estimasi_selesai_menit: Number(orderRow.estimasi_menit) || 3,
+      items,
+    };
 
     return {
-      order,
-      items: itemRows,
+      order: formattedOrder,
+      items,
+      antrian_sebelumnya: antrianDiDepan,
       antrian_di_depan: antrianDiDepan,
+      estimasi_sisa_menit: estimasiSisaMenit,
     };
   }
 
@@ -394,10 +425,13 @@ export class OrderService {
   static async getActiveQueue() {
     const sql = `
       SELECT 
+        id,
         no_antrian,
+        no_antrian AS order_code,
         nama_pelanggan,
         status_antrian,
         estimasi_menit,
+        estimasi_menit AS estimasi_selesai_menit,
         created_at
       FROM tb_orders
       WHERE status_antrian IN ('MENUNGGU_RACIK', 'SEDANG_DIRACIK', 'SIAP_DIAMBIL')
@@ -409,9 +443,19 @@ export class OrderService {
           ELSE 4
         END,
         created_at ASC
-      LIMIT 20;
+      LIMIT 30;
     `;
     const { rows } = await query(sql);
-    return rows;
+    const sedangDiracik = rows.filter(
+      (r) => r.status_antrian === "SEDANG_DIRACIK" || r.status_antrian === "MENUNGGU_RACIK"
+    );
+    const siapDiambil = rows.filter((r) => r.status_antrian === "SIAP_DIAMBIL");
+
+    return {
+      sedang_diracik: sedangDiracik,
+      siap_diambil: siapDiambil,
+      total_antrian: rows.length,
+      raw_orders: rows,
+    };
   }
 }
