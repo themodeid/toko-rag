@@ -63,6 +63,8 @@ export interface Order {
   paid_at?: string;
   created_at: string;
   items?: OrderItem[];
+  kode_klaim?: string;
+  claim_pin?: string;
 }
 
 export interface OrderStatusResponse {

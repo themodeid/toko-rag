@@ -141,14 +141,17 @@ export class OrderService {
       const initialStatusAntrian = isAutoPay ? "MENUNGGU_RACIK" : "MENUNGGU_BAYAR";
       const waktuBayar = isAutoPay ? new Date() : null;
 
+      // Generate 4-digit secret pickup PIN
+      const kodeKlaim = Math.floor(1000 + Math.random() * 9000).toString();
+
       // 5. Simpan Header Pesanan (tb_orders)
       const orderInsertSql = `
         INSERT INTO tb_orders (
           no_antrian, nama_pelanggan, total_bayar, metode_pembayaran,
           status_pembayaran, status_antrian, estimasi_menit, idempotency_key,
-          xendit_invoice_id, xendit_qr_string, xendit_payment_method, waktu_bayar
-        ) VALUES ($1, $2, $3, 'QRIS', $4, $5, $6, $7, $8, $9, 'QRIS', $10)
-        RETURNING id, no_antrian, nama_pelanggan, total_bayar, metode_pembayaran, status_pembayaran, status_antrian, estimasi_menit, created_at, xendit_invoice_id, xendit_qr_string, waktu_bayar;
+          xendit_invoice_id, xendit_qr_string, xendit_payment_method, waktu_bayar, kode_klaim
+        ) VALUES ($1, $2, $3, 'QRIS', $4, $5, $6, $7, $8, $9, 'QRIS', $10, $11)
+        RETURNING id, no_antrian, nama_pelanggan, total_bayar, metode_pembayaran, status_pembayaran, status_antrian, estimasi_menit, created_at, xendit_invoice_id, xendit_qr_string, waktu_bayar, kode_klaim;
       `;
       const orderRes = await client.query(orderInsertSql, [
         noAntrian,
@@ -161,6 +164,7 @@ export class OrderService {
         xenditInvoiceId,
         xenditQrString,
         waktuBayar,
+        kodeKlaim,
       ]);
       const newOrder = orderRes.rows[0];
 
@@ -207,6 +211,8 @@ export class OrderService {
         status_bayar: newOrder.status_pembayaran,
         payment_method: newOrder.metode_pembayaran,
         estimasi_selesai_menit: Number(newOrder.estimasi_menit) || 3,
+        kode_klaim: newOrder.kode_klaim,
+        claim_pin: newOrder.kode_klaim,
         items: verifiedItems,
       };
     } catch (error) {
@@ -354,7 +360,9 @@ export class OrderService {
         o.waktu_bayar,
         o.waktu_bayar AS paid_at,
         o.waktu_selesai,
-        o.created_at
+        o.created_at,
+        o.kode_klaim,
+        o.kode_klaim AS claim_pin
       FROM tb_orders o
       WHERE o.id::text = $1 OR UPPER(o.no_antrian) = UPPER($1) OR UPPER(o.no_antrian) = UPPER($2);
     `;

@@ -462,13 +462,26 @@ export default function KasirKdsDashboardPage() {
                     )}
 
                     {order.status_antrian === "SIAP_DIAMBIL" && (
-                      <button
-                        disabled={isUpdating}
-                        onClick={() => handleUpdateStatus(order.id, "SELESAI")}
-                        className="w-full py-2.5 rounded-lg bg-zinc-100 hover:bg-white text-zinc-950 font-bold font-mono text-xs transition shadow-sm"
-                      >
-                        {isUpdating ? "Memproses..." : "✓ Selesaikan Pesanan (Diserahkan)"}
-                      </button>
+                      <div className="space-y-2">
+                        {/* PIN CLAIM BADGE */}
+                        <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-between text-xs font-mono">
+                          <span className="text-zinc-400 font-semibold flex items-center gap-1.5">
+                            <span>🔐</span>
+                            <span>PIN Pelanggan:</span>
+                          </span>
+                          <span className="text-base font-black text-amber-400 tracking-widest px-2.5 py-0.5 rounded bg-zinc-950 border border-amber-500/50 shadow-inner">
+                            {order.kode_klaim || order.claim_pin || (order as any).claim_pin || "----"}
+                          </span>
+                        </div>
+
+                        <button
+                          disabled={isUpdating}
+                          onClick={() => handleUpdateStatus(order.id, "SELESAI")}
+                          className="w-full py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold font-mono text-xs transition shadow-md flex items-center justify-center gap-1.5"
+                        >
+                          {isUpdating ? "Memproses..." : "✓ Cocok & Serahkan Minuman (Selesai)"}
+                        </button>
+                      </div>
                     )}
 
                     {order.status_antrian === "SELESAI" && (

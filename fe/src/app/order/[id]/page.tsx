@@ -136,6 +136,12 @@ export default function OrderTrackingPage() {
     statusAntrian === "SIAP_DIAMBIL" || statusAntrian === "SELESAI";
   const orderCode = order?.order_code || (order as any)?.no_antrian || order?.id || "-";
   const customerName = order?.nama_pelanggan || "Pelanggan";
+  const claimPin =
+    order?.kode_klaim ||
+    order?.claim_pin ||
+    (order as any)?.kode_klaim ||
+    (order as any)?.claim_pin ||
+    "----";
   const totalAmount = Number(order?.total_amount ?? (order as any)?.total_bayar ?? 0);
   const items = order?.items || (orderData as any)?.items || [];
 
@@ -188,6 +194,36 @@ export default function OrderTrackingPage() {
                 }`}
               >
                 {isPaid ? "✓ LUNAS DIGITAL (QRIS)" : "⏳ MENUNGGU BAYAR"}
+              </span>
+            </div>
+          </div>
+
+          {/* DIGITAL PICKUP PASS (PIN KLAIM RAHASIA) */}
+          <div className="mt-5 p-4 sm:p-5 rounded-xl bg-gradient-to-r from-amber-950/40 via-zinc-950 to-zinc-950 border border-amber-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg shadow-amber-500/5">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+                <span className="text-[11px] font-mono font-bold tracking-wider uppercase text-amber-400">
+                  Tiket & PIN Pengambilan Minuman
+                </span>
+              </div>
+              <p className="text-xs text-zinc-300">
+                Sebutkan atau tunjukkan PIN 4-digit ini ke barista saat mengambil cup minuman di meja bar.
+              </p>
+              <span className="text-[10px] text-zinc-500 font-mono block">
+                🔒 Rahasia • Hanya Anda dan Barista yang memilikinya (Anti-Salah Ambil)
+              </span>
+            </div>
+
+            <div className="p-3 rounded-xl bg-zinc-900 border border-amber-500/60 text-center min-w-[140px] shadow-inner">
+              <span className="text-[9px] font-mono uppercase text-zinc-400 tracking-wider block font-bold">
+                PIN KLAIM
+              </span>
+              <span className="text-3xl font-black font-mono tracking-widest text-amber-400 block my-0.5">
+                {claimPin}
+              </span>
+              <span className="text-[9px] text-zinc-500 font-mono block">
+                Tunjukkan ke Barista
               </span>
             </div>
           </div>
@@ -286,12 +322,12 @@ export default function OrderTrackingPage() {
               </div>
 
               {statusAntrian === "SIAP_DIAMBIL" && (
-                <div className="p-4 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-sm flex items-center space-x-3">
+                <div className="p-4 rounded-xl bg-emerald-500/15 border-2 border-emerald-500/50 text-emerald-300 text-sm flex items-start space-x-3">
                   <span className="text-3xl">🔔</span>
                   <div>
-                    <p className="font-bold">Minuman Anda Sudah Siap Diambil!</p>
-                    <p className="text-xs text-emerald-400 mt-0.5">
-                      Silakan menuju meja bar dan tunjukkan nomor antrian {orderCode}.
+                    <p className="font-bold text-emerald-200">Minuman Anda Sudah Siap Diambil!</p>
+                    <p className="text-xs text-emerald-400 mt-1">
+                      Silakan menuju meja bar, sebutkan antrean <span className="font-mono font-bold text-white bg-emerald-950/80 px-1.5 py-0.5 rounded border border-emerald-700">{orderCode}</span> dan sebutkan/tunjukkan <span className="font-mono font-bold text-amber-300 bg-zinc-950 px-1.5 py-0.5 rounded border border-amber-500/50">PIN: {claimPin}</span> ke barista.
                     </p>
                   </div>
                 </div>

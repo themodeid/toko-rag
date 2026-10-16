@@ -69,6 +69,8 @@ export class KasirService {
         o.waktu_bayar,
         o.waktu_selesai,
         o.created_at,
+        o.kode_klaim,
+        o.kode_klaim AS claim_pin,
         COALESCE(
           json_agg(
             json_build_object(
