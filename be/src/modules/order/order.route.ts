@@ -17,4 +17,7 @@ router.get("/:id/status", OrderController.getOrderStatus);
 // 4. Layar antrian publik kedai
 router.get("/queue/active", OrderController.getActiveQueue);
 
+// 5. Xendit Webhook Callback
+router.post("/webhook/xendit", OrderController.handleXenditWebhook);
+
 export default router;

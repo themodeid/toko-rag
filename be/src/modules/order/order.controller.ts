@@ -25,4 +25,10 @@ export class OrderController {
     const queue = await OrderService.getActiveQueue();
     successResponse(res, queue, "Daftar antrian aktif berhasil diambil", 200);
   });
+
+  static handleXenditWebhook = catchAsync(async (req: Request, res: Response) => {
+    const callbackToken = req.headers["x-callback-token"] as string;
+    const result = await OrderService.processXenditWebhook(req.body, callbackToken);
+    successResponse(res, result, "Webhook Xendit berhasil diproses", 200);
+  });
 }

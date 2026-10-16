@@ -7,6 +7,7 @@ import {
   Minuman,
   KategoriMinuman,
   CartItem,
+  CheckoutPayload,
 } from "@/features/kiosk/types";
 import {
   fetchBeverages,
@@ -165,8 +166,10 @@ export default function KioskMenuPage() {
 
     try {
       setIsSubmitting(true);
-      const payload = {
+      const idempotencyKey = `kiosk_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      const payload: CheckoutPayload = {
         nama_pelanggan: customerName.trim(),
+        idempotency_key: idempotencyKey,
         items: cart.map((c) => ({
           minuman_id: c.minuman.id,
           qty: c.qty,

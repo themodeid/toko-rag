@@ -13,6 +13,7 @@ export interface CreateOrderItemInput {
 export interface CreateOrderInput {
   nama_pelanggan: string;
   items: CreateOrderItemInput[];
+  idempotency_key?: string;
 }
 
 export class OrderService {
@@ -20,7 +21,7 @@ export class OrderService {
    * Pembeli: Checkout Pesanan Tanpa Login (Zero-Auth)
    */
   static async createOrder(input: CreateOrderInput) {
-    const { nama_pelanggan, items } = input;
+    const { nama_pelanggan, items, idempotency_key } = input;
 
     // 1. Validasi filter kata kasar
     const nameCheck = validateCustomerName(nama_pelanggan);
@@ -36,6 +37,31 @@ export class OrderService {
 
     try {
       await client.query("BEGIN");
+
+      // 1.5 Cek Idempotency Key (Mencegah pesanan ganda akibat klik berulang)
+      if (idempotency_key) {
+        const existingRes = await client.query(
+          `SELECT id, no_antrian, nama_pelanggan, total_bayar, metode_pembayaran, status_pembayaran, status_antrian, estimasi_menit, created_at, xendit_invoice_id, xendit_qr_string
+           FROM tb_orders 
+           WHERE idempotency_key = $1;`,
+          [idempotency_key]
+        );
+        if (existingRes.rows.length > 0) {
+          const existingOrder = existingRes.rows[0];
+          const itemsRes = await client.query(
+            `SELECT minuman_id, qty, harga_satuan, subtotal, hpp_satuan, suhu, sugar_level, catatan
+             FROM tb_order_items
+             WHERE order_id = $1;`,
+            [existingOrder.id]
+          );
+          await client.query("COMMIT");
+          return {
+            ...existingOrder,
+            items: itemsRes.rows,
+            is_idempotent_replay: true,
+          };
+        }
+      }
 
       // 2. Generate Nomor Antrian Harian (Format: #K-01, #K-02)
       const countRes = await client.query(
@@ -55,12 +81,13 @@ export class OrderService {
       const ordersAhead = activeQueueRes.rows[0]?.active_count || 0;
       const estimasiMenit = 4 + ordersAhead * 3; // 4 menit dasar + 3 menit per antrian di depan
 
-      // 4. Verifikasi ketersediaan dan kalkulasi harga minuman
+      // 4. Verifikasi ketersediaan, stok, dan kalkulasi harga minuman
       let totalBayar = 0;
       const verifiedItems: Array<{
         minuman_id: string;
         qty: number;
         harga_satuan: number;
+        hpp_satuan: number;
         subtotal: number;
         suhu: "ICE" | "HOT";
         sugar_level: "LESS" | "NORMAL" | "EXTRA";
@@ -69,9 +96,9 @@ export class OrderService {
 
       for (const item of items) {
         const bevRes = await client.query(
-          `SELECT id, nama, harga, is_available 
+          `SELECT id, nama, harga, hpp, stock, is_available 
            FROM tb_minuman 
-           WHERE id = $1 FOR SHARE;`,
+           WHERE id = $1 FOR UPDATE;`,
           [item.minuman_id]
         );
 
@@ -84,6 +111,10 @@ export class OrderService {
           throw new AppError(`Maaf, menu "${bev.nama}" saat ini sedang habis (Sold Out)`, 400);
         }
 
+        if (bev.stock < item.qty) {
+          throw new AppError(`Maaf, stok "${bev.nama}" tidak mencukupi (tersisa ${bev.stock} cup)`, 400);
+        }
+
         const subtotal = bev.harga * item.qty;
         totalBayar += subtotal;
 
@@ -91,6 +122,7 @@ export class OrderService {
           minuman_id: bev.id,
           qty: item.qty,
           harga_satuan: bev.harga,
+          hpp_satuan: Number(bev.hpp) || 0,
           subtotal,
           suhu: item.suhu,
           sugar_level: item.sugar_level,
@@ -98,34 +130,43 @@ export class OrderService {
         });
       }
 
+      // Generate invoice & mock dynamic QRIS string
+      const xenditInvoiceId = `inv_tokorag_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      const xenditQrString = `00020101021226670016ID.CO.XENDIT.WWW01189360091100202209165204581253033605802ID5914ARTISAN_COFFEE6007JAKARTA62070703A016304${noAntrian.replace(/[^a-zA-Z0-9]/g, "")}`;
+
       // 5. Simpan Header Pesanan (tb_orders)
       const orderInsertSql = `
         INSERT INTO tb_orders (
           no_antrian, nama_pelanggan, total_bayar, metode_pembayaran,
-          status_pembayaran, status_antrian, estimasi_menit
-        ) VALUES ($1, $2, $3, 'QRIS', 'PENDING', 'MENUNGGU_BAYAR', $4)
-        RETURNING id, no_antrian, nama_pelanggan, total_bayar, metode_pembayaran, status_pembayaran, status_antrian, estimasi_menit, created_at;
+          status_pembayaran, status_antrian, estimasi_menit, idempotency_key,
+          xendit_invoice_id, xendit_qr_string, xendit_payment_method
+        ) VALUES ($1, $2, $3, 'QRIS', 'PENDING', 'MENUNGGU_BAYAR', $4, $5, $6, $7, 'QRIS')
+        RETURNING id, no_antrian, nama_pelanggan, total_bayar, metode_pembayaran, status_pembayaran, status_antrian, estimasi_menit, created_at, xendit_invoice_id, xendit_qr_string;
       `;
       const orderRes = await client.query(orderInsertSql, [
         noAntrian,
         nama_pelanggan.trim(),
         totalBayar,
         estimasiMenit,
+        idempotency_key || null,
+        xenditInvoiceId,
+        xenditQrString,
       ]);
       const newOrder = orderRes.rows[0];
 
-      // 6. Simpan Detail Item (tb_order_items)
+      // 6. Simpan Detail Item (tb_order_items) dengan snapshot hpp_satuan
       for (const vItem of verifiedItems) {
         await client.query(
           `INSERT INTO tb_order_items (
-            order_id, minuman_id, qty, harga_satuan, subtotal, suhu, sugar_level, catatan
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8);`,
+            order_id, minuman_id, qty, harga_satuan, subtotal, hpp_satuan, suhu, sugar_level, catatan
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);`,
           [
             newOrder.id,
             vItem.minuman_id,
             vItem.qty,
             vItem.harga_satuan,
             vItem.subtotal,
+            vItem.hpp_satuan,
             vItem.suhu,
             vItem.sugar_level,
             vItem.catatan || null,
@@ -148,7 +189,7 @@ export class OrderService {
   }
 
   /**
-   * Pembeli: Simulasi Pembayaran QRIS Berhasil (Instant Cashless Confirm)
+   * Pembeli: Pembayaran QRIS Berhasil (Instant Cashless Confirm & Pemotongan Stok Atomik)
    */
   static async payOrderQris(orderId: string) {
     const client = await pool.connect();
@@ -183,10 +224,11 @@ export class OrderService {
         [orderId]
       );
 
-      // Tingkatkan total_terjual pada setiap minuman
+      // Tingkatkan total_terjual dan kurangi stok minuman secara atomik
       await client.query(
         `UPDATE tb_minuman m
-         SET total_terjual = m.total_terjual + sub.total_qty
+         SET stock = GREATEST(0, m.stock - sub.total_qty),
+             total_terjual = m.total_terjual + sub.total_qty
          FROM (
            SELECT minuman_id, SUM(qty) AS total_qty
            FROM tb_order_items
@@ -203,7 +245,7 @@ export class OrderService {
         order_id: orderId,
         status_pembayaran: "PAID",
         status_antrian: "MENUNGGU_RACIK",
-        message: "Pembayaran QRIS berhasil! Pesanan Anda telah diteruskan ke meja barista.",
+        message: "Pembayaran QRIS berhasil diverifikasi! Pesanan Anda telah diteruskan ke meja barista.",
       };
     } catch (error) {
       await client.query("ROLLBACK");
@@ -211,6 +253,53 @@ export class OrderService {
     } finally {
       client.release();
     }
+  }
+
+  /**
+   * Xendit Payment Gateway Webhook Receiver
+   * Memvalidasi callback token dan memproses status PAID secara aman
+   */
+  static async processXenditWebhook(payload: {
+    id?: string;
+    external_id?: string;
+    status?: string;
+    payment_method?: string;
+    paid_amount?: number;
+  }, callbackToken?: string) {
+    const expectedToken = process.env.XENDIT_CALLBACK_TOKEN || "tokorag_xendit_webhook_secret";
+    if (!callbackToken || callbackToken !== expectedToken) {
+      throw new AppError("Akses ditolak: Xendit callback token tidak valid", 401);
+    }
+
+    const externalId = payload.external_id || payload.id;
+    if (!externalId) {
+      throw new AppError("Payload webhook tidak memiliki identifier pesanan (external_id)", 400);
+    }
+
+    // Cari pesanan berdasarkan ID atau xendit_invoice_id
+    const { rows } = await query(
+      `SELECT id, status_pembayaran FROM tb_orders WHERE id::text = $1 OR xendit_invoice_id = $1 LIMIT 1;`,
+      [externalId]
+    );
+
+    if (rows.length === 0) {
+      throw new AppError(`Pesanan dengan ID/Invoice "${externalId}" tidak ditemukan`, 404);
+    }
+
+    const order = rows[0];
+    if (payload.status === "PAID" || payload.status === "SETTLED") {
+      return await this.payOrderQris(order.id);
+    }
+
+    if (payload.status === "EXPIRED") {
+      await query(
+        `UPDATE tb_orders SET status_pembayaran = 'EXPIRED', status_antrian = 'DIBATALKAN' WHERE id = $1 AND status_pembayaran = 'PENDING';`,
+        [order.id]
+      );
+      return { order_id: order.id, status_pembayaran: "EXPIRED", message: "Pesanan kadaluarsa" };
+    }
+
+    return { order_id: order.id, status_pembayaran: order.status_pembayaran, message: "Webhook diterima" };
   }
 
   /**

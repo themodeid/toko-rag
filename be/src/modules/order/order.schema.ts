@@ -24,6 +24,7 @@ export const checkoutOrderSchema = z.object({
       })
     )
     .min(1, "Pesanan harus memiliki minimal 1 item minuman"),
+  idempotency_key: z.string().max(100, "Idempotency key maksimal 100 karakter").optional(),
 });
 
 export const updateOrderStatusSchema = z.object({
