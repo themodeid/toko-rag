@@ -154,7 +154,7 @@ export default function DigitalMenuShowcasePage() {
                     : "bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-white hover:border-zinc-700"
                 }`}
               >
-                {c.nama}
+                {c.nama || (c as any).nama_kategori || "Kategori"}
               </button>
             ))}
           </div>
@@ -221,9 +221,9 @@ export default function DigitalMenuShowcasePage() {
                           Habis (Sold Out)
                         </div>
                       )}
-                      {bev.kategori?.nama && (
+                      {((bev as any).nama_kategori || bev.kategori?.nama) && (
                         <span className="absolute top-2 left-2 text-[9px] font-mono px-2 py-0.5 rounded bg-zinc-900/90 text-zinc-300 border border-zinc-800 backdrop-blur-sm">
-                          {bev.kategori.nama}
+                          {(bev as any).nama_kategori || bev.kategori?.nama}
                         </span>
                       )}
                     </div>

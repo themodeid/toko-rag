@@ -612,7 +612,7 @@ export default function KasirUnifiedPortalPage() {
                           : "bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-white hover:border-zinc-700"
                       }`}
                     >
-                      {c.nama}
+                      {c.nama || (c as any).nama_kategori || "Kategori"}
                     </button>
                   ))}
                 </div>
@@ -656,7 +656,7 @@ export default function KasirUnifiedPortalPage() {
                             {bev.nama}
                           </h4>
                           <span className="text-[10px] text-zinc-500 font-mono block">
-                            {bev.kategori?.nama || "Artisan"}
+                            {(bev as any).nama_kategori || bev.kategori?.nama || "Artisan"}
                           </span>
                         </div>
                       </div>

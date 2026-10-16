@@ -24,7 +24,7 @@ export class BeverageService {
    */
   static async getCategories() {
     const sql = `
-      SELECT id, nama_kategori, slug, deskripsi, urutan
+      SELECT id, nama_kategori AS nama, nama_kategori, slug, deskripsi, urutan
       FROM tb_kategori_minuman
       ORDER BY urutan ASC, id ASC;
     `;
