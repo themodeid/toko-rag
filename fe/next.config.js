@@ -11,6 +11,15 @@ const nextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      {
+        source: "/antrian",
+        destination: "/kasir",
+        permanent: false,
+      },
+    ];
+  },
   images: {
     remotePatterns: [
       {

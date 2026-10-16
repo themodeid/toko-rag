@@ -6,7 +6,6 @@ import { Minuman, KategoriMinuman } from "@/features/kiosk/types";
 import {
   fetchBeverages,
   fetchBeverageCategories,
-  fetchActiveQueue,
 } from "@/features/kiosk/api";
 import { getProductImageUrl } from "@/lib/imageHelper";
 
@@ -16,20 +15,17 @@ export default function DigitalMenuShowcasePage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
-  const [activeQueueCount, setActiveQueueCount] = useState<number>(0);
 
   useEffect(() => {
     async function loadData() {
       try {
         setLoading(true);
-        const [cats, bevs, queue] = await Promise.all([
+        const [cats, bevs] = await Promise.all([
           fetchBeverageCategories().catch(() => []),
           fetchBeverages().catch(() => []),
-          fetchActiveQueue().catch(() => ({ total_antrian: 0 })),
         ]);
         setCategories(cats);
         setBeverages(bevs);
-        setActiveQueueCount(queue.total_antrian || 0);
       } catch (err) {
         console.error("Gagal memuat katalog minuman", err);
       } finally {
@@ -75,20 +71,6 @@ export default function DigitalMenuShowcasePage() {
           </div>
 
           <div className="flex items-center space-x-2 sm:space-x-3 font-mono text-xs">
-            <Link
-              href="/antrian"
-              className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white transition flex items-center gap-1.5"
-              title="Lihat Papan Antrean TV Publik"
-            >
-              <span>📺</span>
-              <span className="hidden sm:inline">Papan Antrian</span>
-              {activeQueueCount > 0 && (
-                <span className="px-1.5 py-0.2 rounded-full bg-amber-500 text-zinc-950 text-[10px] font-bold">
-                  {activeQueueCount}
-                </span>
-              )}
-            </Link>
-
             <Link
               href="/kasir"
               className="px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold transition flex items-center gap-1.5 shadow-sm shadow-amber-500/20"
@@ -264,9 +246,6 @@ export default function DigitalMenuShowcasePage() {
           <div className="flex items-center space-x-4">
             <Link href="/kasir" className="hover:text-amber-400 transition">
               Station Kasir
-            </Link>
-            <Link href="/antrian" className="hover:text-amber-400 transition">
-              Layar TV Antrian
             </Link>
             <Link href="/login" className="hover:text-amber-400 transition">
               Portal Staf

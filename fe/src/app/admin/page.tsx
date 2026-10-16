@@ -128,14 +128,6 @@ export default function AdminOverviewPage() {
               <span>Meja Kasir & Barista</span>
               <span>↗</span>
             </Link>
-            <Link
-              href="/antrian"
-              target="_blank"
-              className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition flex items-center gap-1 border border-zinc-700"
-            >
-              <span>TV Antrian</span>
-              <span>↗</span>
-            </Link>
           </div>
         </div>
 

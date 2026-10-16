@@ -498,15 +498,6 @@ export default function KasirUnifiedPortalPage() {
                 📦 Kelola Stok
               </button>
 
-              <Link
-                href="/antrian"
-                className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white transition flex items-center gap-1"
-                title="Buka Layar TV Antrean Publik"
-              >
-                <span>📺</span>
-                <span className="hidden sm:inline">TV Antrian</span>
-              </Link>
-
               {(currentUserRole === "owner" || currentUserRole === "admin") && (
                 <Link
                   href="/admin"
