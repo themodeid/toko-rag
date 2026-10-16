@@ -123,6 +123,15 @@ export default function KasirUnifiedPortalPage() {
     return () => clearInterval(interval);
   }, [activeMainTab]);
 
+  // Auto-dismiss order success pop-up after 4.5s
+  useEffect(() => {
+    if (!lastOrderSuccess) return;
+    const timer = setTimeout(() => {
+      setLastOrderSuccess(null);
+    }, 4500);
+    return () => clearTimeout(timer);
+  }, [lastOrderSuccess]);
+
   // Update order status in KDS
   const handleUpdateStatus = async (
     orderId: string,
@@ -525,34 +534,40 @@ export default function KasirUnifiedPortalPage() {
       ======================================================== */}
       {activeMainTab === "POS" && (
         <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 flex-1 flex flex-col gap-6">
-          {/* Order Success Toast / Banner */}
+          {/* Floating Order Success Toast / Pop-up */}
           {lastOrderSuccess && (
-            <div className="p-4 rounded-xl bg-emerald-500/15 border-2 border-emerald-500/40 text-emerald-300 flex items-center justify-between gap-3 shadow-lg">
-              <div className="flex items-center space-x-3">
-                <span className="text-2xl">🎉</span>
-                <div>
-                  <p className="font-bold text-white text-sm">
-                    Pesanan #{lastOrderSuccess.code} atas nama{" "}
-                    <span className="text-emerald-400 underline uppercase">
-                      {lastOrderSuccess.name}
-                    </span>{" "}
-                    berhasil dibuat!
-                  </p>
-                  <p className="text-xs text-emerald-400 mt-0.5 font-mono">
-                    Status: Lunas Cashless • Otomatis masuk antrean racik Barista.
-                  </p>
+            <div className="fixed top-20 right-4 sm:right-6 z-50 max-w-sm sm:max-w-md w-[calc(100vw-2rem)] animate-in fade-in slide-in-from-top-4 duration-200">
+              <div className="p-4 rounded-2xl bg-zinc-950/95 border-2 border-emerald-500/70 text-white shadow-2xl backdrop-blur-md flex items-center justify-between gap-3">
+                <div className="flex items-center space-x-3 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-xl shrink-0">
+                    ✅
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-bold text-sm text-white truncate">
+                      Pesanan{" "}
+                      <span className="text-amber-400 font-mono">
+                        {lastOrderSuccess.code.startsWith("#")
+                          ? lastOrderSuccess.code
+                          : `#${lastOrderSuccess.code}`}
+                      </span>{" "}
+                      Berhasil Dibuat!
+                    </p>
+                    <p className="text-xs text-zinc-300 truncate">
+                      Pemesan:{" "}
+                      <span className="font-bold text-emerald-400 uppercase">
+                        {lastOrderSuccess.name}
+                      </span>
+                    </p>
+                    <p className="text-[10px] text-zinc-400 font-mono mt-0.5">
+                      Lunas Cashless • Otomatis masuk antrean Barista
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center space-x-2">
                 <button
-                  onClick={() => setActiveMainTab("KDS")}
-                  className="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold font-mono text-xs transition"
-                >
-                  Lihat di Barista →
-                </button>
-                <button
+                  type="button"
                   onClick={() => setLastOrderSuccess(null)}
-                  className="text-zinc-400 hover:text-white px-2 py-1 text-sm font-mono"
+                  className="w-8 h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center font-mono text-xs shrink-0 border border-zinc-800 transition"
+                  title="Tutup Notifikasi"
                 >
                   ✕
                 </button>
