@@ -194,9 +194,9 @@ export default function KasirUnifiedPortalPage() {
     setPosCart((prev) => {
       const existingIdx = prev.findIndex((item) => item.minuman.id === beverage.id);
       if (existingIdx > -1) {
-        const next = [...prev];
-        next[existingIdx].qty += 1;
-        return next;
+        return prev.map((item, idx) =>
+          idx === existingIdx ? { ...item, qty: item.qty + 1 } : item
+        );
       }
       return [
         ...prev,
@@ -212,14 +212,15 @@ export default function KasirUnifiedPortalPage() {
 
   const handlePosUpdateQty = (index: number, delta: number) => {
     setPosCart((prev) => {
-      const next = [...prev];
-      const newQty = next[index].qty + delta;
+      const target = prev[index];
+      if (!target) return prev;
+      const newQty = target.qty + delta;
       if (newQty <= 0) {
-        next.splice(index, 1);
-      } else {
-        next[index].qty = newQty;
+        return prev.filter((_, idx) => idx !== index);
       }
-      return next;
+      return prev.map((item, idx) =>
+        idx === index ? { ...item, qty: newQty } : item
+      );
     });
   };
 
@@ -590,6 +591,7 @@ export default function KasirUnifiedPortalPage() {
                 {/* Category Chips */}
                 <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0 scrollbar-none font-mono text-xs">
                   <button
+                    type="button"
                     onClick={() => setPosSelectedCategory("ALL")}
                     className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition ${
                       posSelectedCategory === "ALL"
@@ -602,6 +604,7 @@ export default function KasirUnifiedPortalPage() {
                   {posCategories.map((c) => (
                     <button
                       key={c.id}
+                      type="button"
                       onClick={() => setPosSelectedCategory(c.id)}
                       className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition ${
                         posSelectedCategory === c.id
@@ -622,6 +625,7 @@ export default function KasirUnifiedPortalPage() {
                   return (
                     <button
                       key={bev.id}
+                      type="button"
                       disabled={!isAvailable}
                       onClick={() => handlePosAddToCart(bev)}
                       className={`group p-3 rounded-xl border text-left flex flex-col justify-between transition relative overflow-hidden ${
