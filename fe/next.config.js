@@ -14,6 +14,11 @@ const nextConfig = {
   async redirects() {
     return [
       {
+        source: "/",
+        destination: "/kasir",
+        permanent: false,
+      },
+      {
         source: "/antrian",
         destination: "/kasir",
         permanent: false,
