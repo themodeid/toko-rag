@@ -41,11 +41,11 @@ export default function ProtectedRoute({ children, allowedRole }: ProtectedRoute
         router.replace("/login");
       } else if (!isAuthorized) {
         if (userRole === "owner" || userRole === "admin") {
-          router.replace("/admin/analyst");
+          router.replace("/admin");
         } else if (userRole === "karyawan") {
-          router.replace("/pesanan/daftar_pesanan");
+          router.replace("/kasir");
         } else {
-          router.replace("/");
+          router.replace("/kasir");
         }
       }
     }

@@ -23,6 +23,46 @@ const nextConfig = {
         destination: "/kasir",
         permanent: false,
       },
+      {
+        source: "/pesanan/:path*",
+        destination: "/kasir",
+        permanent: false,
+      },
+      {
+        source: "/menu/:path*",
+        destination: "/admin/menu",
+        permanent: false,
+      },
+      {
+        source: "/admin/pos",
+        destination: "/kasir",
+        permanent: false,
+      },
+      {
+        source: "/admin/laporan",
+        destination: "/admin/expenses",
+        permanent: false,
+      },
+      {
+        source: "/admin/promo",
+        destination: "/admin/menu",
+        permanent: false,
+      },
+      {
+        source: "/admin/recipes",
+        destination: "/admin/inventory",
+        permanent: false,
+      },
+      {
+        source: "/login_admin",
+        destination: "/login",
+        permanent: false,
+      },
+      {
+        source: "/login/pos",
+        destination: "/kasir/login",
+        permanent: false,
+      },
     ];
   },
   images: {

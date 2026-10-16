@@ -448,9 +448,9 @@ export default function AiChatWidget() {
                                   </div>
                                 </div>
                                 <Link
-                                  href={`/menu/profil_produk/${prod.id}`}
+                                  href="/kasir"
                                   className="w-8 h-8 rounded-lg bg-zinc-850 hover:bg-zinc-700 text-zinc-200 flex items-center justify-center transition-colors flex-shrink-0 border border-zinc-750"
-                                  title="Lihat Detail Menu"
+                                  title="Pesan di Kasir"
                                 >
                                   <FeatherIcon icon="arrow-right" className="w-3.5 h-3.5" />
                                 </Link>

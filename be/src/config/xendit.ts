@@ -52,8 +52,8 @@ export async function createXenditInvoice(
       "DANA",
       "SHOPEEPAY",
     ],
-    success_redirect_url: `${ENV.FRONTEND_URL}/pesanan/history_pesanan`,
-    failure_redirect_url: `${ENV.FRONTEND_URL}/pesanan/history_pesanan`,
+    success_redirect_url: `${ENV.FRONTEND_URL}/kasir`,
+    failure_redirect_url: `${ENV.FRONTEND_URL}/kasir`,
   };
 
   try {
