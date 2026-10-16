@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -131,9 +131,22 @@ export default function KasirKdsDashboardPage() {
     if (selectedFilter === "MENUNGGU_RACIK") return o.status_antrian === "MENUNGGU_RACIK";
     if (selectedFilter === "SEDANG_DIRACIK") return o.status_antrian === "SEDANG_DIRACIK";
     if (selectedFilter === "SIAP_DIAMBIL") return o.status_antrian === "SIAP_DIAMBIL";
-    if (selectedFilter === "SELESAI") return o.status_antrian === "SELESAI";
     return true;
   });
+
+  // Single Active Order: Deteksi pesanan yang saat ini sedang diracik
+  const activeBrewingOrder = useMemo(
+    () => orders.find((o) => o.status_antrian === "SEDANG_DIRACIK"),
+    [orders]
+  );
+
+  // FIFO: Cari pesanan paling awal masuk yang menunggu racik
+  const earliestWaitingOrderId = useMemo(() => {
+    const waiting = orders
+      .filter((o) => o.status_antrian === "MENUNGGU_RACIK")
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    return waiting[0]?.id;
+  }, [orders]);
 
   return (
     <div className="min-h-screen bg-[#09090b] text-[#f4f4f5] font-sans flex flex-col selection:bg-amber-500/20">
@@ -269,6 +282,38 @@ export default function KasirKdsDashboardPage() {
         </div>
       </section>
 
+      {/* ACTIVE BREWING FOCUS BANNER */}
+      {activeBrewingOrder && (
+        <section className="max-w-7xl mx-auto w-full px-6 pt-1 pb-3">
+          <div className="p-4 rounded-xl bg-amber-500/15 border border-amber-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg shadow-amber-500/5">
+            <div className="flex items-center space-x-3">
+              <span className="text-2xl animate-spin">☕</span>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-amber-500 text-zinc-950 font-black">
+                    Fokus 1 Keranjang
+                  </span>
+                  <span className="text-xs font-mono text-amber-300">
+                    Selesaikan racikan ini sebelum lanjut ke tiket antrean berikutnya
+                  </span>
+                </div>
+                <p className="text-sm font-bold text-white mt-0.5">
+                  Pesanan #{activeBrewingOrder.order_code} • {activeBrewingOrder.nama_pelanggan} ({activeBrewingOrder.items?.length || 0} Minuman)
+                </p>
+              </div>
+            </div>
+            <button
+              disabled={updatingId === activeBrewingOrder.id}
+              onClick={() => handleUpdateStatus(activeBrewingOrder.id, "SIAP_DIAMBIL")}
+              className="px-5 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold font-mono text-xs transition shadow-md flex items-center justify-center space-x-1.5"
+            >
+              <span>{updatingId === activeBrewingOrder.id ? "Memproses..." : "🔔 Selesai Racik (Panggil ke Bar)"}</span>
+              <span>→</span>
+            </button>
+          </div>
+        </section>
+      )}
+
       {/* KDS ORDERS BOARD */}
       <main className="max-w-7xl mx-auto w-full px-6 pb-20 flex-1">
         {loading ? (
@@ -294,12 +339,19 @@ export default function KasirKdsDashboardPage() {
                     order.status_antrian === "SIAP_DIAMBIL"
                       ? "bg-emerald-950/20 border-emerald-500/40"
                       : order.status_antrian === "SEDANG_DIRACIK"
-                      ? "bg-amber-950/20 border-amber-500/40"
+                      ? "bg-amber-950/30 border-amber-500 ring-2 ring-amber-500/40 shadow-lg shadow-amber-500/10"
                       : "bg-zinc-900/60 border-zinc-800"
                   }`}
                 >
                   <div className="space-y-3">
                     {/* Header Card */}
+                    {order.status_antrian === "SEDANG_DIRACIK" && (
+                      <div className="px-2.5 py-1 rounded-md bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[11px] font-bold font-mono flex items-center justify-between">
+                        <span>🔥 FOKUS RACIKAN AKTIF (1 KERANJANG)</span>
+                        <span className="animate-pulse">● Sedang Dibuat</span>
+                      </div>
+                    )}
+
                     <div className="flex items-start justify-between border-b border-zinc-800/80 pb-3">
                       <div>
                         <div className="flex items-center space-x-2">
@@ -370,13 +422,33 @@ export default function KasirKdsDashboardPage() {
                   {/* Action Buttons */}
                   <div className="mt-4 pt-3 border-t border-zinc-800/80">
                     {order.status_antrian === "MENUNGGU_RACIK" && (
-                      <button
-                        disabled={isUpdating}
-                        onClick={() => handleUpdateStatus(order.id, "SEDANG_DIRACIK")}
-                        className="w-full py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold font-mono text-xs transition shadow-sm"
-                      >
-                        {isUpdating ? "Memproses..." : "▶ Mulai Racik Minuman"}
-                      </button>
+                      <div>
+                        {activeBrewingOrder ? (
+                          <button
+                            disabled={true}
+                            className="w-full py-2.5 rounded-lg bg-zinc-800/80 border border-zinc-700/60 text-zinc-500 font-bold font-mono text-xs cursor-not-allowed flex items-center justify-center gap-1.5"
+                            title={`Selesaikan racikan pesanan #${activeBrewingOrder.order_code} terlebih dahulu!`}
+                          >
+                            <span>🔒 Selesaikan Racikan #{activeBrewingOrder.order_code} Dulu</span>
+                          </button>
+                        ) : order.id !== earliestWaitingOrderId ? (
+                          <button
+                            disabled={true}
+                            className="w-full py-2.5 rounded-lg bg-zinc-800/80 border border-zinc-700/60 text-zinc-500 font-bold font-mono text-xs cursor-not-allowed flex items-center justify-center gap-1.5"
+                            title="Dahulukan pesanan yang masuk lebih awal sesuai antrean!"
+                          >
+                            <span>⏳ Antrean: Tunggu Giliran</span>
+                          </button>
+                        ) : (
+                          <button
+                            disabled={isUpdating}
+                            onClick={() => handleUpdateStatus(order.id, "SEDANG_DIRACIK")}
+                            className="w-full py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold font-mono text-xs transition shadow-md shadow-amber-500/20 flex items-center justify-center gap-1.5"
+                          >
+                            {isUpdating ? "Memproses..." : "▶ Mulai Racik Minuman"}
+                          </button>
+                        )}
+                      </div>
                     )}
 
                     {order.status_antrian === "SEDANG_DIRACIK" && (

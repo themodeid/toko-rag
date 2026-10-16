@@ -117,8 +117,64 @@ export class KasirService {
 
   /**
    * Kasir: Update Status Antrian (Mulai Racik -> Siap Diambil -> Selesai)
+   * Aturan Tegas:
+   * 1. Single Active Order: Barista wajib menyelesaikan 1 keranjang pesanan (SEDANG_DIRACIK)
+   *    sebelum boleh memulai keranjang berikutnya.
+   * 2. FIFO (First-In, First-Out): Wajib memproses pesanan paling awal masuk terlebih dahulu.
    */
   static async updateOrderStatus(orderId: string, newStatus: string) {
+    // 1. Cek keberadaan data pesanan yang hendak diupdate
+    const { rows: currentRows } = await query(
+      `SELECT id, no_antrian, nama_pelanggan, status_antrian, created_at FROM tb_orders WHERE id = $1;`,
+      [orderId]
+    );
+
+    if (currentRows.length === 0) {
+      throw new AppError("Pesanan tidak ditemukan", 404);
+    }
+    const currentOrder = currentRows[0];
+
+    // 2. Proteksi Ketat Saat Mulai Meracik (status -> SEDANG_DIRACIK)
+    if (newStatus === "SEDANG_DIRACIK") {
+      // Aturan 1: Pastikan TIDAK ADA pesanan lain yang masih aktif diracik
+      const { rows: activeRows } = await query(
+        `SELECT id, no_antrian, nama_pelanggan 
+         FROM tb_orders 
+         WHERE status_antrian = 'SEDANG_DIRACIK' AND id != $1 
+         LIMIT 1;`,
+        [orderId]
+      );
+
+      if (activeRows.length > 0) {
+        const active = activeRows[0];
+        throw new AppError(
+          `Barista wajib menyelesaikan 1 keranjang racikan dulu! Pesanan ${active.no_antrian} (${active.nama_pelanggan}) masih dalam proses racik.`,
+          400
+        );
+      }
+
+      // Aturan 2: FIFO (Dahulukan pesanan yang masuk lebih awal)
+      const { rows: olderRows } = await query(
+        `SELECT id, no_antrian, nama_pelanggan 
+         FROM tb_orders 
+         WHERE status_antrian = 'MENUNGGU_RACIK' 
+           AND created_at < $1 
+           AND id != $2 
+         ORDER BY created_at ASC 
+         LIMIT 1;`,
+        [currentOrder.created_at, orderId]
+      );
+
+      if (olderRows.length > 0) {
+        const older = olderRows[0];
+        throw new AppError(
+          `Wajib meracik sesuai urutan antrean! Selesaikan pesanan ${older.no_antrian} (${older.nama_pelanggan}) terlebih dahulu.`,
+          400
+        );
+      }
+    }
+
+    // 3. Update status pesanan di database
     const isCompleted = newStatus === "SELESAI";
     const sql = `
       UPDATE tb_orders
@@ -129,9 +185,6 @@ export class KasirService {
       RETURNING id, no_antrian, no_antrian AS order_code, nama_pelanggan, status_antrian, waktu_selesai;
     `;
     const { rows } = await query(sql, [newStatus, isCompleted, orderId]);
-    if (rows.length === 0) {
-      throw new AppError("Pesanan tidak ditemukan", 404);
-    }
     return rows[0];
   }
 
