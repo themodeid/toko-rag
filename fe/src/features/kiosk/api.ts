@@ -121,8 +121,72 @@ export async function toggleBeverageStock(
   beverageId: string,
   is_available: boolean
 ): Promise<{ id: string; is_available: boolean }> {
-  const res = await api.patch(`/api/kasir/beverages/${beverageId}/stock`, {
+  const res = await api.patch(`/api/beverages/${beverageId}/availability`, {
     is_available,
   });
   return res.data.data;
 }
+
+/* ========================================================
+   OWNER / ADMIN API (UNIFIED SINGLE SOURCE OF TRUTH)
+======================================================== */
+
+export async function createBeverageAdmin(formData: FormData): Promise<Minuman> {
+  const res = await api.post("/api/beverages", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return res.data.data;
+}
+
+export async function updateBeverageAdmin(
+  id: string,
+  formData: FormData
+): Promise<Minuman> {
+  const res = await api.put(`/api/beverages/${id}`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return res.data.data;
+}
+
+export async function deleteBeverageAdmin(id: string): Promise<{ id: string; nama: string }> {
+  const res = await api.delete(`/api/beverages/${id}`);
+  return res.data.data;
+}
+
+export async function fetchAdminOrders(status?: string): Promise<any[]> {
+  const res = await api.get("/api/admin/orders", {
+    params: status && status !== "ALL" ? { status } : undefined,
+  });
+  return res.data.data ?? [];
+}
+
+export async function updateAdminOrderStatus(
+  orderId: string,
+  status: string
+): Promise<any> {
+  const res = await api.patch(`/api/admin/orders/${orderId}/status`, {
+    status,
+  });
+  return res.data.data;
+}
+
+export async function fetchAdminStaff(): Promise<any[]> {
+  const res = await api.get("/api/admin/staff");
+  return res.data.data ?? [];
+}
+
+export async function createAdminStaff(payload: {
+  username: string;
+  password: string;
+  nama: string;
+  role?: string;
+}): Promise<any> {
+  const res = await api.post("/api/admin/staff", payload);
+  return res.data.data;
+}
+
+export async function deleteAdminStaff(id: string): Promise<any> {
+  const res = await api.delete(`/api/admin/staff/${id}`);
+  return res.data.data;
+}
+

@@ -192,13 +192,26 @@ export default function AdminLayout({
                   </span>
                 )}
               </Link>
+
+              <Link
+                href="/admin/expenses"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition ${
+                  isLinkActive("/admin/expenses")
+                    ? "bg-amber-500 text-zinc-950 font-bold shadow-sm"
+                    : "text-zinc-400 hover:bg-zinc-800/60 hover:text-white"
+                }`}
+              >
+                <span className="text-sm">💸</span>
+                <span>Beban Operasional</span>
+              </Link>
             </div>
           </div>
 
-          {/* Section 3: Governance */}
+          {/* Section 3: Governance & Intelligence */}
           <div className="space-y-1">
             <p className="px-3 text-[10px] font-mono uppercase tracking-wider text-zinc-500 mb-1.5">
-              Governance
+              Governance & Intelligence
             </p>
             <div className="space-y-0.5">
               <Link
@@ -212,6 +225,19 @@ export default function AdminLayout({
               >
                 <span className="text-sm">👥</span>
                 <span>Staf & Karyawan</span>
+              </Link>
+
+              <Link
+                href="/admin/analyst"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition ${
+                  isLinkActive("/admin/analyst")
+                    ? "bg-amber-500 text-zinc-950 font-bold shadow-sm"
+                    : "text-zinc-400 hover:bg-zinc-800/60 hover:text-white"
+                }`}
+              >
+                <span className="text-sm">🧠</span>
+                <span>AI Dual-RAG Analyst</span>
               </Link>
             </div>
           </div>

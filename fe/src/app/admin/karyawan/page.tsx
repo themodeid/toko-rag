@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import FeatherIcon from "feather-icons-react";
-import Sidebar from "@/components/Sidebar";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { StaffMember, CreateStaffPayload, getAllStaff, createStaff, updateStaff, deleteStaff } from "@/features/staff/api";
 

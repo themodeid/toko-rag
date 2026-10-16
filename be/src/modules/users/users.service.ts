@@ -43,7 +43,7 @@ export const getAllStaffService = async () => {
 export const createStaffService = async (data: {
   username: string;
   password: string;
-  role: "karyawan";
+  role?: "karyawan" | "admin" | "owner" | string;
 }) => {
   const existing = await pool.query(
     `SELECT id FROM auth WHERE username = $1`,
@@ -64,6 +64,19 @@ export const createStaffService = async (data: {
       data.role || "karyawan",
     ]
   );
+
+  // Sync to tb_staff for Kasir/Barista login
+  try {
+    await pool.query(
+      `INSERT INTO tb_staff (username, password_hash, nama, role)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (username) DO UPDATE 
+       SET password_hash = EXCLUDED.password_hash, nama = EXCLUDED.nama, role = EXCLUDED.role;`,
+      [data.username, hashedPassword, data.username, data.role === "admin" ? "admin" : "kasir"]
+    );
+  } catch (e) {
+    // quiet sync fallback
+  }
 
   return result.rows[0];
 };
@@ -87,6 +100,16 @@ export const updateStaffService = async (
     const hashed = await bcrypt.hash(data.password, 10);
     params.push(hashed);
     updates.push(`password = $${params.length}`);
+
+    // Sync password to tb_staff
+    try {
+      await pool.query(
+        `UPDATE tb_staff SET password_hash = $1 WHERE username = (SELECT username FROM auth WHERE id = $2);`,
+        [hashed, id]
+      );
+    } catch (e) {
+      // quiet fallback
+    }
   }
 
   if (updates.length === 0) {
@@ -108,6 +131,16 @@ export const updateStaffService = async (
 };
 
 export const deleteStaffService = async (id: string) => {
+  // Sync delete from tb_staff
+  try {
+    await pool.query(
+      `DELETE FROM tb_staff WHERE username = (SELECT username FROM auth WHERE id = $1);`,
+      [id]
+    );
+  } catch (e) {
+    // quiet fallback
+  }
+
   const result = await pool.query(
     `DELETE FROM auth WHERE id = $1 AND role != 'owner' RETURNING id`,
     [id]

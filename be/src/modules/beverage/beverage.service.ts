@@ -8,6 +8,9 @@ export interface BeverageItem {
   nama: string;
   deskripsi: string | null;
   harga: number;
+  hpp?: number;
+  stock?: number;
+  estimasi_menit?: number;
   is_available: boolean;
   image_url: string | null;
   total_terjual: number;
@@ -41,6 +44,9 @@ export class BeverageService {
         m.nama,
         m.deskripsi,
         m.harga,
+        COALESCE(m.hpp, 0)::int AS hpp,
+        COALESCE(m.stock, 50)::int AS stock,
+        COALESCE(m.estimasi_menit, 4)::int AS estimasi_menit,
         m.is_available,
         m.image_url,
         m.total_terjual,
@@ -78,6 +84,9 @@ export class BeverageService {
         m.nama,
         m.deskripsi,
         m.harga,
+        COALESCE(m.hpp, 0)::int AS hpp,
+        COALESCE(m.stock, 50)::int AS stock,
+        COALESCE(m.estimasi_menit, 4)::int AS estimasi_menit,
         m.is_available,
         m.image_url,
         m.total_terjual,
@@ -94,7 +103,6 @@ export class BeverageService {
       throw new AppError("Minuman tidak ditemukan", 404);
     }
 
-    // Ambil ulasan terbaru
     const reviewSql = `
       SELECT id, nama_pelanggan, rating, komentar, created_at
       FROM tb_ulasan
@@ -108,6 +116,107 @@ export class BeverageService {
       beverage: rows[0],
       reviews: reviewResult.rows,
     };
+  }
+
+  /**
+   * Owner: Tambah minuman baru ke katalog resmi
+   */
+  static async createBeverage(payload: {
+    kategori_id: number;
+    nama: string;
+    deskripsi?: string;
+    harga: number;
+    hpp?: number;
+    stock?: number;
+    estimasi_menit?: number;
+    image_url?: string;
+  }) {
+    const sql = `
+      INSERT INTO tb_minuman (
+        kategori_id, nama, deskripsi, harga, hpp, stock, estimasi_menit, image_url, is_available
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, TRUE)
+      RETURNING *;
+    `;
+    const values = [
+      payload.kategori_id,
+      payload.nama.trim(),
+      payload.deskripsi || null,
+      payload.harga,
+      payload.hpp || 0,
+      payload.stock !== undefined ? payload.stock : 50,
+      payload.estimasi_menit || 4,
+      payload.image_url || null,
+    ];
+    const { rows } = await query(sql, values);
+    return rows[0];
+  }
+
+  /**
+   * Owner: Update data minuman
+   */
+  static async updateBeverage(
+    id: string,
+    payload: {
+      kategori_id?: number;
+      nama?: string;
+      deskripsi?: string;
+      harga?: number;
+      hpp?: number;
+      stock?: number;
+      estimasi_menit?: number;
+      image_url?: string;
+      is_available?: boolean;
+    }
+  ) {
+    const existing = await query("SELECT * FROM tb_minuman WHERE id = $1", [id]);
+    if (existing.rows.length === 0) {
+      throw new AppError("Minuman tidak ditemukan", 404);
+    }
+    const current = existing.rows[0];
+
+    const sql = `
+      UPDATE tb_minuman
+      SET 
+        kategori_id = COALESCE($1, kategori_id),
+        nama = COALESCE($2, nama),
+        deskripsi = COALESCE($3, deskripsi),
+        harga = COALESCE($4, harga),
+        hpp = COALESCE($5, hpp),
+        stock = COALESCE($6, stock),
+        estimasi_menit = COALESCE($7, estimasi_menit),
+        image_url = COALESCE($8, image_url),
+        is_available = COALESCE($9, is_available),
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = $10
+      RETURNING *;
+    `;
+    const values = [
+      payload.kategori_id ?? current.kategori_id,
+      payload.nama ? payload.nama.trim() : current.nama,
+      payload.deskripsi !== undefined ? payload.deskripsi : current.deskripsi,
+      payload.harga ?? current.harga,
+      payload.hpp ?? current.hpp,
+      payload.stock ?? current.stock,
+      payload.estimasi_menit ?? current.estimasi_menit,
+      payload.image_url ?? current.image_url,
+      payload.is_available ?? current.is_available,
+      id,
+    ];
+    const { rows } = await query(sql, values);
+    return rows[0];
+  }
+
+  /**
+   * Owner: Hapus menu minuman
+   */
+  static async deleteBeverage(id: string) {
+    const sql = "DELETE FROM tb_minuman WHERE id = $1 RETURNING id, nama;";
+    const { rows } = await query(sql, [id]);
+    if (rows.length === 0) {
+      throw new AppError("Minuman tidak ditemukan", 404);
+    }
+    return rows[0];
   }
 
   /**

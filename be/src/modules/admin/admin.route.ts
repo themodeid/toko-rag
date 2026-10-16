@@ -6,6 +6,15 @@ const router = Router();
 // Overview dashboard metrics
 router.get("/overview", AdminController.getOverview);
 
+// Orders Management (tb_orders)
+router.get("/orders", AdminController.getAllOrders);
+router.patch("/orders/:id/status", AdminController.updateOrderStatus);
+
+// Staff Management (tb_staff)
+router.get("/staff", AdminController.getAllStaff);
+router.post("/staff", AdminController.createStaff);
+router.delete("/staff/:id", AdminController.deleteStaff);
+
 // Inventory (Bahan Baku)
 router.get("/inventory", AdminController.getInventory);
 router.post("/inventory", AdminController.createInventoryItem);

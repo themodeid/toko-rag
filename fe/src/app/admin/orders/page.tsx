@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getAllOrderActiveItems, selesaiOrder, cancelOrder } from "@/features/cart/api";
-import { Order } from "@/features/cart/types";
+import { fetchAdminOrders, updateAdminOrderStatus } from "@/features/kiosk/api";
 
 export default function AdminOrdersPage() {
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
@@ -13,7 +12,7 @@ export default function AdminOrdersPage() {
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const res = await getAllOrderActiveItems();
+      const res = await fetchAdminOrders(statusFilter);
       setOrders(res || []);
     } catch (err) {
       console.error("Failed to load orders:", err);
@@ -24,17 +23,17 @@ export default function AdminOrdersPage() {
 
   useEffect(() => {
     fetchOrders();
-    const interval = setInterval(fetchOrders, 10000);
+    const interval = setInterval(fetchOrders, 8000);
     return () => clearInterval(interval);
-  }, []);
+  }, [statusFilter]);
 
-  const handleComplete = async (orderId: string) => {
+  const handleUpdateStatus = async (orderId: string, nextStatus: string) => {
     try {
       setActionLoading(orderId);
-      await selesaiOrder(orderId);
+      await updateAdminOrderStatus(orderId, nextStatus);
       await fetchOrders();
     } catch (err) {
-      alert("Gagal menyelesaikan pesanan");
+      alert("Gagal memperbarui status pesanan");
     } finally {
       setActionLoading(null);
     }
@@ -44,7 +43,7 @@ export default function AdminOrdersPage() {
     if (!window.confirm("Yakin ingin membatalkan pesanan ini?")) return;
     try {
       setActionLoading(orderId);
-      await cancelOrder(orderId);
+      await updateAdminOrderStatus(orderId, "DIBATALKAN");
       await fetchOrders();
     } catch (err) {
       alert("Gagal membatalkan pesanan");
@@ -61,11 +60,6 @@ export default function AdminOrdersPage() {
     }).format(val || 0);
   };
 
-  const filteredOrders = orders.filter((o) => {
-    if (statusFilter === "ALL") return true;
-    return o.statusPesanan?.toUpperCase() === statusFilter;
-  });
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -73,16 +67,16 @@ export default function AdminOrdersPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
             <span>📋</span>
-            <span>Orders & Kitchen Queue</span>
+            <span>Live Orders & Kitchen Queue</span>
           </h1>
           <p className="text-xs text-zinc-400 mt-1">
-            Manajemen antrian dapur, status pesanan pelanggan, dan rekap transaksi QRIS secara real-time.
+            Audit pesanan live dari Kiosk Pembeli dan Kitchen Display System Barista secara real-time.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <div className="inline-flex bg-zinc-900 border border-zinc-800 p-0.5 rounded-xl text-xs font-mono">
-            {["ALL", "PENDING", "PAID", "DIPROSES", "SELESAI"].map((st) => (
+            {["ALL", "MENUNGGU_RACIK", "SEDANG_DIRACIK", "SIAP_DIAMBIL", "SELESAI"].map((st) => (
               <button
                 key={st}
                 onClick={() => setStatusFilter(st)}
@@ -92,7 +86,7 @@ export default function AdminOrdersPage() {
                     : "text-zinc-400 hover:text-white"
                 }`}
               >
-                {st}
+                {st === "ALL" ? "Semua" : st.replace("_", " ")}
               </button>
             ))}
           </div>
@@ -124,14 +118,14 @@ export default function AdminOrdersPage() {
         <div className="p-16 text-center text-xs font-mono text-zinc-500 bg-zinc-900/40 border border-zinc-800/80 rounded-2xl">
           Memuat antrian pesanan...
         </div>
-      ) : filteredOrders.length === 0 ? (
+      ) : orders.length === 0 ? (
         <div className="p-16 text-center text-xs font-mono text-zinc-500 bg-zinc-900/40 border border-zinc-800/80 rounded-2xl">
-          Tidak ada pesanan aktif dengan status ini.
+          Tidak ada pesanan dengan status &quot;{statusFilter}&quot;.
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredOrders.map((ord) => {
-            const isFinished = ord.statusPesanan?.toLowerCase() === "selesai";
+          {orders.map((ord) => {
+            const isFinished = ord.status_antrian === "SELESAI" || ord.status_antrian === "DIBATALKAN";
             return (
               <div
                 key={ord.id}
@@ -141,12 +135,12 @@ export default function AdminOrdersPage() {
                   {/* Order Top Bar */}
                   <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80">
                     <div>
-                      <span className="font-mono font-bold text-xs text-amber-400">
-                        #{ord.id.substring(0, 8)}
+                      <span className="font-mono font-bold text-sm text-amber-400">
+                        {ord.no_antrian || `#K-${ord.id.substring(0, 4)}`}
                       </span>
                       <p className="text-[11px] font-mono text-zinc-500 mt-0.5">
-                        {ord.createdAt
-                          ? new Date(ord.createdAt).toLocaleTimeString("id-ID", {
+                        {ord.created_at
+                          ? new Date(ord.created_at).toLocaleTimeString("id-ID", {
                               hour: "2-digit",
                               minute: "2-digit",
                             }) + " WIB"
@@ -156,15 +150,19 @@ export default function AdminOrdersPage() {
 
                     <div className="flex items-center gap-1.5">
                       <span
-                        className={`text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-full border ${
-                          ord.statusPesanan?.toLowerCase() === "selesai"
+                        className={`text-[10px] font-mono font-bold uppercase px-2.5 py-0.5 rounded-full border ${
+                          ord.status_antrian === "SELESAI"
                             ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
-                            : ord.statusPesanan?.toLowerCase() === "diproses"
+                            : ord.status_antrian === "SEDANG_DIRACIK"
                             ? "bg-sky-500/10 border-sky-500/30 text-sky-400"
+                            : ord.status_antrian === "SIAP_DIAMBIL"
+                            ? "bg-purple-500/10 border-purple-500/30 text-purple-400"
+                            : ord.status_antrian === "DIBATALKAN"
+                            ? "bg-red-500/10 border-red-500/30 text-red-400"
                             : "bg-amber-500/10 border-amber-500/30 text-amber-400"
                         }`}
                       >
-                        {ord.statusPesanan || "PENDING"}
+                        {ord.status_antrian ? ord.status_antrian.replace("_", " ") : "MENUNGGU"}
                       </span>
                     </div>
                   </div>
@@ -172,42 +170,40 @@ export default function AdminOrdersPage() {
                   {/* Customer Info */}
                   <div className="py-2.5 flex items-center justify-between text-xs">
                     <div>
-                      <p className="font-bold text-white">
-                        {ord.customerName || ord.namaUser || "Pelanggan"}
+                      <p className="font-bold text-white text-sm">
+                        {ord.nama_pelanggan || "Pelanggan Kiosk"}
                       </p>
                       <p className="text-[11px] font-mono text-zinc-400">
-                        {ord.orderType === "DINE_IN"
-                          ? `Dine-In • Meja ${ord.tableNumber || "-"}`
-                          : "Take Away"}
+                        Metode: {ord.metode_pembayaran || "QRIS Cashless"}
                       </p>
                     </div>
-                    <span className="font-mono font-bold text-white tabular-nums">
-                      {formatRupiah(Number(ord.totalPrice) || 0)}
+                    <span className="font-mono font-bold text-white text-base tabular-nums">
+                      {formatRupiah(Number(ord.total_bayar) || 0)}
                     </span>
                   </div>
 
                   {/* Items List */}
                   <div className="mt-2 space-y-1.5 bg-zinc-950 p-3 rounded-xl border border-zinc-800 text-xs">
                     {ord.items && ord.items.length > 0 ? (
-                      ord.items.map((it, idx) => (
+                      ord.items.map((it: any, idx: number) => (
                         <div
                           key={idx}
                           className="flex items-center justify-between text-zinc-300"
                         >
                           <span>
                             <span className="font-bold text-amber-400 font-mono mr-1.5">
-                              {it.quantity}x
+                              {it.qty || it.quantity || 1}x
                             </span>
-                            {it.nama}
+                            {it.nama_minuman || it.produk_nama || "Minuman"}
                           </span>
                           <span className="font-mono text-[11px] text-zinc-400 tabular-nums">
-                            {formatRupiah(it.subtotal || it.harga * it.quantity)}
+                            {formatRupiah(it.subtotal || (it.harga_satuan * (it.qty || 1)))}
                           </span>
                         </div>
                       ))
                     ) : (
                       <p className="text-[11px] text-zinc-500 italic font-mono">
-                        Pesanan langsung KDS / POS
+                        Item minuman terdata di KDS
                       </p>
                     )}
                   </div>
@@ -217,20 +213,22 @@ export default function AdminOrdersPage() {
                 <div className="pt-2 border-t border-zinc-800/80 flex items-center gap-2 font-mono">
                   {!isFinished && (
                     <button
-                      onClick={() => handleComplete(ord.id)}
+                      onClick={() => handleUpdateStatus(ord.id, "SELESAI")}
                       disabled={actionLoading === ord.id}
                       className="flex-1 py-2 bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold rounded-lg transition text-center shadow-xs disabled:opacity-50"
                     >
                       {actionLoading === ord.id ? "Memproses..." : "Tandai Selesai ✓"}
                     </button>
                   )}
-                  <button
-                    onClick={() => handleCancel(ord.id)}
-                    disabled={actionLoading === ord.id}
-                    className="px-3 py-2 border border-zinc-800 text-red-400 hover:bg-red-500/10 text-xs font-medium rounded-lg transition"
-                  >
-                    Batal
-                  </button>
+                  {ord.status_antrian !== "DIBATALKAN" && (
+                    <button
+                      onClick={() => handleCancel(ord.id)}
+                      disabled={actionLoading === ord.id}
+                      className="px-3 py-2 border border-zinc-800 text-red-400 hover:bg-red-500/10 text-xs font-medium rounded-lg transition"
+                    >
+                      Batal
+                    </button>
+                  )}
                 </div>
               </div>
             );

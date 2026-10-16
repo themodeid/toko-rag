@@ -15,7 +15,73 @@ export class AdminController {
     }
   }
 
-  // Inventory / Bahan Baku
+  // ==========================================
+  // ORDERS MANAGEMENT (tb_orders)
+  // ==========================================
+  static async getAllOrders(req: Request, res: Response) {
+    try {
+      const statusFilter = req.query.status as string | undefined;
+      const orders = await AdminService.getAllOrders(statusFilter);
+      res.status(200).json({ status: "success", data: orders });
+    } catch (error: any) {
+      res.status(500).json({ status: "error", message: error.message });
+    }
+  }
+
+  static async updateOrderStatus(req: Request, res: Response) {
+    try {
+      const id = String(req.params.id);
+      const { status } = req.body;
+      if (!status) {
+        throw new AppError("Status pesanan wajib diisi", 400);
+      }
+      const updated = await AdminService.updateOrderStatus(id, status);
+      res.status(200).json({ status: "success", data: updated });
+    } catch (error: any) {
+      res.status(error.statusCode || 500).json({ status: "error", message: error.message });
+    }
+  }
+
+  // ==========================================
+  // STAFF MANAGEMENT (tb_staff)
+  // ==========================================
+  static async getAllStaff(req: Request, res: Response) {
+    try {
+      const staff = await AdminService.getAllStaff();
+      res.status(200).json({ status: "success", data: staff });
+    } catch (error: any) {
+      res.status(500).json({ status: "error", message: error.message });
+    }
+  }
+
+  static async createStaff(req: Request, res: Response) {
+    try {
+      const { username, password, nama, role } = req.body;
+      const created = await AdminService.createStaff({
+        username,
+        passwordPlain: password,
+        nama,
+        role,
+      });
+      res.status(201).json({ status: "success", data: created });
+    } catch (error: any) {
+      res.status(error.statusCode || 500).json({ status: "error", message: error.message });
+    }
+  }
+
+  static async deleteStaff(req: Request, res: Response) {
+    try {
+      const id = String(req.params.id);
+      await AdminService.deleteStaff(id);
+      res.status(200).json({ status: "success", message: "Staf berhasil dihapus" });
+    } catch (error: any) {
+      res.status(error.statusCode || 500).json({ status: "error", message: error.message });
+    }
+  }
+
+  // ==========================================
+  // INVENTORY / BAHAN BAKU
+  // ==========================================
   static async getInventory(req: Request, res: Response) {
     try {
       const items = await AdminService.getAllBahanBaku();
@@ -38,7 +104,7 @@ export class AdminController {
         stok_saat_ini: Number(stok_saat_ini) || 0,
         stok_minimum: Number(stok_minimum) || 0,
         harga_per_satuan: Number(harga_per_satuan) || 0,
-        supplier
+        supplier,
       });
       res.status(201).json({ status: "success", data: item });
     } catch (error: any) {
@@ -66,7 +132,9 @@ export class AdminController {
     }
   }
 
-  // Recipes & HPP
+  // ==========================================
+  // RECIPES & HPP
+  // ==========================================
   static async getRecipes(req: Request, res: Response) {
     try {
       const produkId = req.query.produk_id ? String(req.query.produk_id) : undefined;
@@ -113,7 +181,9 @@ export class AdminController {
     }
   }
 
-  // Operating Expenses
+  // ==========================================
+  // OPERATING EXPENSES
+  // ==========================================
   static async getExpenses(req: Request, res: Response) {
     try {
       const items = await AdminService.getAllExpenses();
@@ -125,15 +195,16 @@ export class AdminController {
 
   static async createExpense(req: Request, res: Response) {
     try {
-      const { kategori, keterangan, nominal, tanggal } = req.body;
-      if (!kategori || !keterangan || !nominal) {
-        throw new AppError("Kategori, keterangan, dan nominal wajib diisi", 400);
+      const { kategori, nama_biaya, nama_pengeluaran, keterangan, nominal, tanggal } = req.body;
+      if (!nominal) {
+        throw new AppError("Nominal pengeluaran wajib diisi", 400);
       }
       const item = await AdminService.createExpense({
-        kategori,
+        kategori: kategori || "OPERASIONAL",
+        nama_biaya: nama_biaya || nama_pengeluaran,
         keterangan,
         nominal: Number(nominal),
-        tanggal
+        tanggal,
       });
       res.status(201).json({ status: "success", data: item });
     } catch (error: any) {
