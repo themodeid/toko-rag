@@ -14,6 +14,7 @@ export default function EnterprisePortalHubPage() {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showCustomerPassword, setShowCustomerPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -188,15 +189,34 @@ export default function EnterprisePortalHubPage() {
                 </div>
 
                 <div>
-                  <label className="block text-zinc-400 mb-1 font-semibold">Password</label>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    required
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-zinc-100"
-                  />
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-zinc-400 font-semibold">Password</label>
+                    <button
+                      type="button"
+                      onClick={() => setShowCustomerPassword(!showCustomerPassword)}
+                      className="text-[11px] text-zinc-400 hover:text-zinc-200 transition"
+                    >
+                      {showCustomerPassword ? "Sembunyikan" : "Lihat"}
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type={showCustomerPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      required
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-3 pr-10 py-2.5 text-zinc-100"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCustomerPassword(!showCustomerPassword)}
+                      className="w-7 h-7 flex items-center justify-center text-zinc-500 hover:text-zinc-300 absolute right-2 top-2"
+                      tabIndex={-1}
+                    >
+                      <FeatherIcon icon={showCustomerPassword ? "eye-off" : "eye"} className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
 
                 <button

@@ -12,6 +12,7 @@ export default function BaristaLoginPage() {
   const { refreshUser } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -106,17 +107,33 @@ export default function BaristaLoginPage() {
             </div>
 
             <div>
-              <label className="block text-zinc-300 font-semibold mb-1.5">PIN / Password Barista *</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-zinc-300 font-semibold">PIN / Password Barista *</label>
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="text-[11px] text-emerald-400 hover:text-emerald-300 transition flex items-center gap-1 font-mono"
+                >
+                  {showPassword ? "Tutup Mata" : "Lihat Password"}
+                </button>
+              </div>
               <div className="relative">
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
-                  className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-400 rounded-xl px-3.5 py-3 text-zinc-100 placeholder-zinc-600 outline-none transition-colors"
+                  className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-400 rounded-xl pl-3.5 pr-11 py-3 text-zinc-100 placeholder-zinc-600 outline-none transition-colors"
                 />
-                <FeatherIcon icon="lock" className="w-4 h-4 text-zinc-500 absolute right-3.5 top-3.5 pointer-events-none" />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:text-emerald-400 absolute right-2 top-2 transition"
+                  tabIndex={-1}
+                >
+                  <FeatherIcon icon={showPassword ? "eye-off" : "eye"} className="w-4 h-4" />
+                </button>
               </div>
             </div>
 
