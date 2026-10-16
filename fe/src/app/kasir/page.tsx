@@ -189,7 +189,6 @@ export default function KasirKdsDashboardPage() {
 
             <Link
               href="/antrian"
-              target="_blank"
               className="hidden sm:inline-flex px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white transition"
             >
               📺 TV Antrian

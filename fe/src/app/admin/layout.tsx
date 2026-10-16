@@ -272,14 +272,13 @@ export default function AdminLayout({
 
               <Link
                 href="/antrian"
-                target="_blank"
                 className="flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-zinc-400 hover:bg-zinc-800/60 hover:text-white transition"
               >
                 <div className="flex items-center gap-2.5">
                   <span className="text-sm">📺</span>
                   <span>Layar TV Antrian</span>
                 </div>
-                <span className="text-[10px] font-mono text-zinc-500">↗</span>
+                <span className="text-[10px] font-mono text-zinc-500">→</span>
               </Link>
             </div>
           </div>

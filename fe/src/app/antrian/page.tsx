@@ -59,7 +59,7 @@ export default function PublicQueueTVPage() {
           </div>
         </div>
 
-        <div className="flex items-center space-x-6 font-mono">
+        <div className="flex items-center space-x-4 sm:space-x-6 font-mono">
           <div className="text-right">
             <span className="text-[10px] text-zinc-500 uppercase tracking-wider block">
               Waktu Real-Time
@@ -69,12 +69,22 @@ export default function PublicQueueTVPage() {
             </span>
           </div>
 
-          <Link
-            href="/"
-            className="text-xs px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white transition"
-          >
-            ← Kiosk Menu
-          </Link>
+          <div className="flex items-center gap-1.5">
+            <Link
+              href="/kasir"
+              className="text-xs px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white hover:border-zinc-700 transition"
+              title="Kembali ke Layar KDS Barista"
+            >
+              🧑‍🍳 KDS
+            </Link>
+            <Link
+              href="/"
+              className="text-xs px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white hover:border-zinc-700 transition"
+              title="Kembali ke Kiosk Pesan Minuman"
+            >
+              ☕ Kiosk
+            </Link>
+          </div>
         </div>
       </header>
 
