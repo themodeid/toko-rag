@@ -38,9 +38,9 @@ export const ENV = {
   PORT: getEnvInt("PORT", 5000),
   DATABASE_URL: getEnv(
     "DATABASE_URL",
-    "postgresql://adam_dev:adamwahyukur@localhost:5453/toko_online_adam"
+    "postgresql://adam_dev:adamwahyukur@127.0.0.1:5453/toko_online_adam"
   ),
-  REDIS_URL: getEnv("REDIS_URL", "redis://localhost:6381"),
+  REDIS_URL: getEnv("REDIS_URL", "redis://127.0.0.1:6381"),
   FRONTEND_URL: getEnv("FRONTEND_URL", "http://localhost:3000"),
   CORS_ORIGIN: getEnv("CORS_ORIGIN", "http://localhost:3000,http://localhost:4000"),
   JSON_BODY_LIMIT: getEnv("JSON_BODY_LIMIT", "10mb"),
