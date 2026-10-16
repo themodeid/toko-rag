@@ -376,9 +376,6 @@ export default function KasirUnifiedPortalPage() {
                     Operasional Kedai
                   </span>
                 </div>
-                <p className="text-xs text-zinc-400 font-mono">
-                  Artisan Beverage Bar • 100% Cashless POS & KDS
-                </p>
               </div>
             </div>
 
@@ -791,11 +788,6 @@ export default function KasirUnifiedPortalPage() {
                   </span>
                 </div>
 
-                <div className="text-[10px] text-zinc-500 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                  <span>Metode: Cashless QRIS (Instant Lunas & Potong Stok)</span>
-                </div>
-
                 <button
                   type="button"
                   disabled={
@@ -825,30 +817,9 @@ export default function KasirUnifiedPortalPage() {
       ======================================================== */}
       {activeMainTab === "KDS" && (
         <div className="flex flex-col flex-1">
-          {/* SOP ALUR RACIK & SERAH BARISTA (2 LANGKAH KILAT) */}
-          <section className="max-w-7xl mx-auto w-full px-4 sm:px-6 pt-4 pb-1">
-            <div className="bg-zinc-900/90 border border-zinc-800 rounded-xl p-3 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs font-mono">
-              <div className="flex items-center gap-2 text-zinc-400">
-                <span className="text-base">📋</span>
-                <span className="font-bold text-white uppercase tracking-wider text-[11px]">SOP Alur Meja Barista:</span>
-              </div>
-              <div className="flex flex-wrap items-center gap-2 text-[11px]">
-                <div className="flex items-center gap-1.5 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/30 text-amber-300">
-                  <span className="w-4 h-4 rounded-full bg-amber-500 text-zinc-950 font-bold flex items-center justify-center text-[10px]">1</span>
-                  <span>Langsung Racik Pesanan Masuk</span>
-                </div>
-                <span className="text-zinc-600">→</span>
-                <div className="flex items-center gap-1.5 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/30 text-emerald-300">
-                  <span className="w-4 h-4 rounded-full bg-emerald-500 text-zinc-950 font-bold flex items-center justify-center text-[10px]">2</span>
-                  <span>Minuman Jadi ➔ Panggil Nama ke Bar & Serahkan</span>
-                </div>
-              </div>
-            </div>
-          </section>
-
           {/* METRIC SUMMARY CARDS */}
           {summary && (
-            <section className="max-w-7xl mx-auto w-full px-4 sm:px-6 py-4 grid grid-cols-2 md:grid-cols-4 gap-3 font-mono">
+            <section className="max-w-7xl mx-auto w-full px-4 sm:px-6 py-4 grid grid-cols-1 sm:grid-cols-2 gap-3 font-mono">
               <div className="p-3.5 rounded-xl bg-zinc-900 border border-zinc-800">
                 <span className="text-[10px] text-zinc-500 uppercase block">
                   Omset Kasir Hari Ini
@@ -859,26 +830,10 @@ export default function KasirUnifiedPortalPage() {
               </div>
               <div className="p-3.5 rounded-xl bg-zinc-900 border border-zinc-800">
                 <span className="text-[10px] text-zinc-500 uppercase block">
-                  Total Pesanan Masuk
-                </span>
-                <span className="text-lg font-bold text-white">
-                  {summary.total_orders_today} Tiket
-                </span>
-              </div>
-              <div className="p-3.5 rounded-xl bg-zinc-900 border border-zinc-800">
-                <span className="text-[10px] text-zinc-500 uppercase block">
                   Antrean Racik Menunggu
                 </span>
                 <span className="text-lg font-bold text-amber-500 animate-pulse">
                   {kitchenOrdersCount} Tiket
-                </span>
-              </div>
-              <div className="p-3.5 rounded-xl bg-zinc-900 border border-zinc-800">
-                <span className="text-[10px] text-zinc-500 uppercase block">
-                  Minuman Selesai Disajikan
-                </span>
-                <span className="text-lg font-bold text-emerald-400">
-                  {summary.completed_today} Tiket
                 </span>
               </div>
             </section>
