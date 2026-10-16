@@ -92,26 +92,36 @@ export class KasirService {
     `;
 
     const params: any[] = [];
-    if (statusFilter && statusFilter !== "ALL") {
+    if (statusFilter === "SELESAI") {
+      sql += ` WHERE o.status_antrian = 'SELESAI'`;
+    } else if (statusFilter && statusFilter !== "ALL") {
       sql += ` WHERE o.status_antrian = $1`;
       params.push(statusFilter);
     } else {
-      // Default: tampilkan yang belum selesai & belum dibatalkan
+      // Default: tampilkan yang belum selesai & belum dibatalkan (antrean aktif)
       sql += ` WHERE o.status_antrian IN ('MENUNGGU_BAYAR', 'MENUNGGU_RACIK', 'SEDANG_DIRACIK', 'SIAP_DIAMBIL')`;
     }
 
-    sql += `
-      GROUP BY o.id
-      ORDER BY 
-        CASE o.status_antrian
-          WHEN 'MENUNGGU_RACIK' THEN 1
-          WHEN 'SEDANG_DIRACIK' THEN 2
-          WHEN 'SIAP_DIAMBIL' THEN 3
-          WHEN 'MENUNGGU_BAYAR' THEN 4
-          ELSE 5
-        END,
-        o.created_at ASC;
-    `;
+    if (statusFilter === "SELESAI") {
+      sql += `
+        GROUP BY o.id
+        ORDER BY o.waktu_selesai DESC NULLS LAST, o.created_at DESC
+        LIMIT 50;
+      `;
+    } else {
+      sql += `
+        GROUP BY o.id
+        ORDER BY 
+          CASE o.status_antrian
+            WHEN 'MENUNGGU_RACIK' THEN 1
+            WHEN 'SEDANG_DIRACIK' THEN 2
+            WHEN 'SIAP_DIAMBIL' THEN 3
+            WHEN 'MENUNGGU_BAYAR' THEN 4
+            ELSE 5
+          END,
+          o.created_at ASC;
+      `;
+    }
 
     const { rows } = await query(sql, params);
     return rows;

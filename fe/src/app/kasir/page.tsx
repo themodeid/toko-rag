@@ -27,8 +27,8 @@ import { getProductImageUrl } from "@/lib/imageHelper";
 export default function KasirUnifiedPortalPage() {
   const router = useRouter();
 
-  // Mode Tab: POS Kasir vs KDS Barista
-  const [activeMainTab, setActiveMainTab] = useState<"POS" | "KDS">("POS");
+  // Mode Tab: POS Kasir vs KDS Barista vs Riwayat Selesai
+  const [activeMainTab, setActiveMainTab] = useState<"POS" | "KDS" | "HISTORY">("POS");
 
   // Orders & KDS State
   const [orders, setOrders] = useState<Order[]>([]);
@@ -36,6 +36,11 @@ export default function KasirUnifiedPortalPage() {
   const [selectedFilter, setSelectedFilter] = useState<string>("ACTIVE");
   const [loadingOrders, setLoadingOrders] = useState<boolean>(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  // History State
+  const [historyOrders, setHistoryOrders] = useState<Order[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState<boolean>(false);
+  const [historySearchQuery, setHistorySearchQuery] = useState<string>("");
 
   // POS State
   const [posBeverages, setPosBeverages] = useState<Minuman[]>([]);
@@ -72,6 +77,18 @@ export default function KasirUnifiedPortalPage() {
     return true;
   };
 
+  const loadHistory = async () => {
+    try {
+      setLoadingHistory(true);
+      const data = await fetchKasirOrders("SELESAI");
+      setHistoryOrders(data);
+    } catch (err) {
+      console.error("Gagal memuat riwayat pesanan selesai", err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
   const loadData = async () => {
     if (!checkAuth()) return;
     try {
@@ -97,9 +114,14 @@ export default function KasirUnifiedPortalPage() {
 
   useEffect(() => {
     loadData();
-    const interval = setInterval(loadData, 5000);
+    const interval = setInterval(() => {
+      loadData();
+      if (activeMainTab === "HISTORY") {
+        loadHistory();
+      }
+    }, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [activeMainTab]);
 
   // Update order status in KDS
   const handleUpdateStatus = async (
@@ -110,6 +132,9 @@ export default function KasirUnifiedPortalPage() {
       setUpdatingId(orderId);
       await updateKasirOrderStatus(orderId, nextStatus);
       await loadData();
+      if (nextStatus === "SELESAI") {
+        await loadHistory();
+      }
     } catch (err: any) {
       alert(err.response?.data?.message || "Gagal memperbarui status pesanan");
     } finally {
@@ -354,7 +379,7 @@ export default function KasirUnifiedPortalPage() {
             <div className="flex md:hidden bg-zinc-900 p-1 rounded-xl border border-zinc-800 font-mono text-xs">
               <button
                 onClick={() => setActiveMainTab("POS")}
-                className={`px-3 py-1.5 rounded-lg transition font-semibold ${
+                className={`px-2.5 py-1.5 rounded-lg transition font-semibold ${
                   activeMainTab === "POS"
                     ? "bg-amber-500 text-zinc-950 shadow-sm"
                     : "text-zinc-400 hover:text-white"
@@ -364,7 +389,7 @@ export default function KasirUnifiedPortalPage() {
               </button>
               <button
                 onClick={() => setActiveMainTab("KDS")}
-                className={`px-3 py-1.5 rounded-lg transition font-semibold flex items-center gap-1 ${
+                className={`px-2.5 py-1.5 rounded-lg transition font-semibold flex items-center gap-1 ${
                   activeMainTab === "KDS"
                     ? "bg-amber-500 text-zinc-950 shadow-sm"
                     : "text-zinc-400 hover:text-white"
@@ -377,6 +402,19 @@ export default function KasirUnifiedPortalPage() {
                   </span>
                 )}
               </button>
+              <button
+                onClick={() => {
+                  setActiveMainTab("HISTORY");
+                  loadHistory();
+                }}
+                className={`px-2.5 py-1.5 rounded-lg transition font-semibold flex items-center gap-1 ${
+                  activeMainTab === "HISTORY"
+                    ? "bg-amber-500 text-zinc-950 shadow-sm"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                <span>📜 Riwayat</span>
+              </button>
             </div>
           </div>
 
@@ -386,25 +424,25 @@ export default function KasirUnifiedPortalPage() {
             <div className="hidden md:flex bg-zinc-900 p-1 rounded-xl border border-zinc-800 font-mono text-xs">
               <button
                 onClick={() => setActiveMainTab("POS")}
-                className={`px-4 py-1.5 rounded-lg transition font-bold flex items-center gap-1.5 ${
+                className={`px-3.5 py-1.5 rounded-lg transition font-bold flex items-center gap-1.5 ${
                   activeMainTab === "POS"
                     ? "bg-amber-500 text-zinc-950 shadow-sm"
                     : "text-zinc-400 hover:text-white"
                 }`}
               >
                 <span>🧾</span>
-                <span>POS Kasir (Input Pesanan)</span>
+                <span>1. Terima Pesanan (POS)</span>
               </button>
               <button
                 onClick={() => setActiveMainTab("KDS")}
-                className={`px-4 py-1.5 rounded-lg transition font-bold flex items-center gap-2 ${
+                className={`px-3.5 py-1.5 rounded-lg transition font-bold flex items-center gap-2 ${
                   activeMainTab === "KDS"
                     ? "bg-amber-500 text-zinc-950 shadow-sm"
                     : "text-zinc-400 hover:text-white"
                 }`}
               >
                 <span>🧑‍🍳</span>
-                <span>Meja Barista (Dapur Racik)</span>
+                <span>2. Dapur Racik & Serah (KDS)</span>
                 {activeOrdersCount > 0 && (
                   <span
                     className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
@@ -414,6 +452,31 @@ export default function KasirUnifiedPortalPage() {
                     }`}
                   >
                     {activeOrdersCount}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => {
+                  setActiveMainTab("HISTORY");
+                  loadHistory();
+                }}
+                className={`px-3.5 py-1.5 rounded-lg transition font-bold flex items-center gap-1.5 ${
+                  activeMainTab === "HISTORY"
+                    ? "bg-amber-500 text-zinc-950 shadow-sm"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                <span>📜</span>
+                <span>3. Riwayat Selesai</span>
+                {summary && summary.completed_today > 0 && (
+                  <span
+                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                      activeMainTab === "HISTORY"
+                        ? "bg-zinc-950 text-amber-400"
+                        : "bg-zinc-800 text-zinc-400"
+                    }`}
+                  >
+                    {summary.completed_today}
                   </span>
                 )}
               </button>
@@ -755,6 +818,32 @@ export default function KasirUnifiedPortalPage() {
       ======================================================== */}
       {activeMainTab === "KDS" && (
         <div className="flex flex-col flex-1">
+          {/* SOP ALUR RACIK & SERAH BARISTA */}
+          <section className="max-w-7xl mx-auto w-full px-4 sm:px-6 pt-4 pb-1">
+            <div className="bg-zinc-900/90 border border-zinc-800 rounded-xl p-3 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs font-mono">
+              <div className="flex items-center gap-2 text-zinc-400">
+                <span className="text-base">📋</span>
+                <span className="font-bold text-white uppercase tracking-wider text-[11px]">SOP Alur Barista:</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 text-[11px]">
+                <div className="flex items-center gap-1.5 bg-zinc-950 px-2.5 py-1 rounded-lg border border-zinc-800">
+                  <span className="w-4 h-4 rounded-full bg-zinc-800 text-zinc-300 font-bold flex items-center justify-center text-[10px]">1</span>
+                  <span className="text-zinc-300">Ambil Antrean (FIFO)</span>
+                </div>
+                <span className="text-zinc-600">→</span>
+                <div className="flex items-center gap-1.5 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/30 text-amber-300">
+                  <span className="w-4 h-4 rounded-full bg-amber-500 text-zinc-950 font-bold flex items-center justify-center text-[10px]">2</span>
+                  <span>Fokus 1 Racikan Aktif</span>
+                </div>
+                <span className="text-zinc-600">→</span>
+                <div className="flex items-center gap-1.5 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/30 text-emerald-300">
+                  <span className="w-4 h-4 rounded-full bg-emerald-500 text-zinc-950 font-bold flex items-center justify-center text-[10px]">3</span>
+                  <span>Panggil Nama & Serahkan</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
           {/* METRIC SUMMARY CARDS */}
           {summary && (
             <section className="max-w-7xl mx-auto w-full px-4 sm:px-6 py-4 grid grid-cols-2 md:grid-cols-4 gap-3 font-mono">
@@ -1044,6 +1133,188 @@ export default function KasirUnifiedPortalPage() {
               </div>
             )}
           </main>
+        </div>
+      )}
+
+      {/* ========================================================
+          TAB 3: RIWAYAT PESANAN SELESAI (BARISTA & KASIR HISTORY)
+      ======================================================== */}
+      {activeMainTab === "HISTORY" && (
+        <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 flex-1 flex flex-col gap-6">
+          {/* Header & Search */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xl">📜</span>
+                <h2 className="text-base font-bold text-white tracking-tight">
+                  Riwayat Pesanan Selesai Disajikan
+                </h2>
+                <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
+                  Arsip Hari Ini (50 Terakhir)
+                </span>
+              </div>
+              <p className="text-xs text-zinc-400 mt-1">
+                Daftar pesanan yang telah tuntas diracik dan diserahkan ke pelanggan di meja bar.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1 sm:w-72">
+                <input
+                  type="text"
+                  value={historySearchQuery}
+                  onChange={(e) => setHistorySearchQuery(e.target.value)}
+                  placeholder="Cari nama pemesan atau #tiket..."
+                  className="w-full bg-zinc-950 border border-zinc-700 focus:border-amber-500 rounded-xl px-3.5 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none transition font-sans"
+                />
+                {historySearchQuery && (
+                  <button
+                    onClick={() => setHistorySearchQuery("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white text-xs"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              <button
+                onClick={loadHistory}
+                disabled={loadingHistory}
+                className="px-3 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-mono transition flex items-center gap-1 cursor-pointer"
+                title="Muat Ulang Riwayat"
+              >
+                <span className={loadingHistory ? "animate-spin" : ""}>↻</span>
+                <span className="hidden sm:inline">Refresh</span>
+              </button>
+            </div>
+          </div>
+
+          {/* History Content */}
+          {loadingHistory && historyOrders.length === 0 ? (
+            <div className="py-20 text-center font-mono text-xs text-zinc-500">
+              Memuat arsip pesanan selesai...
+            </div>
+          ) : (() => {
+            const query = historySearchQuery.toLowerCase().trim();
+            const filteredHistory = historyOrders.filter((o) => {
+              if (!query) return true;
+              return (
+                (o.order_code && o.order_code.toLowerCase().includes(query)) ||
+                (o.nama_pelanggan && o.nama_pelanggan.toLowerCase().includes(query)) ||
+                o.items?.some((it) => it.nama_minuman.toLowerCase().includes(query))
+              );
+            });
+
+            if (filteredHistory.length === 0) {
+              return (
+                <div className="py-20 text-center border border-dashed border-zinc-800 rounded-2xl bg-zinc-900/40">
+                  <span className="text-3xl">☕</span>
+                  <p className="text-sm text-zinc-400 mt-2 font-mono">
+                    {historySearchQuery
+                      ? "Tidak ditemukan pesanan dengan kata kunci tersebut"
+                      : "Belum ada pesanan yang diselesaikan hari ini"}
+                  </p>
+                  <p className="text-xs text-zinc-500 mt-1">
+                    Pesanan yang diserahkan di Meja Barista akan otomatis muncul di sini.
+                  </p>
+                </div>
+              );
+            }
+
+            return (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredHistory.map((order) => (
+                  <div
+                    key={order.id}
+                    className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-5 flex flex-col justify-between space-y-4 shadow-sm hover:border-zinc-700 transition"
+                  >
+                    {/* Header */}
+                    <div className="flex items-start justify-between border-b border-zinc-800/80 pb-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xl font-black font-mono text-amber-400">
+                            #{order.order_code}
+                          </span>
+                          <span className="px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-mono text-[10px] font-bold">
+                            ✓ DISERAHKAN
+                          </span>
+                        </div>
+                        <h3 className="text-sm font-bold text-white mt-1">
+                          {order.nama_pelanggan}
+                        </h3>
+                      </div>
+
+                      <div className="text-right font-mono text-[10px] text-zinc-400 space-y-0.5">
+                        <div>
+                          Masuk:{" "}
+                          <span className="text-zinc-300">
+                            {new Date(order.created_at).toLocaleTimeString("id-ID", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                        </div>
+                        {order.waktu_selesai && (
+                          <div className="text-emerald-400 font-bold">
+                            Serah:{" "}
+                            {new Date(order.waktu_selesai).toLocaleTimeString("id-ID", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Items */}
+                    <div className="space-y-2 flex-1">
+                      {order.items?.map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex items-start justify-between text-xs font-mono"
+                        >
+                          <div className="space-y-0.5">
+                            <span className="font-semibold text-zinc-200">
+                              {item.qty}x {item.nama_minuman}
+                            </span>
+                            <div className="flex items-center space-x-1.5 text-[10px] text-zinc-400">
+                              <span>{item.suhu === "ICE" ? "❄️ Ice" : "🔥 Hot"}</span>
+                              <span>•</span>
+                              <span>Gula: {item.sugar_level}</span>
+                            </div>
+                            {item.catatan && (
+                              <p className="text-[10px] text-amber-400/80 italic">
+                                Catatan: {item.catatan}
+                              </p>
+                            )}
+                          </div>
+                          <span className="text-zinc-400">
+                            Rp {(item.subtotal || 0).toLocaleString("id-ID")}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Footer / Total & Payment */}
+                    <div className="border-t border-zinc-800/80 pt-3 flex items-center justify-between font-mono text-xs">
+                      <div>
+                        <span className="text-[10px] text-zinc-500 block">Total Nilai</span>
+                        <span className="font-bold text-amber-400 text-sm">
+                          Rp {Number(order.total_amount || 0).toLocaleString("id-ID")}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] text-zinc-500 block">Metode</span>
+                        <span className="text-[11px] font-semibold text-emerald-400">
+                          {order.payment_method || "QRIS"} (Lunas)
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
         </div>
       )}
 

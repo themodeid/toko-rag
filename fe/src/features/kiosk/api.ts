@@ -96,7 +96,7 @@ export async function kasirLogin(payload: {
   return res.data.data;
 }
 
-export async function fetchKasirOrders(status?: StatusAntrian): Promise<Order[]> {
+export async function fetchKasirOrders(status?: StatusAntrian | string): Promise<Order[]> {
   const res = await api.get("/api/kasir/orders", {
     params: status ? { status } : undefined,
   });

@@ -107,6 +107,117 @@ export default function AdminOverviewPage() {
         </div>
       )}
 
+      {/* PUSAT KENDALI 4 PILAR OPERASIONAL KEDAI */}
+      <div className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-5 space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-800/80 pb-3">
+          <div>
+            <h2 className="text-sm font-bold text-white flex items-center gap-2">
+              <span>🧭</span>
+              <span>Pusat Kendali 4 Pilar Kafe (Alur Kerja Owner)</span>
+            </h2>
+            <p className="text-xs text-zinc-400 mt-0.5">
+              Alur manajemen harian: kelola menu & harga, pantau stok bahan, catat pengeluaran, dan atur staf.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 font-mono text-xs">
+            <Link
+              href="/kasir"
+              target="_blank"
+              className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold transition flex items-center gap-1 shadow-sm"
+            >
+              <span>Meja Kasir & Barista</span>
+              <span>↗</span>
+            </Link>
+            <Link
+              href="/antrian"
+              target="_blank"
+              className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition flex items-center gap-1 border border-zinc-700"
+            >
+              <span>TV Antrian</span>
+              <span>↗</span>
+            </Link>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* Pilar 1 */}
+          <Link
+            href="/admin/menu"
+            className="group p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 hover:border-amber-500/50 hover:bg-zinc-900/60 transition space-y-1 block"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-lg">☕</span>
+              <span className="text-[10px] font-mono text-amber-400 group-hover:translate-x-0.5 transition">
+                Buka Menu →
+              </span>
+            </div>
+            <h3 className="text-xs font-bold text-white group-hover:text-amber-400 transition">
+              1. Katalog & Resep Menu
+            </h3>
+            <p className="text-[11px] text-zinc-400 leading-relaxed">
+              Atur daftar minuman, foto produk, harga jual, dan status ketersediaan.
+            </p>
+          </Link>
+
+          {/* Pilar 2 */}
+          <Link
+            href="/admin/inventory"
+            className="group p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 hover:border-emerald-500/50 hover:bg-zinc-900/60 transition space-y-1 block"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-lg">📦</span>
+              <span className="text-[10px] font-mono text-emerald-400 group-hover:translate-x-0.5 transition">
+                Buka Stok →
+              </span>
+            </div>
+            <h3 className="text-xs font-bold text-white group-hover:text-emerald-400 transition">
+              2. Stok Bahan & Gudang
+            </h3>
+            <p className="text-[11px] text-zinc-400 leading-relaxed">
+              Pantau sisa biji kopi, susu, sirup, cup, dan catat penerimaan restock.
+            </p>
+          </Link>
+
+          {/* Pilar 3 */}
+          <Link
+            href="/admin/expenses"
+            className="group p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 hover:border-rose-500/50 hover:bg-zinc-900/60 transition space-y-1 block"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-lg">💸</span>
+              <span className="text-[10px] font-mono text-rose-400 group-hover:translate-x-0.5 transition">
+                Buka Beban →
+              </span>
+            </div>
+            <h3 className="text-xs font-bold text-white group-hover:text-rose-400 transition">
+              3. Beban Ops. (OPEX)
+            </h3>
+            <p className="text-[11px] text-zinc-400 leading-relaxed">
+              Catat biaya sewa tempat, listrik kedai, WiFi, es batu, dan operasional harian.
+            </p>
+          </Link>
+
+          {/* Pilar 4 */}
+          <Link
+            href="/admin/karyawan"
+            className="group p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 hover:border-sky-500/50 hover:bg-zinc-900/60 transition space-y-1 block"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-lg">👥</span>
+              <span className="text-[10px] font-mono text-sky-400 group-hover:translate-x-0.5 transition">
+                Buka Staf →
+              </span>
+            </div>
+            <h3 className="text-xs font-bold text-white group-hover:text-sky-400 transition">
+              4. Tim Kasir & Barista
+            </h3>
+            <p className="text-[11px] text-zinc-400 leading-relaxed">
+              Kelola akun staf, PIN akses kasir, hak akses, dan data karyawan kedai.
+            </p>
+          </Link>
+        </div>
+      </div>
+
       {/* 5 Financial Telemetry Badges */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
         {/* 1. Net Sales */}
@@ -197,6 +308,51 @@ export default function AdminOverviewPage() {
           <p className="text-[11px] text-emerald-500/80 mt-1">
             Laba bersih kas operasional
           </p>
+        </div>
+      </div>
+
+      {/* RUMUS LABA BERSIH TRANSPARAN (CLEAN P&L SNAPSHOT) */}
+      <div className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-4 font-mono text-xs shadow-sm">
+        <div className="flex items-center gap-2 mb-2.5 text-zinc-400">
+          <span className="text-base">🧮</span>
+          <span className="font-bold uppercase tracking-wider text-[11px] text-white">
+            Logika Laba Rugi Riil (P&L Kedai Periode {period === "today" ? "Hari Ini" : period.toUpperCase()}):
+          </span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-7 items-center gap-2 text-center">
+          <div className="bg-zinc-950 p-2.5 rounded-xl border border-zinc-800">
+            <span className="text-[10px] text-zinc-500 block">1. Penjualan Bersih</span>
+            <span className="font-bold text-white tabular-nums text-xs">
+              {formatRupiah(data?.metrics.netSales || 0)}
+            </span>
+          </div>
+
+          <div className="text-zinc-500 font-bold text-base md:text-lg">-</div>
+
+          <div className="bg-zinc-950 p-2.5 rounded-xl border border-amber-500/20">
+            <span className="text-[10px] text-amber-500 block">2. HPP Bahan Baku</span>
+            <span className="font-bold text-amber-400 tabular-nums text-xs">
+              {formatRupiah(data?.metrics.hppTotal || 0)}
+            </span>
+          </div>
+
+          <div className="text-zinc-500 font-bold text-base md:text-lg">-</div>
+
+          <div className="bg-zinc-950 p-2.5 rounded-xl border border-rose-500/20">
+            <span className="text-[10px] text-rose-500 block">3. Beban Ops (OPEX)</span>
+            <span className="font-bold text-rose-400 tabular-nums text-xs">
+              {formatRupiah(data?.metrics.opexTotal || 0)}
+            </span>
+          </div>
+
+          <div className="text-zinc-500 font-bold text-base md:text-lg">=</div>
+
+          <div className="bg-emerald-950/40 p-2.5 rounded-xl border border-emerald-500/40">
+            <span className="text-[10px] text-emerald-400 block font-bold">4. Laba Bersih Riil</span>
+            <span className="font-black text-emerald-300 text-xs sm:text-sm tabular-nums">
+              {formatRupiah(data?.metrics.operatingProfit || 0)}
+            </span>
+          </div>
         </div>
       </div>
 

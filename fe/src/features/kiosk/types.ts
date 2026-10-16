@@ -61,6 +61,8 @@ export interface Order {
   estimasi_selesai_menit: number;
   nomor_antrian_ke?: number;
   paid_at?: string;
+  waktu_bayar?: string;
+  waktu_selesai?: string;
   created_at: string;
   items?: OrderItem[];
   kode_klaim?: string;
