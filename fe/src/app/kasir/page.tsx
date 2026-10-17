@@ -326,17 +326,20 @@ export default function KasirUnifiedPortalPage() {
     ).length;
   }, [orders]);
 
-  const kitchenOrdersCount = useMemo(() => {
+  const kitchenOrders = useMemo(() => {
     return orders.filter(
       (o) =>
         o.status_antrian === "MENUNGGU_RACIK" ||
         o.status_antrian === "SEDANG_DIRACIK"
-    ).length;
+    );
   }, [orders]);
 
-  const readyOrdersCount = useMemo(() => {
-    return orders.filter((o) => o.status_antrian === "SIAP_DIAMBIL").length;
+  const readyOrders = useMemo(() => {
+    return orders.filter((o) => o.status_antrian === "SIAP_DIAMBIL");
   }, [orders]);
+
+  const kitchenOrdersCount = kitchenOrders.length;
+  const readyOrdersCount = readyOrders.length;
 
   // Filtered orders for KDS
   const filteredOrders = useMemo(() => {
@@ -357,6 +360,127 @@ export default function KasirUnifiedPortalPage() {
       );
     });
   }, [orders, selectedFilter]);
+
+  const renderOrderCard = (order: Order) => {
+    const isUpdating = updatingId === order.id;
+    const isReady = order.status_antrian === "SIAP_DIAMBIL";
+
+    return (
+      <div
+        key={order.id}
+        className={`rounded-2xl border p-5 flex flex-col justify-between space-y-4 transition ${
+          isReady
+            ? "bg-emerald-950/20 border-emerald-500/60 ring-1 ring-emerald-500/30 shadow-xl shadow-emerald-500/5"
+            : "bg-zinc-900 border-zinc-800 hover:border-amber-500/40"
+        }`}
+      >
+        {/* Ticket Header */}
+        <div className="flex items-start justify-between border-b border-zinc-800 pb-3">
+          <div>
+            <span className="text-3xl font-black font-mono text-amber-400 tracking-tight block">
+              {order.order_code?.startsWith("#") ? order.order_code : `#${order.order_code}`}
+            </span>
+            <div className="flex items-baseline gap-1.5 mt-1">
+              <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">Pemesan:</span>
+              <h3 className="text-xl sm:text-2xl font-black text-amber-300 uppercase tracking-wide truncate max-w-[200px]">
+                {order.nama_pelanggan}
+              </h3>
+            </div>
+          </div>
+
+          <div className="text-right font-mono flex flex-col items-end">
+            <span
+              className={`inline-block px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border ${
+                isReady
+                  ? "bg-emerald-500 text-zinc-950 border-emerald-400 animate-pulse shadow-xs"
+                  : "bg-amber-500/20 text-amber-300 border-amber-500/40"
+              }`}
+            >
+              {isReady ? "🔔 SIAP DI MEJA BAR" : "🔥 SEDANG DIRACIK"}
+            </span>
+            <span className="text-[11px] text-zinc-400 font-bold block mt-1.5">
+              {new Date(order.created_at).toLocaleTimeString("id-ID", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}{" "}
+              WIB
+            </span>
+          </div>
+        </div>
+
+        {/* Items List */}
+        <div className="space-y-2.5 flex-1 py-1">
+          {order.items?.map((item) => (
+            <div
+              key={item.id}
+              className="p-3 rounded-xl bg-zinc-950/80 border border-zinc-800/80 flex flex-col gap-1.5"
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="px-2.5 py-1 rounded-lg bg-amber-500 text-zinc-950 font-black font-mono text-sm leading-none shrink-0 shadow-xs">
+                  {item.qty}x
+                </span>
+                <span className="text-sm sm:text-base font-bold text-white tracking-wide">
+                  {item.nama_minuman}
+                </span>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                {item.suhu === "ICE" ? (
+                  <span className="px-2 py-0.5 rounded-md bg-sky-500/20 text-sky-300 border border-sky-500/40 text-[10px] font-bold font-mono">
+                    ❄️ ICE / DINGIN
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded-md bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] font-bold font-mono">
+                    🔥 HOT / PANAS
+                  </span>
+                )}
+
+                <span className="px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-300 border border-zinc-700 text-[10px] font-mono">
+                  🍬 Gula: {item.sugar_level}
+                </span>
+              </div>
+
+              {item.catatan && (
+                <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-mono">
+                  ⚠️ <span className="font-semibold">Catatan:</span> {item.catatan}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Action Button: 2-Tahap Kilat */}
+        <div className="border-t border-zinc-800/80 pt-3">
+          {isReady ? (
+            <button
+              disabled={isUpdating}
+              onClick={() => handleUpdateStatus(order.id, "SELESAI")}
+              className="w-full py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-black font-mono text-xs sm:text-sm transition shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
+            >
+              <span>
+                {isUpdating
+                  ? "Memproses..."
+                  : `✓ Serahkan ke ${order.nama_pelanggan} (Selesai)`}
+              </span>
+            </button>
+          ) : (
+            <button
+              disabled={isUpdating}
+              onClick={() => handleUpdateStatus(order.id, "SIAP_DIAMBIL")}
+              className="w-full py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-black font-mono text-xs sm:text-sm transition shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
+            >
+              <span>
+                {isUpdating
+                  ? "Memproses..."
+                  : "🔔 Minuman Jadi (Panggil ke Meja Bar)"}
+              </span>
+              <span>→</span>
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="h-screen overflow-hidden bg-[#09090b] text-[#f4f4f5] font-sans flex flex-col selection:bg-amber-500/20">
@@ -864,7 +988,7 @@ export default function KasirUnifiedPortalPage() {
             </div>
           </section>
 
-          {/* KDS ORDERS BOARD */}
+          {/* KDS ORDERS BOARD (DIPISAH ZONA ATAS & BAWAH) */}
           <main className="max-w-7xl mx-auto w-full px-4 sm:px-6 pb-20 flex-1">
             {loadingOrders ? (
               <div className="py-20 text-center font-mono text-xs text-zinc-500">
@@ -884,127 +1008,68 @@ export default function KasirUnifiedPortalPage() {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredOrders.map((order) => {
-                  const isUpdating = updatingId === order.id;
-                  const isReady = order.status_antrian === "SIAP_DIAMBIL";
-
-                  return (
-                    <div
-                      key={order.id}
-                      className={`rounded-2xl border p-5 flex flex-col justify-between space-y-4 transition ${
-                        isReady
-                          ? "bg-emerald-950/20 border-emerald-500/60 ring-1 ring-emerald-500/30 shadow-xl shadow-emerald-500/5"
-                          : "bg-zinc-900 border-zinc-800 hover:border-amber-500/40"
-                      }`}
-                    >
-                      {/* Ticket Header */}
-                      <div className="flex items-start justify-between border-b border-zinc-800 pb-3">
-                        <div>
-                          <span className="text-3xl font-black font-mono text-amber-400 tracking-tight block">
-                            {order.order_code?.startsWith("#") ? order.order_code : `#${order.order_code}`}
-                          </span>
-                          <div className="flex items-baseline gap-1.5 mt-1">
-                            <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">Pemesan:</span>
-                            <h3 className="text-xl sm:text-2xl font-black text-amber-300 uppercase tracking-wide truncate max-w-[200px]">
-                              {order.nama_pelanggan}
-                            </h3>
-                          </div>
-                        </div>
-
-                        <div className="text-right font-mono flex flex-col items-end">
-                          <span
-                            className={`inline-block px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border ${
-                              isReady
-                                ? "bg-emerald-500 text-zinc-950 border-emerald-400 animate-pulse shadow-xs"
-                                : "bg-amber-500/20 text-amber-300 border-amber-500/40"
-                            }`}
-                          >
-                            {isReady ? "🔔 SIAP DI MEJA BAR" : "🔥 SEDANG DIRACIK"}
-                          </span>
-                          <span className="text-[11px] text-zinc-400 font-bold block mt-1.5">
-                            {new Date(order.created_at).toLocaleTimeString("id-ID", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}{" "}
-                            WIB
-                          </span>
-                        </div>
+              <div className="space-y-8">
+                {/* ZONA 1 (ATAS): SEDANG DIRACIK / ANTREAN DAPUR */}
+                {(selectedFilter === "ALL" || selectedFilter === "DAPUR") && (
+                  <section className="space-y-3.5">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 border-b border-zinc-800/80 pb-2.5">
+                      <div className="flex items-center gap-2.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse shrink-0"></span>
+                        <h2 className="text-sm sm:text-base font-black font-mono text-zinc-100 uppercase tracking-wider flex items-center gap-2">
+                          <span>1. Antrean Dapur & Sedang Diracik</span>
+                        </h2>
+                        <span className="px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 text-xs font-mono font-bold">
+                          {kitchenOrders.length} Tiket
+                        </span>
                       </div>
-
-                      {/* Items List (Glancable from 1m) */}
-                      <div className="space-y-2.5 flex-1 py-1">
-                        {order.items?.map((item) => (
-                          <div
-                            key={item.id}
-                            className="p-3 rounded-xl bg-zinc-950/80 border border-zinc-800/80 flex flex-col gap-1.5"
-                          >
-                            <div className="flex items-center gap-2.5">
-                              <span className="px-2.5 py-1 rounded-lg bg-amber-500 text-zinc-950 font-black font-mono text-sm leading-none shrink-0 shadow-xs">
-                                {item.qty}x
-                              </span>
-                              <span className="text-sm sm:text-base font-bold text-white tracking-wide">
-                                {item.nama_minuman}
-                              </span>
-                            </div>
-
-                            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                              {item.suhu === "ICE" ? (
-                                <span className="px-2 py-0.5 rounded-md bg-sky-500/20 text-sky-300 border border-sky-500/40 text-[10px] font-bold font-mono">
-                                  ❄️ ICE / DINGIN
-                                </span>
-                              ) : (
-                                <span className="px-2 py-0.5 rounded-md bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] font-bold font-mono">
-                                  🔥 HOT / PANAS
-                                </span>
-                              )}
-
-                              <span className="px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-300 border border-zinc-700 text-[10px] font-mono">
-                                🍬 Gula: {item.sugar_level}
-                              </span>
-                            </div>
-
-                            {item.catatan && (
-                              <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-mono">
-                                ⚠️ <span className="font-semibold">Catatan:</span> {item.catatan}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Action Button: 2-Tahap Kilat */}
-                      <div className="border-t border-zinc-800/80 pt-3">
-                        {isReady ? (
-                          <button
-                            disabled={isUpdating}
-                            onClick={() => handleUpdateStatus(order.id, "SELESAI")}
-                            className="w-full py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-black font-mono text-xs sm:text-sm transition shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
-                          >
-                            <span>
-                              {isUpdating
-                                ? "Memproses..."
-                                : `✓ Serahkan ke ${order.nama_pelanggan} (Selesai)`}
-                            </span>
-                          </button>
-                        ) : (
-                          <button
-                            disabled={isUpdating}
-                            onClick={() => handleUpdateStatus(order.id, "SIAP_DIAMBIL")}
-                            className="w-full py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-black font-mono text-xs sm:text-sm transition shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
-                          >
-                            <span>
-                              {isUpdating
-                                ? "Memproses..."
-                                : "🔔 Minuman Jadi (Panggil ke Meja Bar)"}
-                            </span>
-                            <span>→</span>
-                          </button>
-                        )}
-                      </div>
+                      <p className="text-[11px] text-zinc-400 font-mono">
+                        Pesanan baru yang sedang dipersiapkan dan dibuat oleh barista
+                      </p>
                     </div>
-                  );
-                })}
+
+                    {kitchenOrders.length === 0 ? (
+                      <div className="py-8 text-center border border-dashed border-zinc-800 rounded-2xl bg-zinc-950/40 font-mono text-xs text-zinc-500">
+                        <span className="text-xl block mb-1">✅</span>
+                        Dapur bersih! Tidak ada antrean racik saat ini.
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {kitchenOrders.map(renderOrderCard)}
+                      </div>
+                    )}
+                  </section>
+                )}
+
+                {/* ZONA 2 (BAWAH): SIAP DI MEJA BAR / BELUM DIAMBIL */}
+                {(selectedFilter === "ALL" || selectedFilter === "SIAP_DIAMBIL") && (
+                  <section className={`space-y-3.5 ${selectedFilter === "ALL" ? "pt-6 border-t border-zinc-800/80" : ""}`}>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 border-b border-zinc-800/80 pb-2.5">
+                      <div className="flex items-center gap-2.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping shrink-0"></span>
+                        <h2 className="text-sm sm:text-base font-black font-mono text-zinc-100 uppercase tracking-wider flex items-center gap-2">
+                          <span>2. Siap di Meja Bar (Belum Diambil Pelanggan)</span>
+                        </h2>
+                        <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-xs font-mono font-bold">
+                          {readyOrders.length} Tiket
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-zinc-400 font-mono">
+                        Minuman sudah selesai diracik, menunggu diambil & diserahkan ke pemesan
+                      </p>
+                    </div>
+
+                    {readyOrders.length === 0 ? (
+                      <div className="py-8 text-center border border-dashed border-zinc-800 rounded-2xl bg-zinc-950/40 font-mono text-xs text-zinc-500">
+                        <span className="text-xl block mb-1">☕</span>
+                        Meja bar kosong. Semua pesanan sudah diserahkan ke pelanggan.
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {readyOrders.map(renderOrderCard)}
+                      </div>
+                    )}
+                  </section>
+                )}
               </div>
             )}
           </main>
