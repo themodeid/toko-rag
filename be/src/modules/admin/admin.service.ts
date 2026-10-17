@@ -7,29 +7,52 @@ export class AdminService {
    * Menghitung dan merangkum metrik finansial utama berbasis tb_orders & tb_biaya_operasional
    */
   static async getOverview(period: string = "30d") {
+    const intervalClause =
+      period === "today"
+        ? "AND o.created_at >= CURRENT_DATE"
+        : period === "7d"
+        ? "AND o.created_at >= CURRENT_DATE - INTERVAL '7 days'"
+        : "AND o.created_at >= CURRENT_DATE - INTERVAL '30 days'";
+
+    const expIntervalClause =
+      period === "today"
+        ? "WHERE created_at >= CURRENT_DATE"
+        : period === "7d"
+        ? "WHERE created_at >= CURRENT_DATE - INTERVAL '7 days'"
+        : "WHERE created_at >= CURRENT_DATE - INTERVAL '30 days'";
+
     // 1. Net Sales (Paid / Processing / Done orders dari tb_orders)
     const salesQuery = await pool.query(`
       SELECT 
-        COALESCE(SUM(total_bayar), 0)::int AS net_sales,
-        COUNT(id)::int AS total_orders
-      FROM tb_orders 
-      WHERE status_antrian IN ('MENUNGGU_RACIK', 'SEDANG_DIRACIK', 'SIAP_DIAMBIL', 'SELESAI')
+        COALESCE(SUM(o.total_bayar), 0)::int AS net_sales,
+        COUNT(o.id)::int AS total_orders
+      FROM tb_orders o
+      WHERE o.status_antrian IN ('MENUNGGU_RACIK', 'SEDANG_DIRACIK', 'SIAP_DIAMBIL', 'SELESAI')
+      ${intervalClause}
     `);
 
-    // 2. HPP / COGS (Cost of goods sold dari minuman yang terjual)
+    // 2. HPP / COGS (Prioritaskan snapshot hpp_satuan -> m.hpp -> estimasi 38% harga racikan bahan baku)
     const hppQuery = await pool.query(`
       SELECT 
-        COALESCE(SUM(oi.qty * COALESCE(m.hpp, 0)), 0)::int AS total_hpp
+        COALESCE(SUM(
+          oi.qty * CASE 
+            WHEN COALESCE(oi.hpp_satuan, 0) > 0 THEN oi.hpp_satuan
+            WHEN COALESCE(m.hpp, 0) > 0 THEN m.hpp
+            ELSE ROUND(COALESCE(oi.harga_satuan, m.harga, 0) * 0.38)
+          END
+        ), 0)::int AS total_hpp
       FROM tb_order_items oi
       JOIN tb_orders o ON oi.order_id = o.id
-      JOIN tb_minuman m ON oi.minuman_id = m.id
+      LEFT JOIN tb_minuman m ON oi.minuman_id = m.id
       WHERE o.status_antrian IN ('MENUNGGU_RACIK', 'SEDANG_DIRACIK', 'SIAP_DIAMBIL', 'SELESAI')
+      ${intervalClause}
     `);
 
     // 3. Operating Expenses (Biaya operasional toko)
     const expenseQuery = await pool.query(`
       SELECT COALESCE(SUM(nominal), 0)::int AS total_expenses
       FROM tb_biaya_operasional
+      ${expIntervalClause}
     `);
 
     const netSales = parseInt(salesQuery.rows[0]?.net_sales || 0, 10);
@@ -39,15 +62,17 @@ export class AdminService {
     const grossProfit = netSales - totalHpp;
     const operatingProfit = grossProfit - totalExpenses;
 
-    // 4. Trend Penjualan Harian (7 - 14 Hari Terakhir)
+    // 4. Trend Penjualan Harian
+    const trendDays = period === "today" ? "1 day" : period === "7d" ? "7 days" : "30 days";
     const trendQuery = await pool.query(`
       SELECT 
         TO_CHAR(created_at, 'DD Mon') AS tanggal,
         DATE(created_at) AS raw_date,
-        COALESCE(SUM(total_bayar), 0)::int AS omzet
+        COALESCE(SUM(total_bayar), 0)::int AS omzet,
+        COUNT(id)::int AS orders_count
       FROM tb_orders
       WHERE status_antrian IN ('MENUNGGU_RACIK', 'SEDANG_DIRACIK', 'SIAP_DIAMBIL', 'SELESAI')
-        AND created_at >= CURRENT_DATE - INTERVAL '14 days'
+        AND created_at >= CURRENT_DATE - INTERVAL '${trendDays}'
       GROUP BY raw_date, tanggal
       ORDER BY raw_date ASC
     `);
@@ -57,7 +82,7 @@ export class AdminService {
     const activeOrdersQuery = await pool.query(`
       SELECT COUNT(*)::int AS count 
       FROM tb_orders 
-      WHERE status_antrian IN ('MENUNGGU_RACIK', 'SEDANG_DIRACIK')
+      WHERE status_antrian IN ('MENUNGGU_RACIK', 'SEDANG_DIRACIK', 'SIAP_DIAMBIL')
     `);
 
     // b. Menu Minuman dengan stok menipis atau tidak aktif
@@ -69,14 +94,21 @@ export class AdminService {
       LIMIT 10
     `);
 
-    // c. Valuasi aset produk
+    // c. Valuasi aset produk (gunakan hpp atau estimasi 38% harga dasar)
     const stockValuationQuery = await pool.query(`
-      SELECT COALESCE(SUM(COALESCE(stock, 50) * COALESCE(hpp, 0)), 0)::int AS total_valuation
+      SELECT COALESCE(SUM(
+        COALESCE(stock, 50) * CASE 
+          WHEN COALESCE(hpp, 0) > 0 THEN hpp 
+          ELSE ROUND(COALESCE(harga, 0) * 0.38) 
+        END
+      ), 0)::int AS total_valuation
       FROM tb_minuman
     `);
 
     const grossMargin = netSales > 0 ? Math.round((grossProfit / netSales) * 100) : 0;
     const operatingMargin = netSales > 0 ? Math.round((operatingProfit / netSales) * 100) : 0;
+    const lowStockCountVal = lowStockQuery.rows.length;
+    const inventoryValuationVal = parseInt(stockValuationQuery.rows[0]?.total_valuation || 0, 10);
 
     return {
       period,
@@ -91,6 +123,7 @@ export class AdminService {
       },
       metrics: {
         netSales,
+        totalOrders,
         hppTotal: totalHpp,
         grossProfit,
         grossMargin,
@@ -101,11 +134,14 @@ export class AdminService {
       salesTrend: trendQuery.rows.map((r: any) => ({
         date: r.tanggal,
         sales: parseInt(r.omzet, 10),
+        ordersCount: parseInt(r.orders_count || 0, 10),
       })),
       attention: {
         activeOrdersCount: parseInt(activeOrdersQuery.rows[0]?.count || 0, 10),
-        lowStockItemsCount: lowStockQuery.rows.length,
-        stockValuation: parseInt(stockValuationQuery.rows[0]?.total_valuation || 0, 10),
+        lowStockCount: lowStockCountVal,
+        lowStockItemsCount: lowStockCountVal,
+        inventoryValuation: inventoryValuationVal,
+        stockValuation: inventoryValuationVal,
       },
       lowStockItems: lowStockQuery.rows,
     };
@@ -130,6 +166,7 @@ export class AdminService {
         o.status_antrian AS status_pesanan,
         o.estimasi_menit,
         o.created_at,
+        o.waktu_selesai,
         COALESCE(
           json_agg(
             json_build_object(
@@ -168,16 +205,37 @@ export class AdminService {
   }
 
   static async updateOrderStatus(orderId: string, status: string) {
+    // Hard Guardrail Anti-Manipulasi Audit: Pesanan yang sudah dibuat TIDAK BOLEH dibatalkan/dihapus
+    if (status === "DIBATALKAN") {
+      throw new AppError(
+        "Pelanggaran Integritas Audit: Pesanan yang sudah tercatat sah tidak dapat dibatalkan atau dimanipulasi.",
+        403
+      );
+    }
+
     const validStatuses = [
-      "MENUNGGU_BAYAR",
       "MENUNGGU_RACIK",
       "SEDANG_DIRACIK",
       "SIAP_DIAMBIL",
       "SELESAI",
-      "DIBATALKAN",
     ];
     if (!validStatuses.includes(status)) {
       throw new AppError("Status antrian tidak valid", 400);
+    }
+
+    const existing = await pool.query(
+      "SELECT id, status_antrian FROM tb_orders WHERE id = $1",
+      [orderId]
+    );
+    if (existing.rows.length === 0) {
+      throw new AppError("Pesanan tidak ditemukan", 404);
+    }
+
+    if (existing.rows[0].status_antrian === "SELESAI") {
+      throw new AppError(
+        "Transaksi sudah berstatus SELESAI dan terkunci permanen di buku audit.",
+        403
+      );
     }
 
     const sql = `
@@ -188,9 +246,6 @@ export class AdminService {
       RETURNING *;
     `;
     const res = await pool.query(sql, [status, orderId]);
-    if (res.rows.length === 0) {
-      throw new AppError("Pesanan tidak ditemukan", 404);
-    }
     return res.rows[0];
   }
 

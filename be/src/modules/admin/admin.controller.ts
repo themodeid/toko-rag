@@ -5,7 +5,8 @@ import { AppError } from "../../utils/appError";
 export class AdminController {
   static async getOverview(req: Request, res: Response) {
     try {
-      const data = await AdminService.getOverview();
+      const period = (req.query.period as string) || "30d";
+      const data = await AdminService.getOverview(period);
       res.status(200).json({
         status: "success",
         data,

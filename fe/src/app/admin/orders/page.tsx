@@ -1,18 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { fetchAdminOrders, updateAdminOrderStatus } from "@/features/kiosk/api";
+import { useEffect, useState, useMemo } from "react";
+import { fetchAdminOrders } from "@/features/kiosk/api";
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const res = await fetchAdminOrders(statusFilter);
+      const res = await fetchAdminOrders("ALL");
       setOrders(res || []);
     } catch (err) {
       console.error("Failed to load orders:", err);
@@ -23,34 +22,9 @@ export default function AdminOrdersPage() {
 
   useEffect(() => {
     fetchOrders();
-    const interval = setInterval(fetchOrders, 8000);
+    const interval = setInterval(fetchOrders, 10000);
     return () => clearInterval(interval);
-  }, [statusFilter]);
-
-  const handleUpdateStatus = async (orderId: string, nextStatus: string) => {
-    try {
-      setActionLoading(orderId);
-      await updateAdminOrderStatus(orderId, nextStatus);
-      await fetchOrders();
-    } catch (err) {
-      alert("Gagal memperbarui status pesanan");
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const handleCancel = async (orderId: string) => {
-    if (!window.confirm("Yakin ingin membatalkan pesanan ini?")) return;
-    try {
-      setActionLoading(orderId);
-      await updateAdminOrderStatus(orderId, "DIBATALKAN");
-      await fetchOrders();
-    } catch (err) {
-      alert("Gagal membatalkan pesanan");
-    } finally {
-      setActionLoading(null);
-    }
-  };
+  }, []);
 
   const formatRupiah = (val: number) => {
     return new Intl.NumberFormat("id-ID", {
@@ -60,41 +34,76 @@ export default function AdminOrdersPage() {
     }).format(val || 0);
   };
 
+  // Filter hanya untuk pencarian cepat (Nama Pelanggan / Nomor Tiket / Nama Menu)
+  // Tanpa tab status rumit dan tanpa tombol manipulasi/pembatalan
+  const filteredOrders = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return orders;
+    return orders.filter((ord) => {
+      const code = (ord.no_antrian || `#K-${ord.id?.substring(0, 4)}` || "").toLowerCase();
+      const customer = (ord.nama_pelanggan || "").toLowerCase();
+      const hasItem = ord.items?.some((it: any) =>
+        (it.nama_minuman || it.produk_nama || "").toLowerCase().includes(q)
+      );
+      return code.includes(q) || customer.includes(q) || hasItem;
+    });
+  }, [orders, searchQuery]);
+
+  const totalAuditOmset = useMemo(() => {
+    return filteredOrders.reduce((acc, ord) => acc + (Number(ord.total_bayar) || 0), 0);
+  }, [filteredOrders]);
+
+  const activeBarCount = useMemo(() => {
+    return orders.filter(
+      (ord) =>
+        ord.status_antrian === "MENUNGGU_RACIK" ||
+        ord.status_antrian === "SEDANG_DIRACIK" ||
+        ord.status_antrian === "SIAP_DIAMBIL"
+    ).length;
+  }, [orders]);
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-zinc-800/80">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-            <span>📋</span>
-            <span>Live Orders & Kitchen Queue</span>
-          </h1>
-          <p className="text-xs text-zinc-400 mt-1">
-            Audit pesanan live dari Kiosk Pembeli dan Kitchen Display System Barista secara real-time.
+      {/* Header Section (Lean, Zero Complex Tabs) */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-5 border-b border-zinc-800/80">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-100">
+              Buku Audit Transaksi & Antrean
+            </h1>
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              Immutable Audit Log
+            </span>
+          </div>
+          <p className="text-xs text-zinc-400">
+            Rekam jejak permanen seluruh transaksi lunas dari POS Kasir & Meja Barista. Data terkunci dari pembatalan demi integritas audit.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="inline-flex bg-zinc-900 border border-zinc-800 p-0.5 rounded-xl text-xs font-mono">
-            {["ALL", "MENUNGGU_RACIK", "SEDANG_DIRACIK", "SIAP_DIAMBIL", "SELESAI"].map((st) => (
+        {/* Search Input + Refresh */}
+        <div className="flex items-center gap-2 w-full md:w-auto">
+          <div className="relative flex-1 md:w-72">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Cari #tiket, nama pelanggan, menu..."
+              className="w-full bg-zinc-900 border border-zinc-800 focus:border-zinc-600 rounded-lg px-3.5 py-2 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none transition-colors font-mono"
+            />
+            {searchQuery && (
               <button
-                key={st}
-                onClick={() => setStatusFilter(st)}
-                className={`px-3 py-1 rounded-lg transition ${
-                  statusFilter === st
-                    ? "bg-amber-500 text-zinc-950 font-bold shadow-xs"
-                    : "text-zinc-400 hover:text-white"
-                }`}
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-200 text-xs"
               >
-                {st === "ALL" ? "Semua" : st.replace("_", " ")}
+                ✕
               </button>
-            ))}
+            )}
           </div>
 
           <button
             onClick={fetchOrders}
-            className="p-2 rounded-lg border border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white transition"
-            title="Refresh Antrian"
+            className="p-2 rounded-lg border border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors shrink-0"
+            title="Sinkronkan Data"
           >
             <svg
               className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
@@ -105,7 +114,7 @@ export default function AdminOrdersPage() {
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                strokeWidth="2"
+                strokeWidth="1.75"
                 d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
               />
             </svg>
@@ -113,122 +122,151 @@ export default function AdminOrdersPage() {
         </div>
       </div>
 
-      {/* Orders Grid / Cards */}
-      {loading && orders.length === 0 ? (
-        <div className="p-16 text-center text-xs font-mono text-zinc-500 bg-zinc-900/40 border border-zinc-800/80 rounded-2xl">
-          Memuat antrian pesanan...
+      {/* Compact Audit Summary Bar */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 font-mono">
+        <div className="p-3.5 rounded-xl bg-zinc-900/60 border border-zinc-800/80 flex items-center justify-between">
+          <span className="text-xs text-zinc-400">Total Transaksi Tercatat</span>
+          <span className="text-sm font-bold text-zinc-100 tabular-nums">
+            {filteredOrders.length} Bon Lunas
+          </span>
         </div>
-      ) : orders.length === 0 ? (
-        <div className="p-16 text-center text-xs font-mono text-zinc-500 bg-zinc-900/40 border border-zinc-800/80 rounded-2xl">
-          Tidak ada pesanan dengan status &quot;{statusFilter}&quot;.
+        <div className="p-3.5 rounded-xl bg-zinc-900/60 border border-zinc-800/80 flex items-center justify-between">
+          <span className="text-xs text-zinc-400">Akumulasi Nilai Audit</span>
+          <span className="text-sm font-bold text-emerald-400 tabular-nums">
+            {formatRupiah(totalAuditOmset)}
+          </span>
+        </div>
+        <div className="p-3.5 rounded-xl bg-zinc-900/60 border border-zinc-800/80 flex items-center justify-between">
+          <span className="text-xs text-zinc-400">Status Antrean Bar</span>
+          <span className="text-sm font-bold text-zinc-200 tabular-nums">
+            {activeBarCount > 0 ? `${activeBarCount} Sedang Diproses` : "0 Antrean (Semua Selesai)"}
+          </span>
+        </div>
+      </div>
+
+      {/* Orders Grid / Immutable Audit Cards */}
+      {loading && orders.length === 0 ? (
+        <div className="p-16 text-center text-xs font-mono text-zinc-500 bg-zinc-900/40 border border-zinc-800/80 rounded-xl">
+          Memuat buku audit pesanan...
+        </div>
+      ) : filteredOrders.length === 0 ? (
+        <div className="p-16 text-center text-xs font-mono text-zinc-500 bg-zinc-900/40 border border-zinc-800/80 rounded-xl">
+          Tidak ditemukan transaksi yang cocok dengan pencarian &quot;{searchQuery}&quot;.
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {orders.map((ord) => {
-            const isFinished = ord.status_antrian === "SELESAI" || ord.status_antrian === "DIBATALKAN";
+          {filteredOrders.map((ord) => {
+            const isCompleted = ord.status_antrian === "SELESAI";
+            const createdDate = ord.created_at ? new Date(ord.created_at) : null;
+            const finishedDate = ord.waktu_selesai ? new Date(ord.waktu_selesai) : null;
+
             return (
               <div
                 key={ord.id}
-                className="bg-zinc-900/60 border border-zinc-800/80 rounded-2xl p-5 flex flex-col justify-between space-y-4 transition hover:border-zinc-700"
+                className="bg-zinc-900/60 border border-zinc-800/80 rounded-xl p-5 flex flex-col justify-between space-y-4 transition-colors hover:border-zinc-700"
               >
                 <div>
                   {/* Order Top Bar */}
-                  <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80">
+                  <div className="flex items-start justify-between pb-3 border-b border-zinc-800/80">
                     <div>
-                      <span className="font-mono font-bold text-sm text-amber-400">
-                        {ord.no_antrian || `#K-${ord.id.substring(0, 4)}`}
+                      <span className="font-mono font-bold text-sm text-zinc-100">
+                        {ord.no_antrian?.startsWith("#")
+                          ? ord.no_antrian
+                          : `#${ord.no_antrian || `K-${ord.id.substring(0, 4)}`}`}
                       </span>
-                      <p className="text-[11px] font-mono text-zinc-500 mt-0.5">
-                        {ord.created_at
-                          ? new Date(ord.created_at).toLocaleTimeString("id-ID", {
+                      <p className="text-[11px] font-mono tabular-nums text-zinc-500 mt-0.5">
+                        {createdDate
+                          ? `${createdDate.toLocaleDateString("id-ID", {
+                              day: "2-digit",
+                              month: "short",
+                            })} • ${createdDate.toLocaleTimeString("id-ID", {
                               hour: "2-digit",
                               minute: "2-digit",
-                            }) + " WIB"
-                          : ""}
+                            })} WIB`
+                          : "-"}
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-1.5">
-                      <span
-                        className={`text-[10px] font-mono font-bold uppercase px-2.5 py-0.5 rounded-full border ${
-                          ord.status_antrian === "SELESAI"
-                            ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
-                            : ord.status_antrian === "SEDANG_DIRACIK"
-                            ? "bg-sky-500/10 border-sky-500/30 text-sky-400"
-                            : ord.status_antrian === "SIAP_DIAMBIL"
-                            ? "bg-purple-500/10 border-purple-500/30 text-purple-400"
-                            : ord.status_antrian === "DIBATALKAN"
-                            ? "bg-red-500/10 border-red-500/30 text-red-400"
-                            : "bg-amber-500/10 border-amber-500/30 text-amber-400"
-                        }`}
-                      >
-                        {ord.status_antrian ? ord.status_antrian.replace("_", " ") : "MENUNGGU"}
-                      </span>
-                    </div>
+                    <span
+                      className={`text-[10px] font-mono font-semibold uppercase px-2.5 py-0.5 rounded-full border ${
+                        isCompleted
+                          ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                          : "bg-amber-500/10 border-amber-500/20 text-amber-400"
+                      }`}
+                    >
+                      {isCompleted ? "Selesai Disajikan" : "Diproses di Bar"}
+                    </span>
                   </div>
 
-                  {/* Customer Info */}
-                  <div className="py-2.5 flex items-center justify-between text-xs">
+                  {/* Customer Info & Nominal */}
+                  <div className="py-3 flex items-center justify-between">
                     <div>
-                      <p className="font-bold text-white text-sm">
-                        {ord.nama_pelanggan || "Pelanggan Kiosk"}
+                      <p className="font-semibold text-zinc-100 text-sm capitalize">
+                        {ord.nama_pelanggan || "Pelanggan Kedai"}
                       </p>
-                      <p className="text-[11px] font-mono text-zinc-400">
-                        Metode: {ord.metode_pembayaran || "QRIS Cashless"}
+                      <p className="text-[11px] font-mono text-zinc-400 mt-0.5">
+                        Metode: {ord.metode_pembayaran || "QRIS"} (Lunas)
                       </p>
                     </div>
-                    <span className="font-mono font-bold text-white text-base tabular-nums">
+                    <span className="font-mono font-bold text-zinc-100 text-base tabular-nums">
                       {formatRupiah(Number(ord.total_bayar) || 0)}
                     </span>
                   </div>
 
                   {/* Items List */}
-                  <div className="mt-2 space-y-1.5 bg-zinc-950 p-3 rounded-xl border border-zinc-800 text-xs">
+                  <div className="space-y-1.5 bg-zinc-950/90 p-3 rounded-lg border border-zinc-800/80 text-xs">
                     {ord.items && ord.items.length > 0 ? (
                       ord.items.map((it: any, idx: number) => (
                         <div
                           key={idx}
                           className="flex items-center justify-between text-zinc-300"
                         >
-                          <span>
-                            <span className="font-bold text-amber-400 font-mono mr-1.5">
+                          <span className="truncate pr-2">
+                            <span className="font-semibold text-zinc-100 font-mono tabular-nums mr-1.5">
                               {it.qty || it.quantity || 1}x
                             </span>
                             {it.nama_minuman || it.produk_nama || "Minuman"}
                           </span>
-                          <span className="font-mono text-[11px] text-zinc-400 tabular-nums">
-                            {formatRupiah(it.subtotal || (it.harga_satuan * (it.qty || 1)))}
+                          <span className="font-mono text-[11px] text-zinc-400 tabular-nums shrink-0">
+                            {formatRupiah(it.subtotal || it.harga_satuan * (it.qty || 1))}
                           </span>
                         </div>
                       ))
                     ) : (
                       <p className="text-[11px] text-zinc-500 italic font-mono">
-                        Item minuman terdata di KDS
+                        Rincian item tercatat di KDS
                       </p>
                     )}
                   </div>
                 </div>
 
-                {/* Actions */}
-                <div className="pt-2 border-t border-zinc-800/80 flex items-center gap-2 font-mono">
-                  {!isFinished && (
-                    <button
-                      onClick={() => handleUpdateStatus(ord.id, "SELESAI")}
-                      disabled={actionLoading === ord.id}
-                      className="flex-1 py-2 bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold rounded-lg transition text-center shadow-xs disabled:opacity-50"
+                {/* Immutable Audit Footer (Zero Manipulation / Zero Cancel Button) */}
+                <div className="pt-3 border-t border-zinc-800/80 flex items-center justify-between text-[11px] font-mono text-zinc-400">
+                  <div className="flex items-center gap-1.5 text-zinc-400">
+                    <svg
+                      className="w-3.5 h-3.5 text-emerald-400 shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      viewBox="0 0 24 24"
                     >
-                      {actionLoading === ord.id ? "Memproses..." : "Tandai Selesai ✓"}
-                    </button>
-                  )}
-                  {ord.status_antrian !== "DIBATALKAN" && (
-                    <button
-                      onClick={() => handleCancel(ord.id)}
-                      disabled={actionLoading === ord.id}
-                      className="px-3 py-2 border border-zinc-800 text-red-400 hover:bg-red-500/10 text-xs font-medium rounded-lg transition"
-                    >
-                      Batal
-                    </button>
-                  )}
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
+                      />
+                    </svg>
+                    <span>Tercatat Permanen</span>
+                  </div>
+
+                  <span className="tabular-nums text-zinc-500">
+                    {finishedDate
+                      ? `Diserahkan ${finishedDate.toLocaleTimeString("id-ID", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })} WIB`
+                      : "Aktif di Meja Bar"}
+                  </span>
                 </div>
               </div>
             );

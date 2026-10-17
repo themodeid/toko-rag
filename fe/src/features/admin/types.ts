@@ -1,5 +1,6 @@
 export interface FinancialMetrics {
   netSales: number;
+  totalOrders?: number;
   hppTotal: number;
   grossProfit: number;
   grossMargin: number;
@@ -17,6 +18,7 @@ export interface AttentionMetrics {
 export interface SalesTrendPoint {
   date: string;
   sales: number;
+  ordersCount?: number;
 }
 
 export interface LowStockItem {

@@ -359,9 +359,9 @@ export default function KasirUnifiedPortalPage() {
   }, [orders, selectedFilter]);
 
   return (
-    <div className="min-h-screen bg-[#09090b] text-[#f4f4f5] font-sans flex flex-col selection:bg-amber-500/20">
-      {/* TOPBAR KASIR & BARISTA */}
-      <header className="border-b border-zinc-800 bg-zinc-950 px-4 sm:px-6 py-3.5 sticky top-0 z-40 backdrop-blur-md">
+    <div className="h-screen overflow-hidden bg-[#09090b] text-[#f4f4f5] font-sans flex flex-col selection:bg-amber-500/20">
+      {/* TOPBAR KASIR & BARISTA (FIXED IN VIEWPORT) */}
+      <header className="shrink-0 border-b border-zinc-800 bg-zinc-950/95 px-4 sm:px-6 py-3.5 z-40 backdrop-blur-md">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3">
           {/* Brand & Station Info */}
           <div className="flex items-center justify-between">
@@ -521,7 +521,8 @@ export default function KasirUnifiedPortalPage() {
           TAB 1: POS KASIR (INPUT PESANAN BARU)
       ======================================================== */}
       {activeMainTab === "POS" && (
-        <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 flex-1 flex flex-col gap-6">
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 flex flex-col gap-6">
           {/* Floating Order Success Toast / Pop-up */}
           {lastOrderSuccess && (
             <div className="fixed top-20 right-4 sm:right-6 z-50 max-w-sm sm:max-w-md w-[calc(100vw-2rem)] animate-in fade-in slide-in-from-top-4 duration-200">
@@ -810,13 +811,14 @@ export default function KasirUnifiedPortalPage() {
             </div>
           </div>
         </div>
+        </div>
       )}
 
       {/* ========================================================
           TAB 2: MEJA BARISTA (KDS ANTRIAN RACIKAN)
       ======================================================== */}
       {activeMainTab === "KDS" && (
-        <div className="flex flex-col flex-1">
+        <div className="flex flex-col flex-1 overflow-y-auto">
           {/* METRIC SUMMARY CARDS */}
           {summary && (
             <section className="max-w-7xl mx-auto w-full px-4 sm:px-6 py-4 grid grid-cols-1 sm:grid-cols-2 gap-3 font-mono">
@@ -1013,7 +1015,8 @@ export default function KasirUnifiedPortalPage() {
           TAB 3: RIWAYAT PESANAN SELESAI (BARISTA & KASIR HISTORY)
       ======================================================== */}
       {activeMainTab === "HISTORY" && (
-        <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 flex-1 flex flex-col gap-6">
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 flex flex-col gap-6">
           {/* Header & Search */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
             <div>
@@ -1193,6 +1196,7 @@ export default function KasirUnifiedPortalPage() {
               </div>
             );
           })()}
+        </div>
         </div>
       )}
 

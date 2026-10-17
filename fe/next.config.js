@@ -49,8 +49,13 @@ const nextConfig = {
         permanent: false,
       },
       {
+        source: "/admin/inventory",
+        destination: "/admin/menu",
+        permanent: false,
+      },
+      {
         source: "/admin/recipes",
-        destination: "/admin/inventory",
+        destination: "/admin/menu",
         permanent: false,
       },
       {
