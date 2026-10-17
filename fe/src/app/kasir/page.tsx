@@ -434,7 +434,7 @@ export default function KasirUnifiedPortalPage() {
             <button
               disabled={isUpdating}
               onClick={() => handleUpdateStatus(order.id, "SIAP_DIAMBIL")}
-              className="w-full py-3.5 rounded-xl bg-zinc-100 hover:bg-white text-zinc-950 font-bold font-mono text-xs sm:text-sm transition-colors shadow-none flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]"
+              className="w-full py-3.5 rounded-xl bg-[#e8d8ba] hover:bg-[#f2e5d0] text-[#0c1210] font-bold font-mono text-xs sm:text-sm transition-colors shadow-none flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]"
             >
               <span>
                 {isUpdating
@@ -457,18 +457,20 @@ export default function KasirUnifiedPortalPage() {
           {/* Brand & Station Info */}
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-700/80 flex items-center justify-center text-zinc-100 shrink-0">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M18 8h1a4 4 0 010 8h-1M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8zm4-7v3m4-3v3m4-3v3" />
-                </svg>
+              <div className="w-9 h-9 rounded-lg overflow-hidden border border-[#2a483e] shrink-0 bg-[#0c1210] relative">
+                <img
+                  src="/brand-logo.jpg"
+                  alt="Draco Cafe Logo"
+                  className="w-full h-full object-cover"
+                />
               </div>
               <div>
                 <div className="flex items-center space-x-2">
-                  <h1 className="text-base font-bold text-white tracking-tight">
-                    Station Kasir & Barista
+                  <h1 className="text-base font-bold text-[#f2e5d0] font-mono tracking-tight">
+                    Draco Cafe
                   </h1>
-                  <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700 font-semibold">
-                    Operasional Kedai
+                  <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-[#1e382f]/60 text-[#e8d8ba] border border-[#2a483e] font-semibold">
+                    Station Kasir & Barista
                   </span>
                 </div>
               </div>
@@ -479,7 +481,7 @@ export default function KasirUnifiedPortalPage() {
               <button
                 onClick={() => setActiveMainTab("POS")}
                 className={`px-2.5 py-1.5 rounded-lg transition font-semibold ${
-                  activeMainTab === "POS" ? "bg-zinc-100 text-zinc-950 font-bold shadow-xs" : "text-zinc-400 hover:text-white"
+                  activeMainTab === "POS" ? "bg-[#e8d8ba] text-[#0c1210] font-bold shadow-xs" : "text-zinc-400 hover:text-white"
                 }`}
               >
                 🧾 POS
@@ -487,7 +489,7 @@ export default function KasirUnifiedPortalPage() {
               <button
                 onClick={() => setActiveMainTab("KDS")}
                 className={`px-2.5 py-1.5 rounded-lg transition font-semibold flex items-center gap-1 ${
-                  activeMainTab === "KDS" ? "bg-zinc-100 text-zinc-950 font-bold shadow-xs" : "text-zinc-400 hover:text-white"
+                  activeMainTab === "KDS" ? "bg-[#e8d8ba] text-[#0c1210] font-bold shadow-xs" : "text-zinc-400 hover:text-white"
                 }`}
               >
                 <span>🧑‍🍳 Barista</span>
@@ -503,7 +505,7 @@ export default function KasirUnifiedPortalPage() {
                   loadHistory();
                 }}
                 className={`px-2.5 py-1.5 rounded-lg transition font-semibold flex items-center gap-1 ${
-                  activeMainTab === "HISTORY" ? "bg-zinc-100 text-zinc-950 font-bold shadow-xs" : "text-zinc-400 hover:text-white"
+                  activeMainTab === "HISTORY" ? "bg-[#e8d8ba] text-[#0c1210] font-bold shadow-xs" : "text-zinc-400 hover:text-white"
                 }`}
               >
                 <span>📜 Riwayat</span>
@@ -518,7 +520,7 @@ export default function KasirUnifiedPortalPage() {
               <button
                 onClick={() => setActiveMainTab("POS")}
                 className={`px-3.5 py-1.5 rounded-lg transition font-bold flex items-center gap-1.5 ${
-                  activeMainTab === "POS" ? "bg-zinc-100 text-zinc-950 font-bold shadow-xs" : "text-zinc-400 hover:text-white"
+                  activeMainTab === "POS" ? "bg-[#e8d8ba] text-[#0c1210] font-bold shadow-xs" : "text-zinc-400 hover:text-white"
                 }`}
               >
                 <span>🧾</span>
@@ -527,7 +529,7 @@ export default function KasirUnifiedPortalPage() {
               <button
                 onClick={() => setActiveMainTab("KDS")}
                 className={`px-3.5 py-1.5 rounded-lg transition font-bold flex items-center gap-2 ${
-                  activeMainTab === "KDS" ? "bg-zinc-100 text-zinc-950 font-bold shadow-xs" : "text-zinc-400 hover:text-white"
+                  activeMainTab === "KDS" ? "bg-[#e8d8ba] text-[#0c1210] font-bold shadow-xs" : "text-zinc-400 hover:text-white"
                 }`}
               >
                 <span>🧑‍🍳</span>
@@ -548,7 +550,7 @@ export default function KasirUnifiedPortalPage() {
                   loadHistory();
                 }}
                 className={`px-3.5 py-1.5 rounded-lg transition font-bold flex items-center gap-1.5 ${
-                  activeMainTab === "HISTORY" ? "bg-zinc-100 text-zinc-950 font-bold shadow-xs" : "text-zinc-400 hover:text-white"
+                  activeMainTab === "HISTORY" ? "bg-[#e8d8ba] text-[#0c1210] font-bold shadow-xs" : "text-zinc-400 hover:text-white"
                 }`}
               >
                 <span>📜</span>
@@ -672,7 +674,7 @@ export default function KasirUnifiedPortalPage() {
                     type="button"
                     onClick={() => setPosSelectedCategory("ALL")}
                     className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition ${
-                      posSelectedCategory === "ALL" ? "bg-zinc-100 text-zinc-950 font-bold shadow-xs" : "bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-white hover:border-zinc-700"
+                      posSelectedCategory === "ALL" ? "bg-[#e8d8ba] text-[#0c1210] font-bold shadow-xs" : "bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-white hover:border-zinc-700"
                     }`}
                   >
                     Semua
@@ -683,7 +685,7 @@ export default function KasirUnifiedPortalPage() {
                       type="button"
                       onClick={() => setPosSelectedCategory(c.id)}
                       className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition ${
-                        posSelectedCategory === c.id ? "bg-zinc-100 text-zinc-950 font-bold shadow-xs" : "bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-white hover:border-zinc-700"
+                        posSelectedCategory === c.id ? "bg-[#e8d8ba] text-[#0c1210] font-bold shadow-xs" : "bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-white hover:border-zinc-700"
                       }`}
                     >
                       {c.nama || (c as any).nama_kategori || "Kategori"}
@@ -878,7 +880,7 @@ export default function KasirUnifiedPortalPage() {
                     isSubmittingOrder
                   }
                   onClick={handlePosSubmitOrder}
-                  className="w-full py-3.5 rounded-xl bg-zinc-100 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed text-zinc-950 font-bold font-mono text-xs sm:text-sm transition-colors shadow-none flex items-center justify-center space-x-2 cursor-pointer active:scale-[0.99]"
+                  className="w-full py-3.5 rounded-xl bg-[#e8d8ba] hover:bg-[#f2e5d0] disabled:opacity-50 disabled:cursor-not-allowed text-[#0c1210] font-bold font-mono text-xs sm:text-sm transition-colors shadow-none flex items-center justify-center space-x-2 cursor-pointer active:scale-[0.99]"
                 >
                   <span>
                     {isSubmittingOrder
@@ -944,7 +946,7 @@ export default function KasirUnifiedPortalPage() {
                   onClick={() => setSelectedFilter(tab.id)}
                   className={`px-4 py-2 rounded-xl transition whitespace-nowrap font-mono text-xs font-bold ${
                     selectedFilter === tab.id
-                      ? "bg-zinc-100 text-zinc-950 shadow-sm"
+                      ? "bg-[#e8d8ba] text-[#0c1210] shadow-xs"
                       : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white"
                   }`}
                 >

@@ -6,8 +6,11 @@ import { BranchProvider } from "@/context/BranchContext";
 import AiChatWidget from "@/components/AiChatWidget";
 
 export const metadata: Metadata = {
-  title: "Toko Online & POS - RAG AI Assistant",
-  description: "Sistem Toko Online & Antrian Real-Time dengan RAG AI Assistant",
+  title: "Draco Cafe - Artisan Coffee Bar & KDS",
+  description: "Sistem Manajemen Pesanan, Meja Barista KDS, dan POS Kasir Draco Cafe",
+  icons: {
+    icon: "/brand-logo.jpg",
+  },
 };
 
 export default function RootLayout({

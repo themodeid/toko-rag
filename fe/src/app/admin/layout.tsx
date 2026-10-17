@@ -106,17 +106,19 @@ export default function AdminLayout({
           {/* Brand Header */}
           <div className="flex items-center justify-between pb-1">
             <Link href="/admin" className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-700/80 flex items-center justify-center text-zinc-100">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M18 8h1a4 4 0 010 8h-1M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8zm4-7v3m4-3v3m4-3v3" />
-                </svg>
+              <div className="w-8 h-8 rounded-lg overflow-hidden border border-[#2a483e] shrink-0 bg-[#0c1210] relative">
+                <img
+                  src="/brand-logo.jpg"
+                  alt="Draco Cafe Logo"
+                  className="w-full h-full object-cover"
+                />
               </div>
               <div>
-                <span className="font-bold text-sm tracking-tight text-white block leading-none">
-                  TOKO+RAG
+                <span className="font-bold text-sm tracking-tight text-[#f2e5d0] block leading-none font-mono">
+                  DRACO CAFE
                 </span>
-                <span className="text-[10px] font-mono text-zinc-500 block tracking-wider uppercase mt-1">
-                  Artisan Bar • Owner
+                <span className="text-[10px] font-mono text-zinc-400 block tracking-wider uppercase mt-1">
+                  Artisan Coffee • Owner
                 </span>
               </div>
             </Link>
@@ -144,7 +146,7 @@ export default function AdminLayout({
                 className={navItemClass(isLinkActive("/admin") && pathname === "/admin")}
               >
                 {isLinkActive("/admin") && pathname === "/admin" && (
-                  <span className="absolute left-0 inset-y-1.5 w-0.5 bg-zinc-100 rounded-r" />
+                  <span className="absolute left-0 inset-y-1.5 w-0.5 bg-[#e8d8ba] rounded-r" />
                 )}
                 <div className="flex items-center gap-2.5">
                   <svg className="w-4 h-4 shrink-0 text-zinc-400" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
@@ -160,7 +162,7 @@ export default function AdminLayout({
                 className={navItemClass(isLinkActive("/admin/orders"))}
               >
                 {isLinkActive("/admin/orders") && (
-                  <span className="absolute left-0 inset-y-1.5 w-0.5 bg-zinc-100 rounded-r" />
+                  <span className="absolute left-0 inset-y-1.5 w-0.5 bg-[#e8d8ba] rounded-r" />
                 )}
                 <div className="flex items-center gap-2.5">
                   <svg className="w-4 h-4 shrink-0 text-zinc-400" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
@@ -189,7 +191,7 @@ export default function AdminLayout({
                 className={navItemClass(isLinkActive("/admin/menu") || pathname.includes("/menu") || pathname.includes("/inventory"))}
               >
                 {(isLinkActive("/admin/menu") || pathname.includes("/menu") || pathname.includes("/inventory")) && (
-                  <span className="absolute left-0 inset-y-1.5 w-0.5 bg-zinc-100 rounded-r" />
+                  <span className="absolute left-0 inset-y-1.5 w-0.5 bg-[#e8d8ba] rounded-r" />
                 )}
                 <div className="flex items-center gap-2.5">
                   <svg className="w-4 h-4 shrink-0 text-zinc-400" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
@@ -210,7 +212,7 @@ export default function AdminLayout({
                 className={navItemClass(isLinkActive("/admin/expenses"))}
               >
                 {isLinkActive("/admin/expenses") && (
-                  <span className="absolute left-0 inset-y-1.5 w-0.5 bg-zinc-100 rounded-r" />
+                  <span className="absolute left-0 inset-y-1.5 w-0.5 bg-[#e8d8ba] rounded-r" />
                 )}
                 <div className="flex items-center gap-2.5">
                   <svg className="w-4 h-4 shrink-0 text-zinc-400" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
@@ -234,7 +236,7 @@ export default function AdminLayout({
                 className={navItemClass(isLinkActive("/admin/karyawan"))}
               >
                 {isLinkActive("/admin/karyawan") && (
-                  <span className="absolute left-0 inset-y-1.5 w-0.5 bg-zinc-100 rounded-r" />
+                  <span className="absolute left-0 inset-y-1.5 w-0.5 bg-[#e8d8ba] rounded-r" />
                 )}
                 <div className="flex items-center gap-2.5">
                   <svg className="w-4 h-4 shrink-0 text-zinc-400" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
@@ -250,7 +252,7 @@ export default function AdminLayout({
                 className={navItemClass(isLinkActive("/admin/analyst"))}
               >
                 {isLinkActive("/admin/analyst") && (
-                  <span className="absolute left-0 inset-y-1.5 w-0.5 bg-zinc-100 rounded-r" />
+                  <span className="absolute left-0 inset-y-1.5 w-0.5 bg-[#e8d8ba] rounded-r" />
                 )}
                 <div className="flex items-center gap-2.5">
                   <svg className="w-4 h-4 shrink-0 text-zinc-400" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">

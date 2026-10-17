@@ -140,7 +140,7 @@ export default function ExpensesPage() {
 
         <button
           onClick={() => setIsModalOpen(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-zinc-100 hover:bg-white text-zinc-950 font-semibold text-xs rounded-lg transition-colors font-mono self-start sm:self-auto shadow-sm"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-[#e8d8ba] hover:bg-[#f2e5d0] text-[#0c1210] font-bold text-xs rounded-lg transition-colors font-mono self-start sm:self-auto shadow-sm"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -354,7 +354,7 @@ export default function ExpensesPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 py-2 rounded-lg bg-zinc-100 hover:bg-white text-zinc-950 font-bold transition-colors disabled:opacity-50"
+                  className="flex-1 py-2 rounded-lg bg-[#e8d8ba] hover:bg-[#f2e5d0] text-[#0c1210] font-bold font-mono transition-colors disabled:opacity-50"
                 >
                   {submitting ? "Menyimpan..." : "Simpan Pengeluaran"}
                 </button>
@@ -457,7 +457,7 @@ export default function ExpensesPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 py-2 rounded-lg bg-zinc-100 hover:bg-white text-zinc-950 font-bold transition-colors disabled:opacity-50"
+                  className="flex-1 py-2 rounded-lg bg-[#e8d8ba] hover:bg-[#f2e5d0] text-[#0c1210] font-bold font-mono transition-colors disabled:opacity-50"
                 >
                   {submitting ? "Menyimpan..." : "Simpan Perubahan"}
                 </button>

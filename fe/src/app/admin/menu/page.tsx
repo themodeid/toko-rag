@@ -482,7 +482,7 @@ export default function AdminMenuUnifiedPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full py-2.5 bg-zinc-100 hover:bg-white disabled:opacity-50 text-zinc-950 font-bold text-xs rounded-lg transition-colors font-mono"
+              className="w-full py-2.5 bg-[#e8d8ba] hover:bg-[#f2e5d0] disabled:opacity-50 text-[#0c1210] font-bold text-xs rounded-lg transition-colors font-mono"
             >
               {submitting ? "Menyimpan ke Database..." : "+ Publikasikan Menu ke Kiosk"}
             </button>
@@ -813,7 +813,7 @@ export default function AdminMenuUnifiedPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 py-2.5 rounded-lg bg-zinc-100 hover:bg-white text-zinc-950 font-bold transition-colors disabled:opacity-50"
+                  className="flex-1 py-2.5 rounded-lg bg-[#e8d8ba] hover:bg-[#f2e5d0] text-[#0c1210] font-bold transition-colors disabled:opacity-50 font-mono"
                 >
                   {submitting ? "Menyimpan..." : "Simpan Perubahan"}
                 </button>

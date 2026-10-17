@@ -79,16 +79,22 @@ export default function UnifiedStaffLoginPage() {
       <main className="w-full max-w-md mx-auto my-auto py-6">
         <div className="bg-zinc-900/90 border border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 relative overflow-hidden backdrop-blur-xl">
           {/* Header Card */}
-          <div className="text-center space-y-2">
-            <div className="w-12 h-12 rounded-2xl bg-zinc-800 border border-zinc-700 mx-auto flex items-center justify-center text-2xl text-amber-400 shadow-inner">
-              🔐
+          <div className="text-center space-y-3">
+            <div className="w-16 h-16 rounded-2xl overflow-hidden border border-[#2a483e] mx-auto shadow-md relative bg-[#0c1210]">
+              <img
+                src="/brand-logo.jpg"
+                alt="Draco Cafe Logo"
+                className="w-full h-full object-cover"
+              />
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-white">
-              Portal Staf Terpadu
-            </h1>
-            <p className="text-xs text-zinc-400">
-              Satu pintu masuk untuk Owner HQ maupun Barista Kasir. Sistem otomatis mengenali peran Anda.
-            </p>
+            <div>
+              <h1 className="text-2xl font-bold font-mono tracking-tight text-[#f2e5d0]">
+                Draco Cafe
+              </h1>
+              <p className="text-xs text-zinc-400 mt-1">
+                Portal Staf & Owner Terpadu • Station Kasir & Owner Hub
+              </p>
+            </div>
           </div>
 
           {/* Quick Presets (Mudah untuk Pengujian Mas Adam) */}
@@ -172,7 +178,7 @@ export default function UnifiedStaffLoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 px-4 rounded-xl bg-zinc-100 hover:bg-white text-zinc-950 font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed shadow-lg mt-2"
+              className="w-full py-3 px-4 rounded-xl bg-[#e8d8ba] hover:bg-[#f2e5d0] text-[#0c1210] font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed shadow-none mt-2 font-mono"
             >
               {loading ? (
                 <>
