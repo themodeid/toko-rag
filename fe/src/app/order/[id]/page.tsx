@@ -409,14 +409,20 @@ export default function OrderTrackingPage() {
                       x{item.qty}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2 mt-1 text-xs font-mono text-zinc-400">
-                    <span className="px-1.5 py-0.5 rounded bg-zinc-800 border border-zinc-700/60">
-                      {item.suhu === "ICE" ? "❄️ Ice" : "🔥 Hot"}
-                    </span>
-                    <span className="px-1.5 py-0.5 rounded bg-zinc-800 border border-zinc-700/60">
-                      Gula: {item.sugar_level}
-                    </span>
-                  </div>
+                  {(item.suhu === "HOT" || (item.sugar_level && item.sugar_level !== "NORMAL")) && (
+                    <div className="flex items-center gap-2 mt-1 text-xs font-mono text-zinc-400">
+                      {item.suhu === "HOT" && (
+                        <span className="px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/30">
+                          🔥 Hot
+                        </span>
+                      )}
+                      {item.sugar_level && item.sugar_level !== "NORMAL" && (
+                        <span className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                          Gula: {item.sugar_level}
+                        </span>
+                      )}
+                    </div>
+                  )}
                   {item.catatan && (
                     <p className="text-xs text-zinc-500 mt-1 italic font-mono">
                       Catatan: {item.catatan}

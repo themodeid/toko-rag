@@ -383,21 +383,21 @@ export default function KasirUnifiedPortalPage() {
                 </span>
               </div>
 
-              <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                {item.suhu === "ICE" ? (
-                  <span className="px-2 py-0.5 rounded-md bg-sky-500/20 text-sky-300 border border-sky-500/40 text-[10px] font-bold font-mono">
-                    ❄️ ICE / DINGIN
-                  </span>
-                ) : (
-                  <span className="px-2 py-0.5 rounded-md bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] font-bold font-mono">
-                    🔥 HOT / PANAS
-                  </span>
-                )}
-
-                <span className="px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-300 border border-zinc-700 text-[10px] font-mono">
-                  🍬 Gula: {item.sugar_level}
-                </span>
-              </div>
+              {/* Tampilkan badge hanya bila NON-DEFAULT (Pengecualian Khusus: Panas atau Gula Custom) */}
+              {(item.suhu === "HOT" || (item.sugar_level && item.sugar_level !== "NORMAL")) && (
+                <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                  {item.suhu === "HOT" && (
+                    <span className="px-2 py-0.5 rounded-md bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] font-bold font-mono">
+                      🔥 HOT / PANAS
+                    </span>
+                  )}
+                  {item.sugar_level && item.sugar_level !== "NORMAL" && (
+                    <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold font-mono">
+                      🍬 Gula: {item.sugar_level}
+                    </span>
+                  )}
+                </div>
+              )}
 
               {item.catatan && (
                 <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-mono">
@@ -1175,11 +1175,13 @@ export default function KasirUnifiedPortalPage() {
                                 {item.nama_minuman}
                               </span>
                             </div>
-                            <div className="flex items-center space-x-1.5 text-[10px] text-zinc-400">
-                              <span>{item.suhu === "ICE" ? "❄️ Ice" : "🔥 Hot"}</span>
-                              <span>•</span>
-                              <span>Gula: {item.sugar_level}</span>
-                            </div>
+                            {(item.suhu === "HOT" || (item.sugar_level && item.sugar_level !== "NORMAL")) && (
+                              <div className="flex items-center space-x-1.5 text-[10px] text-zinc-400">
+                                {item.suhu === "HOT" && <span>🔥 Hot</span>}
+                                {item.suhu === "HOT" && item.sugar_level && item.sugar_level !== "NORMAL" && <span>•</span>}
+                                {item.sugar_level && item.sugar_level !== "NORMAL" && <span>Gula: {item.sugar_level}</span>}
+                              </div>
+                            )}
                             {item.catatan && (
                               <p className="text-[10px] text-amber-400/80 italic">
                                 Catatan: {item.catatan}
