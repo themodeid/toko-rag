@@ -339,15 +339,25 @@ export default function KasirUnifiedPortalPage() {
   }, [orders]);
 
   const kitchenOrders = useMemo(() => {
-    return orders.filter(
-      (o) =>
-        o.status_antrian === "MENUNGGU_RACIK" ||
-        o.status_antrian === "SEDANG_DIRACIK"
-    );
+    return orders
+      .filter(
+        (o) =>
+          o.status_antrian === "MENUNGGU_RACIK" ||
+          o.status_antrian === "SEDANG_DIRACIK"
+      )
+      .sort(
+        (a, b) =>
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
   }, [orders]);
 
   const readyOrders = useMemo(() => {
-    return orders.filter((o) => o.status_antrian === "SIAP_DIAMBIL");
+    return orders
+      .filter((o) => o.status_antrian === "SIAP_DIAMBIL")
+      .sort(
+        (a, b) =>
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
   }, [orders]);
 
   const kitchenOrdersCount = kitchenOrders.length;
@@ -355,25 +365,30 @@ export default function KasirUnifiedPortalPage() {
 
   // Filtered orders for KDS
   const filteredOrders = useMemo(() => {
-    return orders.filter((o) => {
-      if (selectedFilter === "DAPUR") {
+    return orders
+      .filter((o) => {
+        if (selectedFilter === "DAPUR") {
+          return (
+            o.status_antrian === "MENUNGGU_RACIK" ||
+            o.status_antrian === "SEDANG_DIRACIK"
+          );
+        }
+        if (selectedFilter === "SIAP_DIAMBIL") {
+          return o.status_antrian === "SIAP_DIAMBIL";
+        }
         return (
           o.status_antrian === "MENUNGGU_RACIK" ||
-          o.status_antrian === "SEDANG_DIRACIK"
+          o.status_antrian === "SEDANG_DIRACIK" ||
+          o.status_antrian === "SIAP_DIAMBIL"
         );
-      }
-      if (selectedFilter === "SIAP_DIAMBIL") {
-        return o.status_antrian === "SIAP_DIAMBIL";
-      }
-      return (
-        o.status_antrian === "MENUNGGU_RACIK" ||
-        o.status_antrian === "SEDANG_DIRACIK" ||
-        o.status_antrian === "SIAP_DIAMBIL"
+      })
+      .sort(
+        (a, b) =>
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
       );
-    });
   }, [orders, selectedFilter]);
 
-  const renderOrderCard = (order: Order) => {
+  const renderOrderCard = (order: Order, index?: number) => {
     const isUpdating = updatingId === order.id;
     const isReady = order.status_antrian === "SIAP_DIAMBIL";
 
@@ -383,15 +398,30 @@ export default function KasirUnifiedPortalPage() {
         className={`rounded-2xl border p-5 flex flex-col justify-between space-y-4 transition ${
           isReady
             ? "bg-zinc-900/90 border border-emerald-500/40 shadow-xs"
+            : index === 0
+            ? "bg-zinc-900/95 border-2 border-amber-500/50 shadow-md ring-1 ring-amber-500/20"
             : "bg-zinc-900/90 border border-zinc-800 hover:border-zinc-700 shadow-xs"
         }`}
       >
         {/* Ticket Header */}
         <div className="flex items-start justify-between border-b border-zinc-800 pb-3">
           <div>
-            <span className="text-2xl sm:text-3xl font-black font-mono text-zinc-100 tracking-tight block">
-              {order.order_code?.startsWith("#") ? order.order_code : `#${order.order_code}`}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-2xl sm:text-3xl font-black font-mono text-zinc-100 tracking-tight block">
+                {order.order_code?.startsWith("#") ? order.order_code : `#${order.order_code}`}
+              </span>
+              {typeof index === "number" && !isReady && (
+                <span
+                  className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold tracking-wider uppercase border ${
+                    index === 0
+                      ? "bg-amber-500/20 text-amber-300 border-amber-500/40 animate-pulse"
+                      : "bg-zinc-800 text-zinc-400 border-zinc-700"
+                  }`}
+                >
+                  {index === 0 ? "⭐ Dibuat Pertama" : `Antrean #${index + 1}`}
+                </span>
+              )}
+            </div>
             <div className="flex items-baseline gap-1.5 mt-1">
               <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">Pemesan:</span>
               <h3 className="text-lg sm:text-xl font-bold text-zinc-100 uppercase tracking-wide truncate max-w-[200px]">
@@ -1079,7 +1109,9 @@ export default function KasirUnifiedPortalPage() {
                         </div>
                       ) : (
                         <div className="space-y-4">
-                          {kitchenOrders.map(renderOrderCard)}
+                          {kitchenOrders.map((ord, idx) =>
+                            renderOrderCard(ord, idx)
+                          )}
                         </div>
                       )}
                     </section>
@@ -1108,7 +1140,9 @@ export default function KasirUnifiedPortalPage() {
                         </div>
                       ) : (
                         <div className="space-y-4">
-                          {readyOrders.map(renderOrderCard)}
+                          {readyOrders.map((ord, idx) =>
+                            renderOrderCard(ord, idx)
+                          )}
                         </div>
                       )}
                     </section>
@@ -1140,7 +1174,9 @@ export default function KasirUnifiedPortalPage() {
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {kitchenOrders.map(renderOrderCard)}
+                        {kitchenOrders.map((ord, idx) =>
+                          renderOrderCard(ord, idx)
+                        )}
                       </div>
                     )}
                   </section>
@@ -1171,7 +1207,9 @@ export default function KasirUnifiedPortalPage() {
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {readyOrders.map(renderOrderCard)}
+                        {readyOrders.map((ord, idx) =>
+                          renderOrderCard(ord, idx)
+                        )}
                       </div>
                     )}
                   </section>

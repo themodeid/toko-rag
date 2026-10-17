@@ -445,14 +445,7 @@ export class OrderService {
         created_at
       FROM tb_orders
       WHERE status_antrian IN ('MENUNGGU_RACIK', 'SEDANG_DIRACIK', 'SIAP_DIAMBIL')
-      ORDER BY 
-        CASE status_antrian
-          WHEN 'SIAP_DIAMBIL' THEN 1
-          WHEN 'SEDANG_DIRACIK' THEN 2
-          WHEN 'MENUNGGU_RACIK' THEN 3
-          ELSE 4
-        END,
-        created_at ASC
+      ORDER BY created_at ASC
       LIMIT 30;
     `;
     const { rows } = await query(sql);

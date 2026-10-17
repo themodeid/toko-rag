@@ -112,15 +112,7 @@ export class KasirService {
     } else {
       sql += `
         GROUP BY o.id
-        ORDER BY 
-          CASE o.status_antrian
-            WHEN 'MENUNGGU_RACIK' THEN 1
-            WHEN 'SEDANG_DIRACIK' THEN 2
-            WHEN 'SIAP_DIAMBIL' THEN 3
-            WHEN 'MENUNGGU_BAYAR' THEN 4
-            ELSE 5
-          END,
-          o.created_at ASC;
+        ORDER BY o.created_at ASC;
       `;
     }
 
