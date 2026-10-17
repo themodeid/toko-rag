@@ -2,11 +2,13 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { fetchAdminOrders } from "@/features/kiosk/api";
+import ReceiptModal from "@/components/receipt/ReceiptModal";
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedReceiptOrder, setSelectedReceiptOrder] = useState<any | null>(null);
 
   const fetchOrders = async () => {
     try {
@@ -259,19 +261,36 @@ export default function AdminOrdersPage() {
                     <span>Tercatat Permanen</span>
                   </div>
 
-                  <span className="tabular-nums text-zinc-500">
-                    {finishedDate
-                      ? `Diserahkan ${finishedDate.toLocaleTimeString("id-ID", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })} WIB`
-                      : "Aktif di Meja Bar"}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedReceiptOrder(ord)}
+                      className="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[10px] font-mono flex items-center gap-1 transition-colors border border-zinc-700 shadow-sm cursor-pointer"
+                      title="Cetak Salinan Struk Transaksi Ini"
+                    >
+                      <span>🖨️ Struk</span>
+                    </button>
+                    <span className="tabular-nums text-zinc-500">
+                      {finishedDate
+                        ? `Diserahkan ${finishedDate.toLocaleTimeString("id-ID", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })} WIB`
+                        : "Aktif di Meja Bar"}
+                    </span>
+                  </div>
                 </div>
               </div>
             );
           })}
         </div>
+      )}
+
+      {selectedReceiptOrder && (
+        <ReceiptModal
+          order={selectedReceiptOrder}
+          onClose={() => setSelectedReceiptOrder(null)}
+        />
       )}
     </div>
   );

@@ -22,6 +22,7 @@ import {
 } from "@/features/kiosk/api";
 import { validateCustomerName } from "@/lib/profanityFilter";
 import { getProductImageUrl } from "@/lib/imageHelper";
+import ReceiptModal from "@/components/receipt/ReceiptModal";
 
 export default function KasirUnifiedPortalPage() {
   const router = useRouter();
@@ -41,6 +42,9 @@ export default function KasirUnifiedPortalPage() {
   const [loadingHistory, setLoadingHistory] = useState<boolean>(false);
   const [historySearchQuery, setHistorySearchQuery] = useState<string>("");
 
+  // Struk Modal State
+  const [selectedReceiptOrder, setSelectedReceiptOrder] = useState<Order | null>(null);
+
   // POS State
   const [posBeverages, setPosBeverages] = useState<Minuman[]>([]);
   const [posCategories, setPosCategories] = useState<KategoriMinuman[]>([]);
@@ -53,6 +57,7 @@ export default function KasirUnifiedPortalPage() {
   const [lastOrderSuccess, setLastOrderSuccess] = useState<{
     code: string;
     name: string;
+    order?: Order;
   } | null>(null);
 
 
@@ -274,7 +279,11 @@ export default function KasirUnifiedPortalPage() {
       setLastOrderSuccess({
         code: created.order_code || (created as any).no_antrian || "-",
         name: created.nama_pelanggan || posCustomerName.trim(),
+        order: created,
       });
+
+      // Otomatis buka struk belanjaan untuk dicetak kasir
+      setSelectedReceiptOrder(created);
 
       handlePosClearCart();
       await loadData();
@@ -1345,11 +1354,21 @@ export default function KasirUnifiedPortalPage() {
                           Rp {Number(order.total_amount || 0).toLocaleString("id-ID")}
                         </span>
                       </div>
-                      <div className="text-right">
-                        <span className="text-[10px] text-zinc-500 block">Metode</span>
-                        <span className="text-[11px] font-semibold text-emerald-400">
-                          {order.payment_method || "QRIS"} (Lunas)
-                        </span>
+                      <div className="flex items-center gap-2.5">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedReceiptOrder(order)}
+                          className="px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[11px] font-mono font-medium flex items-center gap-1.5 transition-colors border border-zinc-700 shadow-sm active:scale-95"
+                          title="Lihat & Cetak Struk Belanja Transaksi Ini"
+                        >
+                          <span>🖨️ Struk</span>
+                        </button>
+                        <div className="text-right">
+                          <span className="text-[10px] text-zinc-500 block">Metode</span>
+                          <span className="text-[11px] font-semibold text-emerald-400">
+                            {order.payment_method || "QRIS"} (Lunas)
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1361,7 +1380,13 @@ export default function KasirUnifiedPortalPage() {
         </div>
       )}
 
-      {/* STOCK MANAGEMENT MODAL */}
+      {/* MODAL STRUK BELANJAAN THERMAL RESMI */}
+      {selectedReceiptOrder && (
+        <ReceiptModal
+          order={selectedReceiptOrder}
+          onClose={() => setSelectedReceiptOrder(null)}
+        />
+      )}
       </div>
   );
 }

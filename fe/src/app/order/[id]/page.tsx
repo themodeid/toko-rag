@@ -9,6 +9,7 @@ import {
   payOrderQris,
   submitProductReview,
 } from "@/features/kiosk/api";
+import ReceiptModal from "@/components/receipt/ReceiptModal";
 
 export default function OrderTrackingPage() {
   const params = useParams();
@@ -19,6 +20,7 @@ export default function OrderTrackingPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [isPaying, setIsPaying] = useState<boolean>(false);
+  const [showReceipt, setShowReceipt] = useState<boolean>(false);
 
   // Review states per beverage
   const [reviewRatings, setReviewRatings] = useState<{ [beverageId: string]: number }>({});
@@ -443,6 +445,16 @@ export default function OrderTrackingPage() {
               Rp {totalAmount.toLocaleString("id-ID")}
             </span>
           </div>
+
+          <div className="pt-3 border-t border-zinc-800/80">
+            <button
+              type="button"
+              onClick={() => setShowReceipt(true)}
+              className="w-full py-2.5 rounded-xl border border-zinc-700 bg-zinc-950 hover:bg-zinc-800 text-zinc-100 font-mono text-xs font-bold transition-all flex items-center justify-center gap-2 active:scale-98 shadow-sm"
+            >
+              <span>🖨️ Lihat & Cetak Struk Belanjaan</span>
+            </button>
+          </div>
         </div>
 
         {/* RATING & REVIEW CARD (Hanya jika siap diambil / selesai) */}
@@ -546,6 +558,14 @@ export default function OrderTrackingPage() {
           </div>
         )}
       </main>
+
+      {/* MODAL STRUK BELANJAAN THERMAL */}
+      {showReceipt && orderData?.order && (
+        <ReceiptModal
+          order={orderData.order}
+          onClose={() => setShowReceipt(false)}
+        />
+      )}
     </div>
   );
 }
