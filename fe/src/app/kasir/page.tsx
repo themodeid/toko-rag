@@ -158,12 +158,22 @@ export default function KasirUnifiedPortalPage() {
   ======================================================== */
   const handlePosAddToCart = (beverage: Minuman) => {
     if (!beverage.is_available) return;
+    const maxStock = beverage.stock ?? 50;
+    if (maxStock <= 0) {
+      alert(`Maaf, stok "${beverage.nama}" sedang habis.`);
+      return;
+    }
 
     setPosCart((prev) => {
       const existingIdx = prev.findIndex((item) => item.minuman.id === beverage.id);
       if (existingIdx > -1) {
+        const currentQty = prev[existingIdx].qty;
+        if (currentQty >= maxStock) {
+          alert(`Maksimal stok tercapai: "${beverage.nama}" hanya tersedia ${maxStock} cup.`);
+          return prev;
+        }
         return prev.map((item, idx) =>
-          idx === existingIdx ? { ...item, qty: item.qty + 1 } : item
+          idx === existingIdx ? { ...item, qty: currentQty + 1 } : item
         );
       }
       return [
@@ -182,12 +192,35 @@ export default function KasirUnifiedPortalPage() {
     setPosCart((prev) => {
       const target = prev[index];
       if (!target) return prev;
+      const maxStock = target.minuman.stock ?? 50;
       const newQty = target.qty + delta;
       if (newQty <= 0) {
         return prev.filter((_, idx) => idx !== index);
       }
+      if (newQty > maxStock) {
+        alert(`Maksimal stok tercapai: "${target.minuman.nama}" hanya tersedia ${maxStock} cup.`);
+        return prev.map((item, idx) =>
+          idx === index ? { ...item, qty: maxStock } : item
+        );
+      }
       return prev.map((item, idx) =>
         idx === index ? { ...item, qty: newQty } : item
+      );
+    });
+  };
+
+  const handlePosSetQty = (index: number, exactQty: number) => {
+    setPosCart((prev) => {
+      const target = prev[index];
+      if (!target) return prev;
+      const maxStock = target.minuman.stock ?? 50;
+      let safeQty = Math.max(1, exactQty);
+      if (safeQty > maxStock) {
+        alert(`Maksimal stok tercapai: "${target.minuman.nama}" hanya tersedia ${maxStock} cup.`);
+        safeQty = maxStock;
+      }
+      return prev.map((item, idx) =>
+        idx === index ? { ...item, qty: safeQty } : item
       );
     });
   };
@@ -726,14 +759,19 @@ export default function KasirUnifiedPortalPage() {
                           )}
                         </div>
 
-                        {/* Title & Category */}
+                        {/* Title & Category & Stock */}
                         <div>
                           <h4 className="text-xs font-bold text-white group-hover:text-zinc-100 transition truncate">
                             {bev.nama}
                           </h4>
-                          <span className="text-[10px] text-zinc-500 font-mono block">
-                            {(bev as any).nama_kategori || bev.kategori?.nama || "Artisan"}
-                          </span>
+                          <div className="flex items-center justify-between mt-0.5">
+                            <span className="text-[10px] text-zinc-500 font-mono block">
+                              {(bev as any).nama_kategori || bev.kategori?.nama || "Artisan"}
+                            </span>
+                            <span className="text-[10px] text-zinc-400 font-mono font-semibold">
+                              Stok: {bev.stock ?? 50}
+                            </span>
+                          </div>
                         </div>
                       </div>
 
@@ -802,28 +840,45 @@ export default function KasirUnifiedPortalPage() {
                           <p className="font-bold text-white truncate">
                             {item.minuman.nama}
                           </p>
-                          <p className="text-[10px] text-zinc-500 font-mono">
-                            @ Rp {item.minuman.harga.toLocaleString("id-ID")}
-                          </p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <p className="text-[10px] text-zinc-400 font-mono">
+                              @ Rp {item.minuman.harga.toLocaleString("id-ID")}
+                            </p>
+                            <span className="text-[10px] text-zinc-500 font-mono border-l border-zinc-800 pl-2">
+                              Stok: {item.minuman.stock ?? 50} cup
+                            </span>
+                          </div>
                         </div>
                       </div>
 
-                      {/* Qty Selector */}
-                      <div className="flex items-center space-x-1.5 font-mono">
+                      {/* Qty Direct Input & Controls */}
+                      <div className="flex items-center space-x-1 font-mono">
                         <button
                           type="button"
                           onClick={() => handlePosUpdateQty(idx, -1)}
-                          className="w-6 h-6 rounded bg-zinc-800 hover:bg-zinc-700 text-white font-bold flex items-center justify-center transition"
+                          className="w-7 h-7 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white font-bold flex items-center justify-center transition active:scale-95 cursor-pointer"
+                          title="Kurangi 1 cup"
                         >
                           -
                         </button>
-                        <span className="w-6 text-center font-bold text-white">
-                          {item.qty}
-                        </span>
+                        <input
+                          type="number"
+                          min={1}
+                          max={item.minuman.stock ?? 50}
+                          value={item.qty}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value, 10);
+                            handlePosSetQty(idx, isNaN(val) ? 1 : val);
+                          }}
+                          className="w-12 h-7 text-center font-bold text-zinc-100 bg-zinc-900 border border-zinc-700 focus:border-[#e8d8ba] rounded-lg text-xs font-mono tabular-nums focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          title={`Ketik langsung jumlah pesanan (Maksimal: ${item.minuman.stock ?? 50} cup)`}
+                        />
                         <button
                           type="button"
+                          disabled={item.qty >= (item.minuman.stock ?? 50)}
                           onClick={() => handlePosUpdateQty(idx, 1)}
-                          className="w-6 h-6 rounded bg-zinc-800 hover:bg-zinc-700 text-white font-bold flex items-center justify-center transition"
+                          className="w-7 h-7 rounded-lg bg-zinc-800 hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed text-white font-bold flex items-center justify-center transition active:scale-95 cursor-pointer"
+                          title={item.qty >= (item.minuman.stock ?? 50) ? "Stok maksimum tercapai" : "Tambah 1 cup"}
                         >
                           +
                         </button>
