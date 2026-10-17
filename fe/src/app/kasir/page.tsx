@@ -378,6 +378,14 @@ export default function KasirUnifiedPortalPage() {
                 <span className="px-2.5 py-1 rounded-lg bg-amber-500 text-zinc-950 font-black font-mono text-sm leading-none shrink-0 shadow-xs">
                   {item.qty}x
                 </span>
+                <div className="w-10 h-10 rounded-lg overflow-hidden bg-zinc-900 border border-zinc-800 shrink-0 relative">
+                  <img
+                    src={getProductImageUrl(item.image_url)}
+                    alt={item.nama_minuman}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                </div>
                 <span className="text-sm sm:text-base font-bold text-white tracking-wide">
                   {item.nama_minuman}
                 </span>
@@ -793,13 +801,23 @@ export default function KasirUnifiedPortalPage() {
                       key={item.minuman.id}
                       className="p-3 rounded-xl bg-zinc-950 border border-zinc-800/80 flex items-center justify-between gap-3 text-xs"
                     >
-                      <div className="flex-1 min-w-0">
-                        <p className="font-bold text-white truncate">
-                          {item.minuman.nama}
-                        </p>
-                        <p className="text-[10px] text-zinc-500 font-mono">
-                          @ Rp {item.minuman.harga.toLocaleString("id-ID")}
-                        </p>
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <div className="w-9 h-9 rounded-lg overflow-hidden bg-zinc-900 border border-zinc-800 shrink-0 relative">
+                          <img
+                            src={getProductImageUrl(item.minuman.image_url)}
+                            alt={item.minuman.nama}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-bold text-white truncate">
+                            {item.minuman.nama}
+                          </p>
+                          <p className="text-[10px] text-zinc-500 font-mono">
+                            @ Rp {item.minuman.harga.toLocaleString("id-ID")}
+                          </p>
+                        </div>
                       </div>
 
                       {/* Qty Selector */}
@@ -1168,9 +1186,17 @@ export default function KasirUnifiedPortalPage() {
                         >
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
-                              <span className="px-2 py-0.5 rounded-md bg-amber-500 text-zinc-950 font-black text-xs">
+                              <span className="px-2 py-0.5 rounded-md bg-amber-500 text-zinc-950 font-black text-xs shrink-0">
                                 {item.qty}x
                               </span>
+                              <div className="w-8 h-8 rounded-lg overflow-hidden bg-zinc-900 border border-zinc-800 shrink-0 relative">
+                                <img
+                                  src={getProductImageUrl(item.image_url)}
+                                  alt={item.nama_minuman}
+                                  className="w-full h-full object-cover"
+                                  loading="lazy"
+                                />
+                              </div>
                               <span className="font-bold text-white">
                                 {item.nama_minuman}
                               </span>

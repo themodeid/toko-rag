@@ -77,6 +77,7 @@ export class KasirService {
               'id', oi.id,
               'item_id', oi.id,
               'nama_minuman', m.nama,
+              'image_url', m.image_url,
               'qty', oi.qty,
               'suhu', oi.suhu,
               'sugar_level', oi.sugar_level,

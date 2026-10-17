@@ -41,6 +41,7 @@ export interface OrderItem {
   suhu: "ICE" | "HOT";
   sugar_level: "LESS" | "NORMAL" | "EXTRA";
   catatan?: string;
+  image_url?: string;
 }
 
 export type StatusBayar = "PENDING" | "PAID" | "FAILED" | "EXPIRED";
