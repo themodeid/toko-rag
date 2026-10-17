@@ -334,6 +334,36 @@ export class AdminService {
     return res.rows[0];
   }
 
+  static async updateExpense(
+    id: string,
+    data: {
+      kategori?: string;
+      nama_biaya?: string;
+      nama_pengeluaran?: string;
+      keterangan?: string;
+      nominal?: number;
+    }
+  ) {
+    const existing = await pool.query("SELECT * FROM tb_biaya_operasional WHERE id = $1", [id]);
+    if (existing.rows.length === 0) {
+      throw new AppError("Beban operasional tidak ditemukan", 404);
+    }
+    const cur = existing.rows[0];
+    const namaBiaya = data.nama_biaya || data.nama_pengeluaran || cur.nama_biaya;
+    const kategori = data.kategori || cur.kategori;
+    const nominal = data.nominal !== undefined ? Number(data.nominal) : cur.nominal;
+    const keterangan = data.keterangan !== undefined ? data.keterangan : cur.keterangan;
+
+    const res = await pool.query(
+      `UPDATE tb_biaya_operasional
+       SET nama_biaya = $1, kategori = $2, nominal = $3, keterangan = $4
+       WHERE id = $5
+       RETURNING *, nama_biaya AS nama_pengeluaran, created_at AS tanggal_biaya;`,
+      [namaBiaya, kategori, nominal, keterangan, id]
+    );
+    return res.rows[0];
+  }
+
   static async deleteExpense(id: string) {
     await pool.query(`DELETE FROM tb_biaya_operasional WHERE id = $1`, [id]);
     return true;

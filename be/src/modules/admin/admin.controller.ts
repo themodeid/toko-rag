@@ -213,6 +213,16 @@ export class AdminController {
     }
   }
 
+  static async updateExpense(req: Request, res: Response) {
+    try {
+      const id = String(req.params.id);
+      const updated = await AdminService.updateExpense(id, req.body);
+      res.status(200).json({ status: "success", data: updated });
+    } catch (error: any) {
+      res.status(error.statusCode || 500).json({ status: "error", message: error.message });
+    }
+  }
+
   static async deleteExpense(req: Request, res: Response) {
     try {
       const id = String(req.params.id);

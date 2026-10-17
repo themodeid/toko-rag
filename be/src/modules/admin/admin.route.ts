@@ -30,6 +30,7 @@ router.delete("/recipes/:id", AdminController.deleteRecipeItem);
 // Operating Expenses
 router.get("/expenses", AdminController.getExpenses);
 router.post("/expenses", AdminController.createExpense);
+router.put("/expenses/:id", AdminController.updateExpense);
 router.delete("/expenses/:id", AdminController.deleteExpense);
 
 export default router;

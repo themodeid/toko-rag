@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getExpenses, createExpense } from "@/features/admin/api";
+import { getExpenses, createExpense, updateExpense, deleteExpense } from "@/features/admin/api";
 import { BiayaOperasional } from "@/features/admin/types";
 
 export default function ExpensesPage() {
@@ -20,6 +20,13 @@ export default function ExpensesPage() {
   );
   const [submitting, setSubmitting] = useState(false);
 
+  // Edit modal
+  const [editingExpense, setEditingExpense] = useState<BiayaOperasional | null>(null);
+  const [editKategori, setEditKategori] = useState("Sewa Tempat");
+  const [editNamaPengeluaran, setEditNamaPengeluaran] = useState("");
+  const [editNominal, setEditNominal] = useState<number>(0);
+  const [editKeterangan, setEditKeterangan] = useState("");
+
   const fetchExpenses = async () => {
     try {
       setLoading(true);
@@ -35,6 +42,47 @@ export default function ExpensesPage() {
   useEffect(() => {
     fetchExpenses();
   }, [period]);
+
+  const handleOpenEdit = (exp: BiayaOperasional) => {
+    setEditingExpense(exp);
+    setEditKategori(exp.kategori || "Sewa Tempat");
+    setEditNamaPengeluaran(exp.nama_pengeluaran || "");
+    setEditNominal(Number(exp.nominal) || 0);
+    setEditKeterangan(exp.keterangan || "");
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingExpense || !editNamaPengeluaran.trim() || editNominal <= 0) return;
+
+    try {
+      setSubmitting(true);
+      await updateExpense(editingExpense.id, {
+        kategori: editKategori,
+        nama_pengeluaran: editNamaPengeluaran.trim(),
+        nominal: editNominal,
+        keterangan: editKeterangan.trim(),
+      });
+      setEditingExpense(null);
+      await fetchExpenses();
+    } catch (err) {
+      alert("Gagal memperbarui catatan pengeluaran");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteExpense = async (id: string, nama: string) => {
+    if (!window.confirm(`Yakin ingin menghapus catatan pengeluaran "${nama}"?`)) {
+      return;
+    }
+    try {
+      await deleteExpense(id);
+      await fetchExpenses();
+    } catch (err) {
+      alert("Gagal menghapus catatan pengeluaran");
+    }
+  };
 
   const handleAddExpense = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -134,18 +182,19 @@ export default function ExpensesPage() {
                 <th className="px-5 py-3.5">Nama Pengeluaran</th>
                 <th className="px-5 py-3.5">Keterangan</th>
                 <th className="px-5 py-3.5 text-right">Nominal (Rp)</th>
+                <th className="px-5 py-3.5 text-right">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800/80 text-zinc-200">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="px-5 py-12 text-center font-mono text-zinc-500">
+                  <td colSpan={6} className="px-5 py-12 text-center font-mono text-zinc-500">
                     Memuat data pengeluaran...
                   </td>
                 </tr>
               ) : expenses.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-5 py-12 text-center font-mono text-zinc-500">
+                  <td colSpan={6} className="px-5 py-12 text-center font-mono text-zinc-500">
                     Belum ada pengeluaran yang dicatat di periode ini.
                   </td>
                 </tr>
@@ -172,6 +221,28 @@ export default function ExpensesPage() {
                     </td>
                     <td className="px-5 py-3.5 font-mono font-bold text-zinc-100 tabular-nums text-right">
                       {formatRupiah(Number(exp.nominal))}
+                    </td>
+                    <td className="px-5 py-3.5 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => handleOpenEdit(exp)}
+                          className="p-1.5 rounded-md hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+                          title="Edit & Sesuaikan Pengeluaran"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteExpense(exp.id, exp.nama_pengeluaran || "Beban")}
+                          className="p-1.5 rounded-md hover:bg-rose-500/10 text-zinc-500 hover:text-rose-400 transition-colors"
+                          title="Hapus Pengeluaran"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                          </svg>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -286,6 +357,109 @@ export default function ExpensesPage() {
                   className="flex-1 py-2 rounded-lg bg-zinc-100 hover:bg-white text-zinc-950 font-bold transition-colors disabled:opacity-50"
                 >
                   {submitting ? "Menyimpan..." : "Simpan Pengeluaran"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Modal Edit Beban Operasional */}
+      {editingExpense && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in">
+          <div className="bg-zinc-900 border border-zinc-800 text-zinc-100 w-full max-w-md rounded-xl p-5 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+              <div>
+                <h3 className="text-sm font-bold font-mono text-zinc-100">
+                  Edit & Penyesuaian Beban Operasional
+                </h3>
+                <p className="text-[11px] text-zinc-400 mt-0.5">
+                  Sesuaikan nama pengeluaran, nominal rupiah, atau kategori
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingExpense(null)}
+                className="text-zinc-400 hover:text-white p-1 rounded hover:bg-zinc-800 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="space-y-3.5 text-xs font-mono">
+              <div>
+                <label className="block text-zinc-400 mb-1 uppercase tracking-wider text-[10px]">
+                  Kategori Biaya
+                </label>
+                <select
+                  value={editKategori}
+                  onChange={(e) => setEditKategori(e.target.value)}
+                  className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-100 focus:outline-none focus:border-zinc-600 transition-colors"
+                >
+                  <option value="Sewa Tempat">Sewa Tempat / Outlet</option>
+                  <option value="Listrik & Air">Listrik & Air (PLN / PAM)</option>
+                  <option value="Gaji Karyawan">Gaji & Insentif Barista</option>
+                  <option value="Internet & Telko">Internet & WiFi Kafe</option>
+                  <option value="Perawatan Mesin">Perawatan Mesin Espresso & Alat</option>
+                  <option value="Operasional Lainnya">Operasional Lainnya</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-zinc-400 mb-1 uppercase tracking-wider text-[10px]">
+                  Nama Pengeluaran *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: Tagihan Listrik PLN Bulan Oktober"
+                  value={editNamaPengeluaran}
+                  onChange={(e) => setEditNamaPengeluaran(e.target.value)}
+                  className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-100 focus:outline-none focus:border-zinc-600 font-sans"
+                />
+              </div>
+
+              <div>
+                <label className="block text-zinc-400 mb-1 uppercase tracking-wider text-[10px]">
+                  Nominal Pengeluaran (Rp) *
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  required
+                  placeholder="Contoh: 500000"
+                  value={editNominal || ""}
+                  onChange={(e) => setEditNominal(parseFloat(e.target.value) || 0)}
+                  className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-100 focus:outline-none focus:border-zinc-600 tabular-nums font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-zinc-400 mb-1 uppercase tracking-wider text-[10px]">
+                  Keterangan Tambahan (Opsional)
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Catatan nomor invoice, periode, dll..."
+                  value={editKeterangan}
+                  onChange={(e) => setEditKeterangan(e.target.value)}
+                  className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-600 font-sans resize-none"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-zinc-800">
+                <button
+                  type="button"
+                  onClick={() => setEditingExpense(null)}
+                  className="w-1/3 py-2 rounded-lg border border-zinc-800 bg-zinc-950 text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="flex-1 py-2 rounded-lg bg-zinc-100 hover:bg-white text-zinc-950 font-bold transition-colors disabled:opacity-50"
+                >
+                  {submitting ? "Menyimpan..." : "Simpan Perubahan"}
                 </button>
               </div>
             </form>

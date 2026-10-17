@@ -77,3 +77,19 @@ export async function createExpense(data: {
   );
   return res.data.data;
 }
+
+export async function updateExpense(
+  id: string,
+  data: Partial<BiayaOperasional>
+): Promise<BiayaOperasional> {
+  const res = await api.put<{ status: string; data: BiayaOperasional }>(
+    `/api/admin/expenses/${id}`,
+    data
+  );
+  return res.data.data;
+}
+
+export async function deleteExpense(id: string): Promise<boolean> {
+  await api.delete(`/api/admin/expenses/${id}`);
+  return true;
+}
