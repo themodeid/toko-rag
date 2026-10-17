@@ -64,9 +64,15 @@ export default function ReceiptModal({ order, onClose }: ReceiptModalProps) {
       });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto animate-in fade-in">
+    <div
+      id="receipt-modal-overlay"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto animate-in fade-in"
+    >
       {/* Container Struk Modal */}
-      <div className="relative w-full max-w-sm my-auto">
+      <div
+        id="receipt-modal-container"
+        className="relative w-full max-w-sm my-auto"
+      >
         {/* Tombol Aksi Layar (Hidden saat print) */}
         <div className="flex items-center justify-between pb-3 print:hidden">
           <span className="text-xs font-mono text-zinc-400">
@@ -261,25 +267,57 @@ export default function ReceiptModal({ order, onClose }: ReceiptModalProps) {
       {/* Global CSS Khusus Print */}
       <style jsx global>{`
         @media print {
+          @page {
+            margin: 0;
+            size: auto;
+          }
+          html,
+          body {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #ffffff !important;
+            height: auto !important;
+            min-height: auto !important;
+            overflow: visible !important;
+          }
+          /* Sembunyikan seluruh UI luar */
           body * {
             visibility: hidden !important;
           }
+          /* Netralkan posisi backdrop modal agar tidak memposisikan struk di tengah layar */
+          #receipt-modal-overlay,
+          #receipt-modal-container {
+            position: static !important;
+            display: block !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            background: transparent !important;
+            overflow: visible !important;
+          }
+          /* Aktifkan lembar struk di posisi paling atas */
           #printable-receipt,
           #printable-receipt * {
             visibility: visible !important;
           }
           #printable-receipt {
-            position: absolute !important;
-            left: 0 !important;
+            position: relative !important;
+            display: block !important;
             top: 0 !important;
-            width: 100% !important;
-            max-width: 80mm !important;
+            left: 0 !important;
+            right: 0 !important;
             margin: 0 auto !important;
-            padding: 10px !important;
+            padding: 12px 14px 20px 14px !important;
+            width: 100% !important;
+            max-width: 78mm !important;
             box-shadow: none !important;
             border: none !important;
-            color: black !important;
-            background: white !important;
+            border-radius: 0 !important;
+            color: #000000 !important;
+            background: #ffffff !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
           }
         }
       `}</style>

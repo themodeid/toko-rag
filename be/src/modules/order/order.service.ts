@@ -86,6 +86,7 @@ export class OrderService {
       let totalBayar = 0;
       const verifiedItems: Array<{
         minuman_id: string;
+        nama_minuman?: string;
         qty: number;
         harga_satuan: number;
         hpp_satuan: number;
@@ -121,6 +122,7 @@ export class OrderService {
 
         verifiedItems.push({
           minuman_id: bev.id,
+          nama_minuman: bev.nama,
           qty: item.qty,
           harga_satuan: bev.harga,
           hpp_satuan: Number(bev.hpp) || 0,

@@ -276,14 +276,25 @@ export default function KasirUnifiedPortalPage() {
       };
 
       const created = await checkoutKioskOrder(payload);
+
+      // Pastikan item memiliki nama minuman riil untuk cetak struk
+      const enrichedOrder = {
+        ...created,
+        items: (created.items || []).map((it: any, idx: number) => ({
+          ...it,
+          nama_minuman:
+            it.nama_minuman || posCart[idx]?.minuman?.nama || "Minuman Racikan",
+        })),
+      };
+
       setLastOrderSuccess({
         code: created.order_code || (created as any).no_antrian || "-",
         name: created.nama_pelanggan || posCustomerName.trim(),
-        order: created,
+        order: enrichedOrder,
       });
 
       // Otomatis buka struk belanjaan untuk dicetak kasir
-      setSelectedReceiptOrder(created);
+      setSelectedReceiptOrder(enrichedOrder);
 
       handlePosClearCart();
       await loadData();
