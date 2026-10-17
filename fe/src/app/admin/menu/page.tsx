@@ -721,25 +721,27 @@ export default function AdminMenuUnifiedPage() {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleOpenEdit(item)}
-                          className="px-2.5 py-1 rounded bg-[#e8d8ba] hover:bg-[#f2e5d0] text-[#0c1210] font-bold text-[11px] transition-colors"
+                          className="px-3 py-1.5 rounded-lg bg-[#e8d8ba] hover:bg-[#f2e5d0] text-[#0c1210] font-bold text-[11px] transition-all shadow-sm active:scale-95"
                         >
                           + Restock / Edit
                         </button>
                         <button
                           onClick={() => handleToggleAvailability(item)}
-                          className={`px-2 py-1 rounded text-[11px] transition-colors ${
+                          className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-all flex items-center gap-1.5 shadow-sm active:scale-95 ${
                             item.is_available
-                              ? "text-zinc-400 hover:text-rose-400"
-                              : "text-emerald-400 hover:underline"
+                              ? "bg-rose-600 hover:bg-rose-500 text-white border-rose-500 hover:border-rose-400"
+                              : "bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500 hover:border-emerald-400"
                           }`}
+                          title={item.is_available ? "Matikan menu agar tidak bisa dipesan" : "Aktifkan kembali menu"}
                         >
-                          {item.is_available ? "Matikan" : "Aktifkan"}
+                          <span className="w-1.5 h-1.5 rounded-full bg-white opacity-90" />
+                          <span>{item.is_available ? "Matikan" : "Aktifkan"}</span>
                         </button>
                       </div>
 
                       <button
                         onClick={() => handleDeleteMenu(item.id, item.nama)}
-                        className="p-1 text-zinc-500 hover:text-rose-400 transition-colors"
+                        className="p-1.5 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-zinc-800/80 transition-colors"
                         title="Hapus Menu"
                       >
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
