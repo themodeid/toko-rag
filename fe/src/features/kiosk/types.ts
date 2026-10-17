@@ -19,6 +19,8 @@ export interface Minuman {
   rating_rata_rata: number;
   total_ulasan: number;
   kategori?: KategoriMinuman;
+  hpp?: number;
+  stock?: number;
 }
 
 export interface CartItem {

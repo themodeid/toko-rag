@@ -38,11 +38,17 @@ export default function AdminMenuUnifiedPage() {
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("ALL");
   const [lowStockOnly, setLowStockOnly] = useState(false);
 
-  // Edit / Restock Modal
+  // Edit / Restock Modal State
   const [editingItem, setEditingItem] = useState<Minuman | null>(null);
+  const [editNama, setEditNama] = useState<string>("");
+  const [editKategoriId, setEditKategoriId] = useState<number>(1);
   const [editHarga, setEditHarga] = useState<number>(0);
   const [editHpp, setEditHpp] = useState<number>(0);
   const [editStock, setEditStock] = useState<number>(0);
+  const [editEstimasiMenit, setEditEstimasiMenit] = useState<number>(4);
+  const [editDeskripsi, setEditDeskripsi] = useState<string>("");
+  const [editSelectedFile, setEditSelectedFile] = useState<File | null>(null);
+  const [editImagePreview, setEditImagePreview] = useState<string | null>(null);
 
   const loadData = async () => {
     try {
@@ -124,26 +130,52 @@ export default function AdminMenuUnifiedPage() {
     }
   };
 
+  const handleEditImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setEditSelectedFile(file);
+      const previewUrl = URL.createObjectURL(file);
+      setEditImagePreview(previewUrl);
+    }
+  };
+
   const handleOpenEdit = (item: Minuman) => {
     setEditingItem(item);
+    setEditNama(item.nama || "");
+    setEditKategoriId(Number(item.kategori_id) || 1);
     setEditHarga(Number(item.harga) || 0);
-    setEditHpp(Number((item as any).hpp) || Math.round((Number(item.harga) || 0) * 0.38));
-    setEditStock(Number((item as any).stock) || 50);
+    setEditHpp(Number(item.hpp) || Math.round((Number(item.harga) || 0) * 0.38));
+    setEditStock(Number(item.stock) || 50);
+    setEditEstimasiMenit(Number(item.estimasi_menit) || 4);
+    setEditDeskripsi(item.deskripsi || "");
+    setEditSelectedFile(null);
+    setEditImagePreview(item.image_url ? getProductImageUrl(item.image_url) : null);
   };
 
   const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingItem) return;
+    if (!editNama.trim() || editHarga === 0) {
+      alert("Nama produk dan harga jual wajib diisi!");
+      return;
+    }
 
     try {
       setSubmitting(true);
       const formData = new FormData();
+      formData.append("nama", editNama.trim());
+      formData.append("kategori_id", String(editKategoriId));
       formData.append("harga", String(editHarga));
       formData.append("hpp", String(editHpp));
       formData.append("stock", String(editStock));
+      formData.append("estimasi_menit", String(editEstimasiMenit));
+      formData.append("deskripsi", editDeskripsi.trim());
+      if (editSelectedFile) {
+        formData.append("image", editSelectedFile);
+      }
 
       await updateBeverageAdmin(editingItem.id, formData);
-      setSuccessMsg(`Data & stok "${editingItem.nama}" berhasil diperbarui!`);
+      setSuccessMsg(`Produk "${editNama.trim()}" berhasil diperbarui!`);
       setTimeout(() => setSuccessMsg(null), 3500);
       setEditingItem(null);
       await loadData();
@@ -612,79 +644,176 @@ export default function AdminMenuUnifiedPage() {
         </div>
       </div>
 
-      {/* Modal Edit Harga, HPP, & Restock Cup */}
+      {/* Modal Edit Detail & Stok Produk */}
       {editingItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="bg-zinc-900 border border-zinc-800 text-zinc-100 w-full max-w-sm rounded-xl p-5 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-2.5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in overflow-y-auto">
+          <div className="bg-zinc-900 border border-zinc-800 text-zinc-100 w-full max-w-lg rounded-xl p-5 shadow-2xl space-y-4 my-8">
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
               <div>
                 <h3 className="text-sm font-bold font-mono text-zinc-100">
-                  Edit & Restock Produk
+                  Edit Detail & Stok Produk
                 </h3>
-                <p className="text-[11px] text-zinc-400 mt-0.5">{editingItem.nama}</p>
+                <p className="text-[11px] text-zinc-400 mt-0.5">
+                  Perbarui nama produk, kategori, harga jual, margin, dan ketersediaan stok
+                </p>
               </div>
               <button
+                type="button"
                 onClick={() => setEditingItem(null)}
-                className="text-zinc-400 hover:text-white"
+                className="text-zinc-400 hover:text-white p-1 rounded hover:bg-zinc-800 transition-colors"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleSaveEdit} className="space-y-3 text-xs font-mono">
+            <form onSubmit={handleSaveEdit} className="space-y-3.5 text-xs font-mono">
+              {/* Nama Produk */}
               <div>
                 <label className="block text-zinc-400 mb-1 uppercase tracking-wider text-[10px]">
-                  Harga Jual (Rp)
+                  Nama Produk Minuman <span className="text-rose-500">*</span>
                 </label>
                 <input
-                  type="number"
+                  type="text"
                   required
-                  min={0}
-                  value={editHarga}
-                  onChange={(e) => setEditHarga(Number(e.target.value) || 0)}
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-zinc-100 tabular-nums focus:outline-none focus:border-zinc-600"
+                  value={editNama}
+                  onChange={(e) => setEditNama(e.target.value)}
+                  placeholder="Contoh: Iced Americano Arabica"
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-zinc-100 font-bold focus:outline-none focus:border-zinc-500 transition-colors"
                 />
               </div>
 
+              {/* Kategori & Estimasi Racik */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-zinc-400 mb-1 uppercase tracking-wider text-[10px]">
+                    Kategori Minuman
+                  </label>
+                  <select
+                    value={editKategoriId}
+                    onChange={(e) => setEditKategoriId(Number(e.target.value))}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-zinc-100 focus:outline-none focus:border-zinc-500 transition-colors"
+                  >
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.nama || (c as any).nama_kategori}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-zinc-400 mb-1 uppercase tracking-wider text-[10px]">
+                    Estimasi Racik (Menit)
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={editEstimasiMenit}
+                    onChange={(e) => setEditEstimasiMenit(Number(e.target.value) || 4)}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-zinc-100 tabular-nums focus:outline-none focus:border-zinc-500 transition-colors"
+                  />
+                </div>
+              </div>
+
+              {/* Harga Jual, HPP, & Stok */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-zinc-400 mb-1 uppercase tracking-wider text-[10px]">
+                    Harga Jual (Rp) <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min={0}
+                    value={editHarga}
+                    onChange={(e) => setEditHarga(Number(e.target.value) || 0)}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-zinc-100 tabular-nums font-bold focus:outline-none focus:border-zinc-500 transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-zinc-400 mb-1 uppercase tracking-wider text-[10px]">
+                    HPP Modal (Rp)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={editHpp}
+                    onChange={(e) => setEditHpp(Number(e.target.value) || 0)}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-zinc-100 tabular-nums focus:outline-none focus:border-zinc-500 transition-colors"
+                  />
+                  {editHarga > 0 && (
+                    <span className="text-[10px] text-emerald-400 block mt-1">
+                      Margin: {Math.round(((editHarga - editHpp) / editHarga) * 100)}%
+                    </span>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-zinc-400 mb-1 uppercase tracking-wider text-[10px]">
+                    Stok Siap Saji (Cup) <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min={0}
+                    value={editStock}
+                    onChange={(e) => setEditStock(Number(e.target.value) || 0)}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-zinc-100 tabular-nums font-bold focus:outline-none focus:border-zinc-500 transition-colors"
+                  />
+                </div>
+              </div>
+
+              {/* Deskripsi */}
               <div>
                 <label className="block text-zinc-400 mb-1 uppercase tracking-wider text-[10px]">
-                  HPP Modal per Cup (Rp)
+                  Deskripsi Singkat
                 </label>
-                <input
-                  type="number"
-                  min={0}
-                  value={editHpp}
-                  onChange={(e) => setEditHpp(Number(e.target.value) || 0)}
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-zinc-100 tabular-nums focus:outline-none focus:border-zinc-600"
+                <textarea
+                  rows={2}
+                  value={editDeskripsi}
+                  onChange={(e) => setEditDeskripsi(e.target.value)}
+                  placeholder="Deskripsi singkat rasa, racikan, atau bahan..."
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-500 transition-colors resize-none font-sans"
                 />
               </div>
 
+              {/* Foto Produk */}
               <div>
                 <label className="block text-zinc-400 mb-1 uppercase tracking-wider text-[10px]">
-                  Jumlah Stok Siap Saji (Cup)
+                  Foto Produk
                 </label>
-                <input
-                  type="number"
-                  required
-                  min={0}
-                  value={editStock}
-                  onChange={(e) => setEditStock(Number(e.target.value) || 0)}
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-zinc-100 tabular-nums focus:outline-none focus:border-zinc-600 font-bold"
-                />
+                <div className="flex items-center gap-3">
+                  {editImagePreview ? (
+                    <div className="relative w-12 h-12 rounded-lg overflow-hidden border border-zinc-700 flex-shrink-0 bg-zinc-950">
+                      <Image src={editImagePreview} alt="Preview" fill className="object-cover" />
+                    </div>
+                  ) : (
+                    <div className="w-12 h-12 rounded-lg bg-zinc-950 border border-zinc-800 flex items-center justify-center text-zinc-600 text-[10px] font-mono shrink-0">
+                      Foto
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleEditImageChange}
+                    className="text-xs text-zinc-400 file:mr-2.5 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-[11px] file:font-semibold file:bg-zinc-800 file:text-zinc-200 hover:file:bg-zinc-700 cursor-pointer"
+                  />
+                </div>
               </div>
 
-              <div className="flex gap-2 pt-2 border-t border-zinc-800">
+              {/* Action Buttons */}
+              <div className="flex gap-2 pt-3 border-t border-zinc-800">
                 <button
                   type="button"
                   onClick={() => setEditingItem(null)}
-                  className="w-1/3 py-2 rounded-lg border border-zinc-800 bg-zinc-950 text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors"
+                  className="w-1/3 py-2.5 rounded-lg border border-zinc-800 bg-zinc-950 text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 py-2 rounded-lg bg-zinc-100 hover:bg-white text-zinc-950 font-bold transition-colors disabled:opacity-50"
+                  className="flex-1 py-2.5 rounded-lg bg-zinc-100 hover:bg-white text-zinc-950 font-bold transition-colors disabled:opacity-50"
                 >
                   {submitting ? "Menyimpan..." : "Simpan Perubahan"}
                 </button>
