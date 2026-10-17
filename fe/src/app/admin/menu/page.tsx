@@ -45,34 +45,73 @@ export default function AdminMenuUnifiedPage() {
   const [editHarga, setEditHarga] = useState<number>(0);
   const [editHpp, setEditHpp] = useState<number>(0);
   const [editStock, setEditStock] = useState<number>(0);
+  const [editTambahStock, setEditTambahStock] = useState<number | "">("");
+  const [isStockAdjustmentMode, setIsStockAdjustmentMode] = useState<boolean>(false);
   const [editEstimasiMenit, setEditEstimasiMenit] = useState<number>(4);
   const [editDeskripsi, setEditDeskripsi] = useState<string>("");
   const [editSelectedFile, setEditSelectedFile] = useState<File | null>(null);
   const [editImagePreview, setEditImagePreview] = useState<string | null>(null);
 
-  const loadData = async () => {
+  // Real-time Sync State
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date>(new Date());
+
+  const loadData = async (isBackground = false) => {
     try {
-      setLoading(true);
-      setError(null);
+      if (!isBackground) {
+        setLoading(true);
+        setError(null);
+      } else {
+        setIsSyncing(true);
+      }
+
       const [bevRes, catRes] = await Promise.all([
         fetchBeverages(),
         fetchBeverageCategories().catch(() => []),
       ]);
       setBeveragesList(bevRes || []);
+      setLastSyncedAt(new Date());
+
+      // Live update jika modal edit produk sedang terbuka agar stok saat ini selalu akurat
+      setEditingItem((prev) => {
+        if (!prev) return null;
+        const liveMatch = (bevRes || []).find((b: Minuman) => b.id === prev.id);
+        if (liveMatch) {
+          return {
+            ...prev,
+            stock: liveMatch.stock,
+            is_available: liveMatch.is_available,
+          };
+        }
+        return prev;
+      });
+
       if (catRes && catRes.length > 0) {
         setCategories(catRes);
-        setKategoriId(Number(catRes[0].id) || 1);
+        setKategoriId((prev) => prev || Number(catRes[0].id) || 1);
       }
     } catch (err: any) {
       console.error("Gagal memuat katalog minuman:", err);
-      setError("Gagal memuat menu minuman. Pastikan backend aktif.");
+      if (!isBackground) {
+        setError("Gagal memuat menu minuman. Pastikan backend aktif.");
+      }
     } finally {
-      setLoading(false);
+      if (!isBackground) {
+        setLoading(false);
+      }
+      setIsSyncing(false);
     }
   };
 
   useEffect(() => {
     loadData();
+    // Real-time background sync interval setiap 6 detik
+    const interval = setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        loadData(true);
+      }
+    }, 6000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -145,7 +184,9 @@ export default function AdminMenuUnifiedPage() {
     setEditKategoriId(Number(item.kategori_id) || 1);
     setEditHarga(Number(item.harga) || 0);
     setEditHpp(Number(item.hpp) || Math.round((Number(item.harga) || 0) * 0.38));
-    setEditStock(Number(item.stock) || 50);
+    setEditStock(Number(item.stock) || 0);
+    setEditTambahStock("");
+    setIsStockAdjustmentMode(false);
     setEditEstimasiMenit(Number(item.estimasi_menit) || 4);
     setEditDeskripsi(item.deskripsi || "");
     setEditSelectedFile(null);
@@ -162,12 +203,19 @@ export default function AdminMenuUnifiedPage() {
 
     try {
       setSubmitting(true);
+
+      const currentStock = Number(editingItem.stock) || 0;
+      const additionalStock = typeof editTambahStock === "number" ? editTambahStock : 0;
+      const calculatedStock = isStockAdjustmentMode
+        ? editStock
+        : Math.max(0, currentStock + additionalStock);
+
       const formData = new FormData();
       formData.append("nama", editNama.trim());
       formData.append("kategori_id", String(editKategoriId));
       formData.append("harga", String(editHarga));
       formData.append("hpp", String(editHpp));
-      formData.append("stock", String(editStock));
+      formData.append("stock", String(calculatedStock));
       formData.append("estimasi_menit", String(editEstimasiMenit));
       formData.append("deskripsi", editDeskripsi.trim());
       if (editSelectedFile) {
@@ -175,7 +223,10 @@ export default function AdminMenuUnifiedPage() {
       }
 
       await updateBeverageAdmin(editingItem.id, formData);
-      setSuccessMsg(`Produk "${editNama.trim()}" berhasil diperbarui!`);
+      const stockMsg = !isStockAdjustmentMode && additionalStock > 0
+        ? ` (Restock +${additionalStock} Cup, total kini ${calculatedStock} Cup)`
+        : ` (Stok: ${calculatedStock} Cup)`;
+      setSuccessMsg(`Produk "${editNama.trim()}" berhasil diperbarui${stockMsg}!`);
       setTimeout(() => setSuccessMsg(null), 3500);
       setEditingItem(null);
       await loadData();
@@ -219,17 +270,25 @@ export default function AdminMenuUnifiedPage() {
     }).format(val || 0);
   };
 
+  // Helper kalkulasi stok presisi (anti fallback 50 saat stok 0)
+  const getItemStock = (b: Minuman): number => {
+    const val = (b as any).stock;
+    if (val === undefined || val === null || val === "") return 0;
+    const num = Number(val);
+    return isNaN(num) ? 0 : num;
+  };
+
   // Metrics Kalkulasi Terpadu
   const totalValuation = useMemo(() => {
     return beveragesList.reduce((acc, curr) => {
-      const stock = Number((curr as any).stock) || 50;
+      const stock = getItemStock(curr);
       const hpp = Number((curr as any).hpp) || Math.round(Number(curr.harga) * 0.38);
       return acc + stock * hpp;
     }, 0);
   }, [beveragesList]);
 
   const lowStockItems = useMemo(() => {
-    return beveragesList.filter((b) => (Number((b as any).stock) || 50) <= 15 || !b.is_available);
+    return beveragesList.filter((b) => getItemStock(b) <= 15 || !b.is_available);
   }, [beveragesList]);
 
   const filteredBeverages = useMemo(() => {
@@ -239,7 +298,7 @@ export default function AdminMenuUnifiedPage() {
         selectedCategoryFilter === "ALL" ||
         String(b.kategori_id) === selectedCategoryFilter ||
         (b as any).nama_kategori === selectedCategoryFilter;
-      const matchLowStock = !lowStockOnly || (Number((b as any).stock) || 50) <= 15 || !b.is_available;
+      const matchLowStock = !lowStockOnly || getItemStock(b) <= 15 || !b.is_available;
       return matchSearch && matchCat && matchLowStock;
     });
   }, [beveragesList, searchQuery, selectedCategoryFilter, lowStockOnly]);
@@ -263,25 +322,53 @@ export default function AdminMenuUnifiedPage() {
           </p>
         </div>
 
-        <button
-          onClick={loadData}
-          title="Sinkronkan Katalog & Stok"
-          className="p-2 rounded-lg border border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors self-start sm:self-auto"
-        >
-          <svg
-            className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+        <div className="flex items-center gap-2 self-start sm:self-auto font-mono">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-950 text-xs shadow-sm">
+            <span className="relative flex h-2 w-2">
+              <span
+                className={`animate-ping absolute inline-flex h-full w-full rounded-full ${
+                  isSyncing ? "bg-amber-400 opacity-75 duration-300" : "bg-emerald-400 opacity-75 duration-1000"
+                }`}
+              />
+              <span
+                className={`relative inline-flex rounded-full h-2 w-2 ${
+                  isSyncing ? "bg-amber-500" : "bg-emerald-500"
+                }`}
+              />
+            </span>
+            <span className="text-[11px] text-zinc-300">
+              {isSyncing ? "Menyinkronkan..." : "Real-time Live"}
+            </span>
+            <span className="text-zinc-700">•</span>
+            <span className="text-[10px] text-zinc-500 tabular-nums">
+              {lastSyncedAt.toLocaleTimeString("id-ID", {
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+              })}
+            </span>
+          </div>
+
+          <button
+            onClick={() => loadData(false)}
+            title="Sinkronkan Katalog & Stok Sekarang"
+            className="p-2 rounded-lg border border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors shadow-sm"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="1.75"
-              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-            />
-          </svg>
-        </button>
+            <svg
+              className={`w-4 h-4 ${loading || isSyncing ? "animate-spin" : ""}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="1.75"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* 3 Summary Cards: Produk, Valuasi, dan Alert Restock */}
@@ -530,17 +617,22 @@ export default function AdminMenuUnifiedPage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               {filteredBeverages.map((item) => {
-                const stock = Number((item as any).stock) || 50;
+                const stock = getItemStock(item);
                 const hpp = Number((item as any).hpp) || Math.round(Number(item.harga) * 0.38);
-                const isLow = stock <= 15 || !item.is_available;
+                const isOutOfStock = stock <= 0 || !item.is_available;
+                const isLow = stock > 0 && stock <= 15;
 
                 return (
                   <div
                     key={item.id}
                     className={`bg-zinc-900/60 border rounded-xl p-4 flex flex-col justify-between space-y-3.5 transition-colors ${
-                      item.is_available
-                        ? "border-zinc-800/80 hover:border-zinc-700"
-                        : "border-rose-900/40 opacity-75"
+                      stock <= 0
+                        ? "border-rose-900/70 bg-rose-950/15"
+                        : !item.is_available
+                        ? "border-zinc-800/80 opacity-75"
+                        : isLow
+                        ? "border-amber-700/50 hover:border-amber-600/70"
+                        : "border-zinc-800/80 hover:border-zinc-700"
                     }`}
                   >
                     <div className="flex items-start gap-3">
@@ -561,12 +653,22 @@ export default function AdminMenuUnifiedPage() {
                           </span>
                           <span
                             className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded-full border ${
-                              item.is_available
-                                ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
-                                : "bg-rose-500/10 border-rose-500/20 text-rose-400"
+                              stock <= 0
+                                ? "bg-rose-500/20 border-rose-500/40 text-rose-400 font-extrabold"
+                                : !item.is_available
+                                ? "bg-zinc-800 border-zinc-700 text-zinc-400"
+                                : isLow
+                                ? "bg-amber-500/10 border-amber-500/20 text-amber-400"
+                                : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
                             }`}
                           >
-                            {item.is_available ? "Ready" : "Habis"}
+                            {stock <= 0
+                              ? "Stok Habis"
+                              : !item.is_available
+                              ? "Nonaktif"
+                              : isLow
+                              ? "Menipis"
+                              : "Ready"}
                           </span>
                         </div>
 
@@ -591,10 +693,19 @@ export default function AdminMenuUnifiedPage() {
                         <span className="text-zinc-500 block text-[10px]">Stok Tersedia</span>
                         <span
                           className={`font-bold tabular-nums ${
-                            isLow ? "text-rose-400" : "text-zinc-200"
+                            stock <= 0
+                              ? "text-rose-400 font-extrabold"
+                              : isLow
+                              ? "text-amber-400"
+                              : "text-zinc-200"
                           }`}
                         >
-                          {stock} Cup {isLow && "(Perlu Restock)"}
+                          {stock} Cup{" "}
+                          {stock <= 0
+                            ? "(Habis Total)"
+                            : isLow
+                            ? "(Perlu Restock)"
+                            : ""}
                         </span>
                       </div>
                       <div className="text-right">
@@ -610,9 +721,9 @@ export default function AdminMenuUnifiedPage() {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleOpenEdit(item)}
-                          className="px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-medium text-[11px] transition-colors"
+                          className="px-2.5 py-1 rounded bg-[#e8d8ba] hover:bg-[#f2e5d0] text-[#0c1210] font-bold text-[11px] transition-colors"
                         >
-                          Edit / Restock
+                          + Restock / Edit
                         </button>
                         <button
                           onClick={() => handleToggleAvailability(item)}
@@ -714,8 +825,8 @@ export default function AdminMenuUnifiedPage() {
                 </div>
               </div>
 
-              {/* Harga Jual, HPP, & Stok */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* Harga Jual & HPP Modal */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-zinc-400 mb-1 uppercase tracking-wider text-[10px]">
                     Harga Jual (Rp) <span className="text-rose-500">*</span>
@@ -747,19 +858,159 @@ export default function AdminMenuUnifiedPage() {
                     </span>
                   )}
                 </div>
+              </div>
 
-                <div>
-                  <label className="block text-zinc-400 mb-1 uppercase tracking-wider text-[10px]">
-                    Stok Siap Saji (Cup) <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min={0}
-                    value={editStock}
-                    onChange={(e) => setEditStock(Number(e.target.value) || 0)}
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-zinc-100 tabular-nums font-bold focus:outline-none focus:border-zinc-500 transition-colors"
-                  />
+              {/* SEKSI KONTROL STOK TERPADU: STOK SAAT INI VS PENAMBAHAN STOK */}
+              <div className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800/90 space-y-3 font-mono">
+                {/* 1. Status Stok Saat Ini (Live Read-Only) */}
+                <div className="flex items-center justify-between p-2.5 rounded-lg bg-zinc-900/90 border border-zinc-800">
+                  <div>
+                    <span className="text-[10px] uppercase tracking-wider text-zinc-500 block">
+                      Stok Gudang Saat Ini
+                    </span>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-lg font-bold text-zinc-100 tabular-nums">
+                        {Number(editingItem.stock) || 0}
+                      </span>
+                      <span className="text-xs text-zinc-400">Cup</span>
+                      {(Number(editingItem.stock) || 0) <= 0 ? (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                          STOK HABIS
+                        </span>
+                      ) : (Number(editingItem.stock) || 0) <= 15 ? (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                          MENIPIS
+                        </span>
+                      ) : (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                          TERSEDIA
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <span className="text-[9px] text-zinc-500 block uppercase">Sinkronisasi</span>
+                    <span className="text-[10px] text-emerald-400 flex items-center justify-end gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      Live Kasir
+                    </span>
+                  </div>
+                </div>
+
+                {/* 2. Form Penambahan Stok (Default Mode Inkremental Anti-Manipulasi) */}
+                {!isStockAdjustmentMode ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-semibold text-zinc-200 uppercase tracking-wider">
+                        + Tambah Stok Masuk (Cup)
+                      </label>
+                      <span className="text-[10px] text-zinc-500">
+                        Diakumulasi ke stok berjalan
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min={0}
+                        value={editTambahStock}
+                        onChange={(e) =>
+                          setEditTambahStock(
+                            e.target.value === "" ? "" : Math.max(0, Number(e.target.value))
+                          )
+                        }
+                        placeholder="Ketik jumlah cup tambahan (misal: 25)..."
+                        className="flex-1 bg-zinc-900 border border-zinc-700/80 rounded-lg px-3 py-2 text-zinc-100 font-bold text-sm focus:outline-none focus:border-[#e8d8ba] transition-colors tabular-nums"
+                      />
+                      {editTambahStock !== "" && Number(editTambahStock) > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setEditTambahStock("")}
+                          className="px-2.5 py-2 text-xs text-zinc-400 hover:text-white bg-zinc-900 border border-zinc-800 rounded-lg transition-colors"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Quick Add Chips */}
+                    <div className="flex items-center gap-1.5 pt-0.5">
+                      <span className="text-[10px] text-zinc-500">Pintas:</span>
+                      {[10, 20, 50, 100].map((num) => (
+                        <button
+                          key={num}
+                          type="button"
+                          onClick={() => {
+                            const prev = typeof editTambahStock === "number" ? editTambahStock : 0;
+                            setEditTambahStock(prev + num);
+                          }}
+                          className="px-2.5 py-1 rounded bg-zinc-800/80 hover:bg-zinc-700 border border-zinc-700/60 text-zinc-300 hover:text-[#e8d8ba] text-[11px] font-medium transition-colors"
+                        >
+                          +{num}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Preview Estimasi Total Baru */}
+                    <div className="mt-2 p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between text-xs">
+                      <div>
+                        <span className="text-emerald-300 font-semibold block">
+                          Estimasi Total Stok Baru:
+                        </span>
+                        <span className="text-[10px] text-emerald-400/80">
+                          {Number(editingItem.stock) || 0} stok saat ini +{" "}
+                          {typeof editTambahStock === "number" ? editTambahStock : 0} tambahan
+                        </span>
+                      </div>
+                      <span className="text-base font-bold text-emerald-400 tabular-nums">
+                        {(Number(editingItem.stock) || 0) +
+                          (typeof editTambahStock === "number" ? editTambahStock : 0)}{" "}
+                        Cup
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  /* 3. Mode Koreksi Manual / Stock Opname Fisik */
+                  <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-bold text-amber-300 uppercase tracking-wider">
+                        Koreksi Total Stok Fisik (Cup)
+                      </label>
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                        Stock Opname
+                      </span>
+                    </div>
+                    <input
+                      type="number"
+                      min={0}
+                      required
+                      value={editStock}
+                      onChange={(e) => setEditStock(Math.max(0, Number(e.target.value) || 0))}
+                      className="w-full bg-zinc-900 border border-amber-500/40 rounded-lg p-2.5 text-zinc-100 font-bold text-sm focus:outline-none focus:border-amber-400 tabular-nums"
+                    />
+                    <p className="text-[10px] text-amber-300/80 leading-relaxed">
+                      ⚠️ Nilai ini akan menggantikan total stok di database. Gunakan hanya jika terdapat selisih fisik gudang atau botol cacat.
+                    </p>
+                  </div>
+                )}
+
+                {/* 4. Switcher Mode */}
+                <div className="pt-1 text-right">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsStockAdjustmentMode(!isStockAdjustmentMode);
+                      if (!isStockAdjustmentMode) {
+                        setEditStock(Number(editingItem.stock) || 0);
+                      }
+                    }}
+                    className="text-[11px] text-zinc-400 hover:text-[#e8d8ba] underline decoration-dotted transition-colors"
+                  >
+                    {isStockAdjustmentMode
+                      ? "← Beralih ke Mode Tambah Stok (+ Cup)"
+                      : "Perlu koreksi manual / Stock Opname fisik?"}
+                  </button>
                 </div>
               </div>
 
