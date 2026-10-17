@@ -19,7 +19,6 @@ import {
   fetchBeverages,
   fetchBeverageCategories,
   checkoutKioskOrder,
-  toggleBeverageStock,
 } from "@/features/kiosk/api";
 import { validateCustomerName } from "@/lib/profanityFilter";
 import { getProductImageUrl } from "@/lib/imageHelper";
@@ -56,10 +55,6 @@ export default function KasirUnifiedPortalPage() {
     name: string;
   } | null>(null);
 
-  // Stock management modal
-  const [isStockModalOpen, setIsStockModalOpen] = useState<boolean>(false);
-  const [beveragesList, setBeveragesList] = useState<Minuman[]>([]);
-  const [togglingStockId, setTogglingStockId] = useState<string | null>(null);
 
   const [currentUserRole, setCurrentUserRole] = useState<string>("");
 
@@ -148,42 +143,6 @@ export default function KasirUnifiedPortalPage() {
       alert(err.response?.data?.message || "Gagal memperbarui status pesanan");
     } finally {
       setUpdatingId(null);
-    }
-  };
-
-  // Open stock modal
-  const handleOpenStockModal = async () => {
-    setIsStockModalOpen(true);
-    try {
-      const bevs = await fetchBeverages();
-      setBeveragesList(bevs);
-    } catch (err) {
-      console.error("Gagal memuat daftar minuman", err);
-    }
-  };
-
-  // Toggle stock
-  const handleToggleStock = async (
-    beverageId: string,
-    currentAvailable: boolean
-  ) => {
-    try {
-      setTogglingStockId(beverageId);
-      await toggleBeverageStock(beverageId, !currentAvailable);
-      setBeveragesList((prev) =>
-        prev.map((b) =>
-          b.id === beverageId ? { ...b, is_available: !currentAvailable } : b
-        )
-      );
-      setPosBeverages((prev) =>
-        prev.map((b) =>
-          b.id === beverageId ? { ...b, is_available: !currentAvailable } : b
-        )
-      );
-    } catch (err: any) {
-      alert("Gagal mengubah ketersediaan stok");
-    } finally {
-      setTogglingStockId(null);
     }
   };
 
@@ -612,13 +571,6 @@ export default function KasirUnifiedPortalPage() {
 
             {/* Quick Actions */}
             <div className="flex items-center gap-2">
-              <button
-                onClick={handleOpenStockModal}
-                className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white hover:border-zinc-700 transition"
-              >
-                📦 Kelola Stok
-              </button>
-
               {(currentUserRole === "owner" || currentUserRole === "admin") && (
                 <Link
                   href="/admin"
@@ -1266,70 +1218,6 @@ export default function KasirUnifiedPortalPage() {
       )}
 
       {/* STOCK MANAGEMENT MODAL */}
-      {isStockModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-lg w-full max-h-[85vh] flex flex-col justify-between p-5 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-              <div className="flex items-center space-x-2">
-                <span className="text-xl">📦</span>
-                <h3 className="text-sm font-bold text-white uppercase font-mono">
-                  Saklar Stok Cepat Minuman
-                </h3>
-              </div>
-              <button
-                onClick={() => setIsStockModalOpen(false)}
-                className="text-zinc-400 hover:text-white font-mono text-xs"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="divide-y divide-zinc-800/80 overflow-y-auto my-3 pr-1 flex-1">
-              {beveragesList.map((bev) => (
-                <div
-                  key={bev.id}
-                  className="py-2.5 flex items-center justify-between gap-3"
-                >
-                  <div>
-                    <p className="text-sm font-semibold text-white">{bev.nama}</p>
-                    <span className="text-xs font-mono text-zinc-400">
-                      Rp {Number(bev.harga || 0).toLocaleString("id-ID")} •{" "}
-                      {bev.kategori?.nama ||
-                        (bev as any).nama_kategori ||
-                        "Beverage"}
-                    </span>
-                  </div>
-
-                  <button
-                    disabled={togglingStockId === bev.id}
-                    onClick={() => handleToggleStock(bev.id, bev.is_available)}
-                    className={`px-3 py-1.5 rounded-lg font-mono text-xs font-bold transition ${
-                      bev.is_available
-                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 hover:bg-rose-500/20 hover:text-rose-400 hover:border-rose-500/40"
-                        : "bg-rose-500/20 text-rose-400 border border-rose-500/40 hover:bg-emerald-500/20 hover:text-emerald-400 hover:border-emerald-500/40"
-                    }`}
-                  >
-                    {togglingStockId === bev.id
-                      ? "..."
-                      : bev.is_available
-                      ? "✓ Tersedia"
-                      : "✕ Habis"}
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            <div className="border-t border-zinc-800 pt-3 text-right">
-              <button
-                onClick={() => setIsStockModalOpen(false)}
-                className="px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-mono font-medium transition"
-              >
-                Tutup
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+      </div>
   );
 }
