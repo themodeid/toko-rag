@@ -3,7 +3,7 @@ echo =======================================================
 echo    MEMULAI VERIFIKASI LOKAL CI (Toko+RAG Beverage POS)
 echo =======================================================
 echo.
-echo [1/3] Menjalankan Automated Unit Tests Backend (Profanity & Kiosk Logic)...
+echo [1/3] Menjalankan Automated Unit Tests Backend (Profanity, Kiosk Logic, dan Soft Delete)...
 cd be
 call npx.cmd ts-node src/__tests__/profanity.test.ts
 if %errorlevel% neq 0 (
@@ -17,6 +17,14 @@ call npx.cmd ts-node src/__tests__/kiosk.logic.test.ts
 if %errorlevel% neq 0 (
     echo.
     echo ❌ [ERROR] Kiosk logic test gagal!
+    cd ..
+    exit /b %errorlevel%
+)
+
+call npx.cmd ts-node src/__tests__/softDelete.test.ts
+if %errorlevel% neq 0 (
+    echo.
+    echo ❌ [ERROR] Soft Delete unit test gagal!
     cd ..
     exit /b %errorlevel%
 )

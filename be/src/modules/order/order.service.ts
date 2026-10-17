@@ -99,7 +99,7 @@ export class OrderService {
         const bevRes = await client.query(
           `SELECT id, nama, harga, hpp, stock, is_available 
            FROM tb_minuman 
-           WHERE id = $1 FOR UPDATE;`,
+           WHERE id = $1 AND deleted_at IS NULL FOR UPDATE;`,
           [item.minuman_id]
         );
 

@@ -6,9 +6,10 @@ echo "   MEMULAI VERIFIKASI LOKAL CI (Toko+RAG Beverage POS)  "
 echo "======================================================="
 echo ""
 
-echo "[1/3] Menjalankan Automated Unit Tests Backend..."
+echo "[1/3] Menjalankan Automated Unit Tests Backend (Profanity, Kiosk Logic & Soft Delete)..."
 (cd be && npx ts-node src/__tests__/profanity.test.ts)
 (cd be && npx ts-node src/__tests__/kiosk.logic.test.ts)
+(cd be && npx ts-node src/__tests__/softDelete.test.ts)
 
 echo ""
 echo "[2/3] Menguji Kompilasi TypeScript Backend..."

@@ -26,6 +26,7 @@ export class BeverageService {
     const sql = `
       SELECT id, nama_kategori AS nama, nama_kategori, slug, deskripsi, urutan
       FROM tb_kategori_minuman
+      WHERE deleted_at IS NULL
       ORDER BY urutan ASC, id ASC;
     `;
     const { rows } = await query(sql);
@@ -33,7 +34,7 @@ export class BeverageService {
   }
 
   /**
-   * Mengambil katalog minuman lengkap dengan agregasi rating & ulasan
+   * Mengambil katalog minuman lengkap dengan agregasi rating & ulasan (Aktif / Non-Deleted)
    */
   static async getAllBeverages(kategoriId?: number): Promise<BeverageItem[]> {
     let sql = `
@@ -55,11 +56,12 @@ export class BeverageService {
       FROM tb_minuman m
       JOIN tb_kategori_minuman k ON m.kategori_id = k.id
       LEFT JOIN tb_ulasan u ON m.id = u.minuman_id
+      WHERE m.deleted_at IS NULL
     `;
 
     const params: any[] = [];
     if (kategoriId) {
-      sql += ` WHERE m.kategori_id = $1`;
+      sql += ` AND m.kategori_id = $1`;
       params.push(kategoriId);
     }
 
@@ -95,7 +97,7 @@ export class BeverageService {
       FROM tb_minuman m
       JOIN tb_kategori_minuman k ON m.kategori_id = k.id
       LEFT JOIN tb_ulasan u ON m.id = u.minuman_id
-      WHERE m.id = $1
+      WHERE m.id = $1 AND m.deleted_at IS NULL
       GROUP BY m.id, k.nama_kategori;
     `;
     const { rows } = await query(sql, [id]);
@@ -208,13 +210,18 @@ export class BeverageService {
   }
 
   /**
-   * Owner: Hapus menu minuman
+   * Owner: Soft delete menu minuman (Menjaga keutuhan riwayat audit pesanan)
    */
   static async deleteBeverage(id: string) {
-    const sql = "DELETE FROM tb_minuman WHERE id = $1 RETURNING id, nama;";
+    const sql = `
+      UPDATE tb_minuman
+      SET deleted_at = CURRENT_TIMESTAMP, is_available = FALSE, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1 AND deleted_at IS NULL
+      RETURNING id, nama;
+    `;
     const { rows } = await query(sql, [id]);
     if (rows.length === 0) {
-      throw new AppError("Minuman tidak ditemukan", 404);
+      throw new AppError("Minuman tidak ditemukan atau sudah dihapus", 404);
     }
     return rows[0];
   }

@@ -89,7 +89,7 @@ export class AdminService {
     const lowStockQuery = await pool.query(`
       SELECT id, nama AS nama_bahan, COALESCE(stock, 0)::int AS stok_saat_ini, 15 AS stok_minimum, 'cup' AS satuan
       FROM tb_minuman
-      WHERE stock <= 15 OR is_available = FALSE
+      WHERE (stock <= 15 OR is_available = FALSE) AND deleted_at IS NULL
       ORDER BY is_available ASC, stock ASC
       LIMIT 10
     `);
@@ -103,6 +103,7 @@ export class AdminService {
         END
       ), 0)::int AS total_valuation
       FROM tb_minuman
+      WHERE deleted_at IS NULL
     `);
 
     const grossMargin = netSales > 0 ? Math.round((grossProfit / netSales) * 100) : 0;
@@ -256,6 +257,7 @@ export class AdminService {
     const res = await pool.query(`
       SELECT id, username, nama, role, created_at
       FROM tb_staff
+      WHERE deleted_at IS NULL
       ORDER BY created_at ASC;
     `);
     return res.rows;
@@ -272,7 +274,10 @@ export class AdminService {
       throw new AppError("Username, password, dan nama staf wajib diisi", 400);
     }
 
-    const check = await pool.query("SELECT id FROM tb_staff WHERE username = $1", [username.trim()]);
+    const check = await pool.query(
+      "SELECT id FROM tb_staff WHERE username = $1 AND deleted_at IS NULL",
+      [username.trim()]
+    );
     if (check.rows.length > 0) {
       throw new AppError("Username staf sudah digunakan", 409);
     }
@@ -288,9 +293,15 @@ export class AdminService {
   }
 
   static async deleteStaff(id: string) {
-    const res = await pool.query("DELETE FROM tb_staff WHERE id = $1 RETURNING id, username;", [id]);
+    const res = await pool.query(
+      `UPDATE tb_staff 
+       SET deleted_at = CURRENT_TIMESTAMP 
+       WHERE id = $1 AND deleted_at IS NULL 
+       RETURNING id, username;`,
+      [id]
+    );
     if (res.rows.length === 0) {
-      throw new AppError("Staf tidak ditemukan", 404);
+      throw new AppError("Staf tidak ditemukan atau sudah dihapus", 404);
     }
     return res.rows[0];
   }
@@ -311,6 +322,7 @@ export class AdminService {
         created_at AS tanggal, 
         created_at
       FROM tb_biaya_operasional
+      WHERE deleted_at IS NULL
       ORDER BY created_at DESC;
     `);
     return res.rows;
@@ -344,7 +356,10 @@ export class AdminService {
       nominal?: number;
     }
   ) {
-    const existing = await pool.query("SELECT * FROM tb_biaya_operasional WHERE id = $1", [id]);
+    const existing = await pool.query(
+      "SELECT * FROM tb_biaya_operasional WHERE id = $1 AND deleted_at IS NULL",
+      [id]
+    );
     if (existing.rows.length === 0) {
       throw new AppError("Beban operasional tidak ditemukan", 404);
     }
@@ -365,7 +380,16 @@ export class AdminService {
   }
 
   static async deleteExpense(id: string) {
-    await pool.query(`DELETE FROM tb_biaya_operasional WHERE id = $1`, [id]);
+    const res = await pool.query(
+      `UPDATE tb_biaya_operasional 
+       SET deleted_at = CURRENT_TIMESTAMP 
+       WHERE id = $1 AND deleted_at IS NULL 
+       RETURNING id;`,
+      [id]
+    );
+    if (res.rows.length === 0) {
+      throw new AppError("Beban operasional tidak ditemukan atau sudah dihapus", 404);
+    }
     return true;
   }
 
@@ -376,6 +400,7 @@ export class AdminService {
              COALESCE(stock, 50)::int AS stok_saat_ini, 15 AS stok_minimum,
              COALESCE(hpp, 0)::int AS harga_per_satuan, 'Supplier Utama' AS supplier
       FROM tb_minuman
+      WHERE deleted_at IS NULL
       ORDER BY nama ASC;
     `);
     return res.rows;
