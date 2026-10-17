@@ -22,7 +22,8 @@ export class AdminController {
   static async getAllOrders(req: Request, res: Response) {
     try {
       const statusFilter = req.query.status as string | undefined;
-      const orders = await AdminService.getAllOrders(statusFilter);
+      const limit = req.query.limit ? Number(req.query.limit) : 100;
+      const orders = await AdminService.getAllOrders(statusFilter, limit);
       res.status(200).json({ status: "success", data: orders });
     } catch (error: any) {
       res.status(500).json({ status: "error", message: error.message });

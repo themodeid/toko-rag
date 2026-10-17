@@ -151,7 +151,7 @@ export class AdminService {
   // ==========================================
   // ORDERS MANAGEMENT FOR OWNER (tb_orders)
   // ==========================================
-  static async getAllOrders(statusFilter?: string) {
+  static async getAllOrders(statusFilter?: string, limit: number = 100) {
     let sql = `
       SELECT 
         o.id,
@@ -196,9 +196,13 @@ export class AdminService {
       params.push(statusFilter);
     }
 
+    const safeLimit = Math.min(Math.max(Number(limit) || 100, 1), 200);
+    params.push(safeLimit);
+
     sql += `
       GROUP BY o.id
-      ORDER BY o.created_at DESC;
+      ORDER BY o.created_at DESC
+      LIMIT $${params.length};
     `;
 
     const res = await pool.query(sql, params);
