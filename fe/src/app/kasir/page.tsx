@@ -329,19 +329,19 @@ export default function KasirUnifiedPortalPage() {
         key={order.id}
         className={`rounded-2xl border p-5 flex flex-col justify-between space-y-4 transition ${
           isReady
-            ? "bg-emerald-950/20 border-emerald-500/60 ring-1 ring-emerald-500/30 shadow-xl shadow-emerald-500/5"
-            : "bg-zinc-900 border-zinc-800 hover:border-amber-500/40"
+            ? "bg-zinc-900/90 border border-emerald-500/40 shadow-xs"
+            : "bg-zinc-900/90 border border-zinc-800 hover:border-zinc-700 shadow-xs"
         }`}
       >
         {/* Ticket Header */}
         <div className="flex items-start justify-between border-b border-zinc-800 pb-3">
           <div>
-            <span className="text-3xl font-black font-mono text-amber-400 tracking-tight block">
+            <span className="text-2xl sm:text-3xl font-black font-mono text-zinc-100 tracking-tight block">
               {order.order_code?.startsWith("#") ? order.order_code : `#${order.order_code}`}
             </span>
             <div className="flex items-baseline gap-1.5 mt-1">
               <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">Pemesan:</span>
-              <h3 className="text-xl sm:text-2xl font-black text-amber-300 uppercase tracking-wide truncate max-w-[200px]">
+              <h3 className="text-lg sm:text-xl font-bold text-zinc-100 uppercase tracking-wide truncate max-w-[200px]">
                 {order.nama_pelanggan}
               </h3>
             </div>
@@ -351,8 +351,8 @@ export default function KasirUnifiedPortalPage() {
             <span
               className={`inline-block px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border ${
                 isReady
-                  ? "bg-emerald-500 text-zinc-950 border-emerald-400 animate-pulse shadow-xs"
-                  : "bg-amber-500/20 text-amber-300 border-amber-500/40"
+                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                  : "bg-zinc-800 text-zinc-300 border-zinc-700"
               }`}
             >
               {isReady ? "🔔 SIAP DI MEJA BAR" : "🔥 SEDANG DIRACIK"}
@@ -375,7 +375,7 @@ export default function KasirUnifiedPortalPage() {
               className="p-3 rounded-xl bg-zinc-950/80 border border-zinc-800/80 flex flex-col gap-1.5"
             >
               <div className="flex items-center gap-2.5">
-                <span className="px-2.5 py-1 rounded-lg bg-amber-500 text-zinc-950 font-black font-mono text-sm leading-none shrink-0 shadow-xs">
+                <span className="px-2.5 py-1 rounded-lg bg-zinc-800 text-zinc-100 border border-zinc-700 font-bold font-mono text-xs leading-none shrink-0">
                   {item.qty}x
                 </span>
                 <div className="w-10 h-10 rounded-lg overflow-hidden bg-zinc-900 border border-zinc-800 shrink-0 relative">
@@ -422,7 +422,7 @@ export default function KasirUnifiedPortalPage() {
             <button
               disabled={isUpdating}
               onClick={() => handleUpdateStatus(order.id, "SELESAI")}
-              className="w-full py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-black font-mono text-xs sm:text-sm transition shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
+              className="w-full py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold font-mono text-xs sm:text-sm transition-colors shadow-none flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]"
             >
               <span>
                 {isUpdating
@@ -434,7 +434,7 @@ export default function KasirUnifiedPortalPage() {
             <button
               disabled={isUpdating}
               onClick={() => handleUpdateStatus(order.id, "SIAP_DIAMBIL")}
-              className="w-full py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-black font-mono text-xs sm:text-sm transition shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
+              className="w-full py-3.5 rounded-xl bg-zinc-100 hover:bg-white text-zinc-950 font-bold font-mono text-xs sm:text-sm transition-colors shadow-none flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]"
             >
               <span>
                 {isUpdating
@@ -450,20 +450,24 @@ export default function KasirUnifiedPortalPage() {
   };
 
   return (
-    <div className="h-screen overflow-hidden bg-[#09090b] text-[#f4f4f5] font-sans flex flex-col selection:bg-amber-500/20">
+    <div className="h-screen overflow-hidden bg-[#09090b] text-[#f4f4f5] font-sans flex flex-col selection:bg-zinc-700">
       {/* TOPBAR KASIR & BARISTA (FIXED IN VIEWPORT) */}
       <header className="shrink-0 border-b border-zinc-800 bg-zinc-950/95 px-4 sm:px-6 py-3.5 z-40 backdrop-blur-md">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3">
           {/* Brand & Station Info */}
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <span className="text-2xl">☕</span>
+              <div className="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-700/80 flex items-center justify-center text-zinc-100 shrink-0">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M18 8h1a4 4 0 010 8h-1M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8zm4-7v3m4-3v3m4-3v3" />
+                </svg>
+              </div>
               <div>
                 <div className="flex items-center space-x-2">
                   <h1 className="text-base font-bold text-white tracking-tight">
                     Station Kasir & Barista
                   </h1>
-                  <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold">
+                  <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700 font-semibold">
                     Operasional Kedai
                   </span>
                 </div>
@@ -475,9 +479,7 @@ export default function KasirUnifiedPortalPage() {
               <button
                 onClick={() => setActiveMainTab("POS")}
                 className={`px-2.5 py-1.5 rounded-lg transition font-semibold ${
-                  activeMainTab === "POS"
-                    ? "bg-amber-500 text-zinc-950 shadow-sm"
-                    : "text-zinc-400 hover:text-white"
+                  activeMainTab === "POS" ? "bg-zinc-100 text-zinc-950 font-bold shadow-xs" : "text-zinc-400 hover:text-white"
                 }`}
               >
                 🧾 POS
@@ -485,9 +487,7 @@ export default function KasirUnifiedPortalPage() {
               <button
                 onClick={() => setActiveMainTab("KDS")}
                 className={`px-2.5 py-1.5 rounded-lg transition font-semibold flex items-center gap-1 ${
-                  activeMainTab === "KDS"
-                    ? "bg-amber-500 text-zinc-950 shadow-sm"
-                    : "text-zinc-400 hover:text-white"
+                  activeMainTab === "KDS" ? "bg-zinc-100 text-zinc-950 font-bold shadow-xs" : "text-zinc-400 hover:text-white"
                 }`}
               >
                 <span>🧑‍🍳 Barista</span>
@@ -503,9 +503,7 @@ export default function KasirUnifiedPortalPage() {
                   loadHistory();
                 }}
                 className={`px-2.5 py-1.5 rounded-lg transition font-semibold flex items-center gap-1 ${
-                  activeMainTab === "HISTORY"
-                    ? "bg-amber-500 text-zinc-950 shadow-sm"
-                    : "text-zinc-400 hover:text-white"
+                  activeMainTab === "HISTORY" ? "bg-zinc-100 text-zinc-950 font-bold shadow-xs" : "text-zinc-400 hover:text-white"
                 }`}
               >
                 <span>📜 Riwayat</span>
@@ -520,9 +518,7 @@ export default function KasirUnifiedPortalPage() {
               <button
                 onClick={() => setActiveMainTab("POS")}
                 className={`px-3.5 py-1.5 rounded-lg transition font-bold flex items-center gap-1.5 ${
-                  activeMainTab === "POS"
-                    ? "bg-amber-500 text-zinc-950 shadow-sm"
-                    : "text-zinc-400 hover:text-white"
+                  activeMainTab === "POS" ? "bg-zinc-100 text-zinc-950 font-bold shadow-xs" : "text-zinc-400 hover:text-white"
                 }`}
               >
                 <span>🧾</span>
@@ -531,9 +527,7 @@ export default function KasirUnifiedPortalPage() {
               <button
                 onClick={() => setActiveMainTab("KDS")}
                 className={`px-3.5 py-1.5 rounded-lg transition font-bold flex items-center gap-2 ${
-                  activeMainTab === "KDS"
-                    ? "bg-amber-500 text-zinc-950 shadow-sm"
-                    : "text-zinc-400 hover:text-white"
+                  activeMainTab === "KDS" ? "bg-zinc-100 text-zinc-950 font-bold shadow-xs" : "text-zinc-400 hover:text-white"
                 }`}
               >
                 <span>🧑‍🍳</span>
@@ -541,9 +535,7 @@ export default function KasirUnifiedPortalPage() {
                 {activeOrdersCount > 0 && (
                   <span
                     className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
-                      activeMainTab === "KDS"
-                        ? "bg-zinc-950 text-amber-400"
-                        : "bg-emerald-500 text-zinc-950"
+                      activeMainTab === "KDS" ? "bg-zinc-950 text-zinc-100" : "bg-zinc-800 text-zinc-300 border border-zinc-700"
                     }`}
                   >
                     {activeOrdersCount}
@@ -556,9 +548,7 @@ export default function KasirUnifiedPortalPage() {
                   loadHistory();
                 }}
                 className={`px-3.5 py-1.5 rounded-lg transition font-bold flex items-center gap-1.5 ${
-                  activeMainTab === "HISTORY"
-                    ? "bg-amber-500 text-zinc-950 shadow-sm"
-                    : "text-zinc-400 hover:text-white"
+                  activeMainTab === "HISTORY" ? "bg-zinc-100 text-zinc-950 font-bold shadow-xs" : "text-zinc-400 hover:text-white"
                 }`}
               >
                 <span>📜</span>
@@ -566,9 +556,7 @@ export default function KasirUnifiedPortalPage() {
                 {summary && summary.completed_today > 0 && (
                   <span
                     className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
-                      activeMainTab === "HISTORY"
-                        ? "bg-zinc-950 text-amber-400"
-                        : "bg-zinc-800 text-zinc-400"
+                      activeMainTab === "HISTORY" ? "bg-zinc-950 text-zinc-100" : "bg-zinc-800 text-zinc-400"
                     }`}
                   >
                     {summary.completed_today}
@@ -582,17 +570,19 @@ export default function KasirUnifiedPortalPage() {
               {(currentUserRole === "owner" || currentUserRole === "admin") && (
                 <Link
                   href="/admin"
-                  className="px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 transition flex items-center gap-1"
+                  className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-800 transition flex items-center gap-1.5 text-xs font-mono font-medium"
                   title="Buka Hub Owner HQ"
                 >
-                  <span>👑</span>
-                  <span className="hidden sm:inline">Owner Hub</span>
+                  <svg className="w-3.5 h-3.5 text-zinc-400" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+                  </svg>
+                  <span>Owner Hub</span>
                 </Link>
               )}
 
               <button
                 onClick={handleLogout}
-                className="px-3 py-1.5 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 hover:bg-rose-500/20 transition"
+                className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 transition text-xs font-mono"
               >
                 Logout
               </button>
@@ -664,7 +654,7 @@ export default function KasirUnifiedPortalPage() {
                     value={posSearchQuery}
                     onChange={(e) => setPosSearchQuery(e.target.value)}
                     placeholder="Cari kopi / matcha / latte..."
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl pl-8 pr-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500 transition font-mono"
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl pl-8 pr-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-600 transition font-mono"
                   />
                   {posSearchQuery && (
                     <button
@@ -682,9 +672,7 @@ export default function KasirUnifiedPortalPage() {
                     type="button"
                     onClick={() => setPosSelectedCategory("ALL")}
                     className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition ${
-                      posSelectedCategory === "ALL"
-                        ? "bg-amber-500 text-zinc-950 font-bold shadow-sm"
-                        : "bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-white hover:border-zinc-700"
+                      posSelectedCategory === "ALL" ? "bg-zinc-100 text-zinc-950 font-bold shadow-xs" : "bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-white hover:border-zinc-700"
                     }`}
                   >
                     Semua
@@ -695,9 +683,7 @@ export default function KasirUnifiedPortalPage() {
                       type="button"
                       onClick={() => setPosSelectedCategory(c.id)}
                       className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition ${
-                        posSelectedCategory === c.id
-                          ? "bg-amber-500 text-zinc-950 font-bold shadow-sm"
-                          : "bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-white hover:border-zinc-700"
+                        posSelectedCategory === c.id ? "bg-zinc-100 text-zinc-950 font-bold shadow-xs" : "bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-white hover:border-zinc-700"
                       }`}
                     >
                       {c.nama || (c as any).nama_kategori || "Kategori"}
@@ -718,7 +704,7 @@ export default function KasirUnifiedPortalPage() {
                       onClick={() => handlePosAddToCart(bev)}
                       className={`group p-3 rounded-xl border text-left flex flex-col justify-between transition relative overflow-hidden ${
                         isAvailable
-                          ? "bg-zinc-900/60 border-zinc-800 hover:border-amber-500/60 hover:bg-zinc-900 cursor-pointer shadow-sm active:scale-98"
+                          ? "bg-zinc-900/60 border-zinc-800 hover:border-zinc-600 hover:bg-zinc-900 cursor-pointer shadow-xs active:scale-[0.99]"
                           : "bg-zinc-950 border-zinc-900 opacity-50 cursor-not-allowed"
                       }`}
                     >
@@ -740,7 +726,7 @@ export default function KasirUnifiedPortalPage() {
 
                         {/* Title & Category */}
                         <div>
-                          <h4 className="text-xs font-bold text-white group-hover:text-amber-400 transition truncate">
+                          <h4 className="text-xs font-bold text-white group-hover:text-zinc-100 transition truncate">
                             {bev.nama}
                           </h4>
                           <span className="text-[10px] text-zinc-500 font-mono block">
@@ -751,10 +737,10 @@ export default function KasirUnifiedPortalPage() {
 
                       {/* Price & Add Indicator */}
                       <div className="mt-3 pt-2 border-t border-zinc-800/60 flex items-center justify-between font-mono">
-                        <span className="text-xs font-bold text-amber-400">
+                        <span className="text-xs font-bold text-zinc-100 font-mono tabular-nums">
                           Rp {Number(bev.harga || 0).toLocaleString("id-ID")}
                         </span>
-                        <span className="w-6 h-6 rounded-lg bg-zinc-800 group-hover:bg-amber-500 group-hover:text-zinc-950 text-zinc-300 flex items-center justify-center text-xs font-bold transition">
+                        <span className="w-6 h-6 rounded-lg bg-zinc-800 group-hover:bg-zinc-100 group-hover:text-zinc-950 text-zinc-300 flex items-center justify-center text-xs font-bold transition-colors">
                           +
                         </span>
                       </div>
@@ -841,7 +827,7 @@ export default function KasirUnifiedPortalPage() {
                         </button>
                       </div>
 
-                      <span className="font-mono font-bold text-amber-400 w-16 text-right">
+                      <span className="font-mono font-bold text-zinc-100 tabular-nums w-16 text-right">
                         Rp {(item.minuman.harga * item.qty).toLocaleString("id-ID")}
                       </span>
                     </div>
@@ -853,7 +839,7 @@ export default function KasirUnifiedPortalPage() {
               <div className="pt-2 border-t border-zinc-800 space-y-1.5">
                 <label className="text-xs font-mono text-zinc-300 flex items-center justify-between">
                   <span>Nama Pemesan (Wajib):</span>
-                  <span className="text-[10px] text-amber-400 font-bold">
+                  <span className="text-[10px] text-zinc-400 font-mono">
                     Untuk Dipanggil di Bar
                   </span>
                 </label>
@@ -863,7 +849,7 @@ export default function KasirUnifiedPortalPage() {
                   value={posCustomerName}
                   onChange={(e) => handlePosNameChange(e.target.value)}
                   placeholder="Ketik nama pelanggan (cth: Adam, Ibu Kartika)..."
-                  className="w-full bg-zinc-950 border border-zinc-700 focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-zinc-500 focus:outline-none transition font-sans"
+                  className="w-full bg-zinc-950 border border-zinc-700 focus:border-zinc-600 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-zinc-500 focus:outline-none transition font-sans"
                 />
                 {posNameError && (
                   <p className="text-[11px] text-rose-400 font-mono">
@@ -878,7 +864,7 @@ export default function KasirUnifiedPortalPage() {
                   <span className="text-xs text-zinc-400">
                     Total ({posTotalQty} Minuman):
                   </span>
-                  <span className="text-xl sm:text-2xl font-black text-amber-400">
+                  <span className="text-xl sm:text-2xl font-bold text-zinc-100 font-mono tabular-nums">
                     Rp {posTotalPrice.toLocaleString("id-ID")}
                   </span>
                 </div>
@@ -892,7 +878,7 @@ export default function KasirUnifiedPortalPage() {
                     isSubmittingOrder
                   }
                   onClick={handlePosSubmitOrder}
-                  className="w-full py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed text-zinc-950 font-bold font-mono text-xs transition shadow-lg shadow-amber-500/20 flex items-center justify-center space-x-2 cursor-pointer"
+                  className="w-full py-3.5 rounded-xl bg-zinc-100 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed text-zinc-950 font-bold font-mono text-xs sm:text-sm transition-colors shadow-none flex items-center justify-center space-x-2 cursor-pointer active:scale-[0.99]"
                 >
                   <span>
                     {isSubmittingOrder
@@ -916,20 +902,30 @@ export default function KasirUnifiedPortalPage() {
           {/* METRIC SUMMARY CARDS */}
           {summary && (
             <section className="max-w-7xl mx-auto w-full px-4 sm:px-6 py-4 grid grid-cols-1 sm:grid-cols-2 gap-3 font-mono">
-              <div className="p-3.5 rounded-xl bg-zinc-900 border border-zinc-800">
-                <span className="text-[10px] text-zinc-500 uppercase block">
-                  Omset Kasir Hari Ini
-                </span>
-                <span className="text-lg font-bold text-amber-400">
-                  Rp {Number(summary.total_revenue_today || 0).toLocaleString("id-ID")}
+              <div className="p-3.5 rounded-xl bg-zinc-900/60 border border-zinc-800/80 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] text-zinc-400 uppercase tracking-wider block">
+                    Omset Kasir Hari Ini
+                  </span>
+                  <span className="text-lg font-bold text-emerald-400 font-mono tabular-nums">
+                    Rp {Number(summary.total_revenue_today || 0).toLocaleString("id-ID")}
+                  </span>
+                </div>
+                <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                  Lunas
                 </span>
               </div>
-              <div className="p-3.5 rounded-xl bg-zinc-900 border border-zinc-800">
-                <span className="text-[10px] text-zinc-500 uppercase block">
-                  Antrean Racik Menunggu
-                </span>
-                <span className="text-lg font-bold text-amber-500 animate-pulse">
-                  {kitchenOrdersCount} Tiket
+              <div className="p-3.5 rounded-xl bg-zinc-900/60 border border-zinc-800/80 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] text-zinc-400 uppercase tracking-wider block">
+                    Antrean Racik Menunggu
+                  </span>
+                  <span className="text-lg font-bold text-zinc-100 font-mono tabular-nums">
+                    {kitchenOrdersCount} Tiket
+                  </span>
+                </div>
+                <span className="text-[10px] font-mono text-zinc-300 bg-zinc-800 border border-zinc-700 px-2 py-0.5 rounded-full">
+                  Dapur
                 </span>
               </div>
             </section>
@@ -986,11 +982,11 @@ export default function KasirUnifiedPortalPage() {
                     <section className="bg-zinc-950/60 border border-zinc-800/80 rounded-2xl p-4 sm:p-5 flex flex-col space-y-4 shadow-sm">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 border-b border-zinc-800/80 pb-3">
                         <div className="flex items-center gap-2.5">
-                          <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse shrink-0"></span>
+                          <span className="w-2 h-2 rounded-full bg-zinc-400 shrink-0"></span>
                           <h2 className="text-sm sm:text-base font-black font-mono text-zinc-100 uppercase tracking-wider flex items-center gap-2">
                             <span>1. Antrean Dapur & Sedang Diracik</span>
                           </h2>
-                          <span className="px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 text-xs font-mono font-bold">
+                          <span className="px-2.5 py-0.5 rounded-full bg-zinc-800 text-zinc-300 border border-zinc-700 text-xs font-mono font-bold">
                             {kitchenOrders.length} Tiket
                           </span>
                         </div>
@@ -1015,11 +1011,11 @@ export default function KasirUnifiedPortalPage() {
                     <section className="bg-zinc-950/60 border border-zinc-800/80 rounded-2xl p-4 sm:p-5 flex flex-col space-y-4 shadow-sm">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 border-b border-zinc-800/80 pb-3">
                         <div className="flex items-center gap-2.5">
-                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping shrink-0"></span>
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
                           <h2 className="text-sm sm:text-base font-black font-mono text-zinc-100 uppercase tracking-wider flex items-center gap-2">
                             <span>2. Siap di Meja Bar (Panggil Nama)</span>
                           </h2>
-                          <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-xs font-mono font-bold">
+                          <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-mono font-bold">
                             {readyOrders.length} Tiket
                           </span>
                         </div>
@@ -1139,7 +1135,7 @@ export default function KasirUnifiedPortalPage() {
                   value={historySearchQuery}
                   onChange={(e) => setHistorySearchQuery(e.target.value)}
                   placeholder="Cari nama pemesan atau #tiket..."
-                  className="w-full bg-zinc-950 border border-zinc-700 focus:border-amber-500 rounded-xl px-3.5 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none transition font-sans"
+                  className="w-full bg-zinc-950 border border-zinc-800 focus:border-zinc-600 rounded-lg px-3.5 py-2 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none transition font-mono"
                 />
                 {historySearchQuery && (
                   <button
@@ -1206,10 +1202,10 @@ export default function KasirUnifiedPortalPage() {
                     <div className="flex items-start justify-between border-b border-zinc-800/80 pb-3">
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="text-2xl font-black font-mono text-amber-400">
+                          <span className="text-xl font-bold font-mono text-zinc-100 tabular-nums">
                             {order.order_code?.startsWith("#") ? order.order_code : `#${order.order_code}`}
                           </span>
-                          <span className="px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-mono text-[10px] font-bold">
+                          <span className="px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-mono text-[10px] font-semibold">
                             ✓ DISERAHKAN
                           </span>
                         </div>
@@ -1249,7 +1245,7 @@ export default function KasirUnifiedPortalPage() {
                         >
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
-                              <span className="px-2 py-0.5 rounded-md bg-amber-500 text-zinc-950 font-black text-xs shrink-0">
+                              <span className="px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-100 border border-zinc-700 font-bold font-mono text-xs shrink-0">
                                 {item.qty}x
                               </span>
                               <div className="w-8 h-8 rounded-lg overflow-hidden bg-zinc-900 border border-zinc-800 shrink-0 relative">
