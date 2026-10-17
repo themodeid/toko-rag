@@ -978,15 +978,78 @@ export default function KasirUnifiedPortalPage() {
                 </button>
               </div>
             ) : (
-              <div className="space-y-8">
-                {/* ZONA 1 (ATAS): SEDANG DIRACIK / ANTREAN DAPUR */}
-                {(selectedFilter === "ALL" || selectedFilter === "DAPUR") && (
-                  <section className="space-y-3.5">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 border-b border-zinc-800/80 pb-2.5">
+              <div>
+                {/* TAMPILAN DEFAULT (SEMUA ANTREAN): 2 KOLOM KANAN-KIRI BERDAMPINGAN */}
+                {selectedFilter === "ALL" && (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                    {/* KOLOM KIRI: ZONA 1 (ANTREAN DAPUR & SEDANG DIRACIK) */}
+                    <section className="bg-zinc-950/60 border border-zinc-800/80 rounded-2xl p-4 sm:p-5 flex flex-col space-y-4 shadow-sm">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 border-b border-zinc-800/80 pb-3">
+                        <div className="flex items-center gap-2.5">
+                          <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse shrink-0"></span>
+                          <h2 className="text-sm sm:text-base font-black font-mono text-zinc-100 uppercase tracking-wider flex items-center gap-2">
+                            <span>1. Antrean Dapur & Sedang Diracik</span>
+                          </h2>
+                          <span className="px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 text-xs font-mono font-bold">
+                            {kitchenOrders.length} Tiket
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-zinc-400 font-mono">
+                          Dipersiapkan barista
+                        </p>
+                      </div>
+
+                      {kitchenOrders.length === 0 ? (
+                        <div className="py-12 text-center border border-dashed border-zinc-800/80 rounded-xl bg-zinc-900/30 font-mono text-xs text-zinc-500">
+                          <span className="text-2xl block mb-1">✅</span>
+                          Dapur bersih! Tidak ada antrean racik saat ini.
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {kitchenOrders.map(renderOrderCard)}
+                        </div>
+                      )}
+                    </section>
+
+                    {/* KOLOM KANAN: ZONA 2 (SIAP DI MEJA BAR / BELUM DIAMBIL) */}
+                    <section className="bg-zinc-950/60 border border-zinc-800/80 rounded-2xl p-4 sm:p-5 flex flex-col space-y-4 shadow-sm">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 border-b border-zinc-800/80 pb-3">
+                        <div className="flex items-center gap-2.5">
+                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping shrink-0"></span>
+                          <h2 className="text-sm sm:text-base font-black font-mono text-zinc-100 uppercase tracking-wider flex items-center gap-2">
+                            <span>2. Siap di Meja Bar (Panggil Nama)</span>
+                          </h2>
+                          <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-xs font-mono font-bold">
+                            {readyOrders.length} Tiket
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-zinc-400 font-mono">
+                          Menunggu diambil
+                        </p>
+                      </div>
+
+                      {readyOrders.length === 0 ? (
+                        <div className="py-12 text-center border border-dashed border-zinc-800/80 rounded-xl bg-zinc-900/30 font-mono text-xs text-zinc-500">
+                          <span className="text-2xl block mb-1">☕</span>
+                          Meja bar kosong. Semua pesanan sudah diserahkan.
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {readyOrders.map(renderOrderCard)}
+                        </div>
+                      )}
+                    </section>
+                  </div>
+                )}
+
+                {/* FILTER KHUSUS: DAPUR ONLY */}
+                {selectedFilter === "DAPUR" && (
+                  <section className="bg-zinc-950/60 border border-zinc-800/80 rounded-2xl p-4 sm:p-5 flex flex-col space-y-4 shadow-sm">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 border-b border-zinc-800/80 pb-3">
                       <div className="flex items-center gap-2.5">
                         <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse shrink-0"></span>
                         <h2 className="text-sm sm:text-base font-black font-mono text-zinc-100 uppercase tracking-wider flex items-center gap-2">
-                          <span>1. Antrean Dapur & Sedang Diracik</span>
+                          <span>Antrean Dapur & Sedang Diracik</span>
                         </h2>
                         <span className="px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 text-xs font-mono font-bold">
                           {kitchenOrders.length} Tiket
@@ -998,8 +1061,8 @@ export default function KasirUnifiedPortalPage() {
                     </div>
 
                     {kitchenOrders.length === 0 ? (
-                      <div className="py-8 text-center border border-dashed border-zinc-800 rounded-2xl bg-zinc-950/40 font-mono text-xs text-zinc-500">
-                        <span className="text-xl block mb-1">✅</span>
+                      <div className="py-16 text-center border border-dashed border-zinc-800/80 rounded-xl bg-zinc-900/30 font-mono text-xs text-zinc-500">
+                        <span className="text-2xl block mb-1">✅</span>
                         Dapur bersih! Tidak ada antrean racik saat ini.
                       </div>
                     ) : (
@@ -1010,14 +1073,14 @@ export default function KasirUnifiedPortalPage() {
                   </section>
                 )}
 
-                {/* ZONA 2 (BAWAH): SIAP DI MEJA BAR / BELUM DIAMBIL */}
-                {(selectedFilter === "ALL" || selectedFilter === "SIAP_DIAMBIL") && (
-                  <section className={`space-y-3.5 ${selectedFilter === "ALL" ? "pt-6 border-t border-zinc-800/80" : ""}`}>
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 border-b border-zinc-800/80 pb-2.5">
+                {/* FILTER KHUSUS: SIAP DI MEJA BAR ONLY */}
+                {selectedFilter === "SIAP_DIAMBIL" && (
+                  <section className="bg-zinc-950/60 border border-zinc-800/80 rounded-2xl p-4 sm:p-5 flex flex-col space-y-4 shadow-sm">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 border-b border-zinc-800/80 pb-3">
                       <div className="flex items-center gap-2.5">
                         <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping shrink-0"></span>
                         <h2 className="text-sm sm:text-base font-black font-mono text-zinc-100 uppercase tracking-wider flex items-center gap-2">
-                          <span>2. Siap di Meja Bar (Belum Diambil Pelanggan)</span>
+                          <span>Siap di Meja Bar (Belum Diambil Pelanggan)</span>
                         </h2>
                         <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-xs font-mono font-bold">
                           {readyOrders.length} Tiket
@@ -1029,8 +1092,8 @@ export default function KasirUnifiedPortalPage() {
                     </div>
 
                     {readyOrders.length === 0 ? (
-                      <div className="py-8 text-center border border-dashed border-zinc-800 rounded-2xl bg-zinc-950/40 font-mono text-xs text-zinc-500">
-                        <span className="text-xl block mb-1">☕</span>
+                      <div className="py-16 text-center border border-dashed border-zinc-800/80 rounded-xl bg-zinc-900/30 font-mono text-xs text-zinc-500">
+                        <span className="text-2xl block mb-1">☕</span>
                         Meja bar kosong. Semua pesanan sudah diserahkan ke pelanggan.
                       </div>
                     ) : (
