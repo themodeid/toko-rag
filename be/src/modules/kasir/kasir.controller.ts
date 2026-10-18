@@ -14,7 +14,9 @@ export class KasirController {
   static getIncomingOrders = catchAsync(async (req: Request, res: Response) => {
     const statusFilter = req.query.status as string | undefined;
     const period = req.query.period as string | undefined;
-    const orders = await KasirService.getIncomingOrders(statusFilter, period);
+    const limit = req.query.limit ? Number(req.query.limit) : 50;
+    const offset = req.query.offset ? Number(req.query.offset) : 0;
+    const orders = await KasirService.getIncomingOrders(statusFilter, period, limit, offset);
     return successResponse(res, orders, "Daftar antrian kasir berhasil diambil", 200);
   });
 

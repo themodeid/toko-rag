@@ -50,7 +50,12 @@ export class KasirService {
   /**
    * Kasir: Melihat Daftar Pesanan Masuk (Kitchen Display System)
    */
-  static async getIncomingOrders(statusFilter?: string, period?: string) {
+  static async getIncomingOrders(
+    statusFilter?: string,
+    period?: string,
+    limit: number = 50,
+    offset: number = 0
+  ) {
     let sql = `
       SELECT 
         o.id,
@@ -113,25 +118,48 @@ export class KasirService {
       whereClauses.push(`o.created_at >= CURRENT_DATE - INTERVAL '30 days'`);
     }
 
-    if (whereClauses.length > 0) {
-      sql += ` WHERE ` + whereClauses.join(" AND ");
-    }
+    const whereSql = whereClauses.length > 0 ? ` WHERE ` + whereClauses.join(" AND ") : "";
 
+    // Hitung total data untuk keperluan paginasi
+    const countSql = `SELECT COUNT(DISTINCT o.id)::int AS total FROM tb_orders o ${whereSql}`;
+    const countRes = await query(countSql, params);
+    const total = parseInt(countRes.rows[0]?.total || 0, 10);
+
+    const safeLimit = Math.min(Math.max(Number(limit) || 50, 1), 100);
+    const safeOffset = Math.max(Number(offset) || 0, 0);
+
+    const queryParams = [...params];
+    queryParams.push(safeLimit);
+    const limitIndex = queryParams.length;
+    queryParams.push(safeOffset);
+    const offsetIndex = queryParams.length;
+
+    let orderClause = "";
     if (statusFilter === "SELESAI") {
-      sql += `
-        GROUP BY o.id
-        ORDER BY o.waktu_selesai DESC NULLS LAST, o.created_at DESC
-        LIMIT 200;
-      `;
+      orderClause = `ORDER BY o.waktu_selesai DESC NULLS LAST, o.created_at DESC`;
     } else {
-      sql += `
-        GROUP BY o.id
-        ORDER BY o.created_at ASC;
-      `;
+      orderClause = `ORDER BY o.created_at ASC`;
     }
 
-    const { rows } = await query(sql, params);
-    return rows;
+    sql += `
+      ${whereSql}
+      GROUP BY o.id
+      ${orderClause}
+      LIMIT $${limitIndex} OFFSET $${offsetIndex};
+    `;
+
+    const { rows } = await query(sql, queryParams);
+    const hasMore = safeOffset + rows.length < total;
+
+    return {
+      orders: rows,
+      pagination: {
+        limit: safeLimit,
+        offset: safeOffset,
+        total,
+        hasMore,
+      },
+    };
   }
 
   /**

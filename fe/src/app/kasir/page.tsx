@@ -41,8 +41,27 @@ export default function KasirUnifiedPortalPage() {
   // History State
   const [historyOrders, setHistoryOrders] = useState<Order[]>([]);
   const [loadingHistory, setLoadingHistory] = useState<boolean>(false);
+  const [historyLoadingMore, setHistoryLoadingMore] = useState<boolean>(false);
+  const [historyHasMore, setHistoryHasMore] = useState<boolean>(false);
+  const [historyTotalServer, setHistoryTotalServer] = useState<number>(0);
   const [historySearchQuery, setHistorySearchQuery] = useState<string>("");
   const [historyPeriod, setHistoryPeriod] = useState<string>("today");
+
+  // History Memoized Filtering & Date Grouping
+  const filteredHistory = useMemo(() => {
+    const query = historySearchQuery.toLowerCase().trim();
+    if (!query) return historyOrders;
+    return historyOrders.filter((o) => {
+      const code = (o.order_code || "").toLowerCase();
+      const customer = (o.nama_pelanggan || "").toLowerCase();
+      const hasItem = o.items?.some((it) => (it.nama_minuman || "").toLowerCase().includes(query));
+      return code.includes(query) || customer.includes(query) || hasItem;
+    });
+  }, [historyOrders, historySearchQuery]);
+
+  const groupedHistory = useMemo(() => {
+    return groupOrdersByDate(filteredHistory);
+  }, [filteredHistory]);
 
   // Struk Modal State
   const [selectedReceiptOrder, setSelectedReceiptOrder] = useState<Order | null>(null);
@@ -83,8 +102,10 @@ export default function KasirUnifiedPortalPage() {
     try {
       setLoadingHistory(true);
       const activePeriod = periodOverride !== undefined ? periodOverride : historyPeriod;
-      const data = await fetchKasirOrders("SELESAI", activePeriod);
-      setHistoryOrders(data);
+      const res = await fetchKasirOrders("SELESAI", activePeriod, 50, 0);
+      setHistoryOrders(res.orders || []);
+      setHistoryHasMore(Boolean(res.pagination?.hasMore));
+      setHistoryTotalServer(res.pagination?.total || 0);
     } catch (err) {
       console.error("Gagal memuat riwayat pesanan selesai", err);
     } finally {
@@ -92,16 +113,32 @@ export default function KasirUnifiedPortalPage() {
     }
   };
 
+  const handleHistoryLoadMore = async () => {
+    if (historyLoadingMore || !historyHasMore) return;
+    try {
+      setHistoryLoadingMore(true);
+      const nextOffset = historyOrders.length;
+      const res = await fetchKasirOrders("SELESAI", historyPeriod, 50, nextOffset);
+      setHistoryOrders((prev) => [...prev, ...(res.orders || [])]);
+      setHistoryHasMore(Boolean(res.pagination?.hasMore));
+      setHistoryTotalServer(res.pagination?.total || 0);
+    } catch (err) {
+      console.error("Gagal memuat riwayat lebih lama:", err);
+    } finally {
+      setHistoryLoadingMore(false);
+    }
+  };
+
   const loadData = async () => {
     if (!checkAuth()) return;
     try {
-      const [ordersData, summaryData, bevsData, catsData] = await Promise.all([
-        fetchKasirOrders().catch(() => []),
+      const [ordersRes, summaryData, bevsData, catsData] = await Promise.all([
+        fetchKasirOrders().catch(() => ({ orders: [], pagination: { limit: 50, offset: 0, total: 0, hasMore: false } })),
         fetchKasirSummary().catch(() => null),
         fetchBeverages().catch(() => []),
         fetchBeverageCategories().catch(() => []),
       ]);
-      setOrders(ordersData);
+      setOrders(ordersRes.orders || []);
       setSummary(summaryData);
       setPosBeverages(bevsData);
       setPosCategories(catsData);
@@ -120,11 +157,19 @@ export default function KasirUnifiedPortalPage() {
     const interval = setInterval(() => {
       loadData();
       if (activeMainTab === "HISTORY") {
-        loadHistory(historyPeriod);
+        fetchKasirOrders("SELESAI", historyPeriod, Math.max(historyOrders.length, 50), 0)
+          .then((res) => {
+            if (res.orders) {
+              setHistoryOrders(res.orders);
+              setHistoryHasMore(Boolean(res.pagination?.hasMore));
+              setHistoryTotalServer(res.pagination?.total || 0);
+            }
+          })
+          .catch(() => {});
       }
     }, 5000);
     return () => clearInterval(interval);
-  }, [activeMainTab, historyPeriod]);
+  }, [activeMainTab, historyPeriod, historyOrders.length]);
 
   // Auto-dismiss order success pop-up after 4.5s
   useEffect(() => {
@@ -145,7 +190,7 @@ export default function KasirUnifiedPortalPage() {
       await updateKasirOrderStatus(orderId, nextStatus);
       await loadData();
       if (nextStatus === "SELESAI") {
-        await loadHistory();
+        await loadHistory(historyPeriod);
       }
     } catch (err: any) {
       alert(err.response?.data?.message || "Gagal memperbarui status pesanan");
@@ -1305,7 +1350,13 @@ export default function KasirUnifiedPortalPage() {
               </div>
 
               <div className="text-xs text-zinc-400">
-                Total Arsip Selesai Dimuat: <strong className="text-zinc-200">{historyOrders.length}</strong>
+                Dimuat <strong className="text-zinc-200">{filteredHistory.length}</strong>
+                {historyTotalServer > 0 && (
+                  <span>
+                    {" "}dari <strong className="text-zinc-200">{historyTotalServer}</strong>
+                  </span>
+                )}{" "}
+                pesanan di <strong className="text-zinc-200">{groupedHistory.length}</strong> hari
               </div>
             </div>
 
@@ -1314,38 +1365,21 @@ export default function KasirUnifiedPortalPage() {
               <div className="py-20 text-center font-mono text-xs text-zinc-500 bg-zinc-900/40 border border-zinc-800/80 rounded-2xl">
                 Memuat arsip pesanan selesai...
               </div>
-            ) : (() => {
-              const query = historySearchQuery.toLowerCase().trim();
-              const filteredHistory = historyOrders.filter((o) => {
-                if (!query) return true;
-                return (
-                  (o.order_code && o.order_code.toLowerCase().includes(query)) ||
-                  (o.nama_pelanggan && o.nama_pelanggan.toLowerCase().includes(query)) ||
-                  o.items?.some((it) => it.nama_minuman.toLowerCase().includes(query))
-                );
-              });
-
-              if (filteredHistory.length === 0) {
-                return (
-                  <div className="py-20 text-center border border-dashed border-zinc-800 rounded-2xl bg-zinc-900/40">
-                    <span className="text-3xl">☕</span>
-                    <p className="text-sm text-zinc-400 mt-2 font-mono">
-                      {historySearchQuery
-                        ? "Tidak ditemukan pesanan dengan kata kunci tersebut"
-                        : "Belum ada pesanan yang diselesaikan pada rentang periode ini"}
-                    </p>
-                    <p className="text-xs text-zinc-500 mt-1 font-mono">
-                      Pesanan yang diserahkan di Meja Barista akan otomatis muncul di sini.
-                    </p>
-                  </div>
-                );
-              }
-
-              const groupedHistory = groupOrdersByDate(filteredHistory);
-
-              return (
-                <div className="space-y-8">
-                  {groupedHistory.map((group) => (
+            ) : filteredHistory.length === 0 ? (
+              <div className="py-20 text-center border border-dashed border-zinc-800 rounded-2xl bg-zinc-900/40">
+                <span className="text-3xl">☕</span>
+                <p className="text-sm text-zinc-400 mt-2 font-mono">
+                  {historySearchQuery
+                    ? "Tidak ditemukan pesanan dengan kata kunci tersebut"
+                    : "Belum ada pesanan yang diselesaikan pada rentang periode ini"}
+                </p>
+                <p className="text-xs text-zinc-500 mt-1 font-mono">
+                  Pesanan yang diserahkan di Meja Barista akan otomatis muncul di sini.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-8">
+                {groupedHistory.map((group) => (
                     <div key={group.dateKey} className="space-y-4">
                       {/* Date Group Header */}
                       <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-zinc-800/80">
@@ -1488,9 +1522,40 @@ export default function KasirUnifiedPortalPage() {
                       </div>
                     </div>
                   ))}
+
+                  {/* Load More Button */}
+                  {historyHasMore && (
+                    <div className="pt-4 pb-8 flex flex-col items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleHistoryLoadMore}
+                        disabled={historyLoadingMore}
+                        className="w-full sm:w-auto px-6 py-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-zinc-200 font-mono text-xs flex items-center justify-center gap-2.5 shadow-sm transition-all cursor-pointer active:scale-98 disabled:opacity-50"
+                      >
+                        {historyLoadingMore ? (
+                          <>
+                            <svg className="w-4 h-4 animate-spin text-zinc-400" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                            </svg>
+                            <span>Memuat 50 Data Berikutnya...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>📥 Muat 50 Pesanan Lebih Lama</span>
+                            <span className="text-[10px] px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700">
+                              Sisa {Math.max(0, historyTotalServer - historyOrders.length)} di server
+                            </span>
+                          </>
+                        )}
+                      </button>
+                      <p className="text-[11px] font-mono text-zinc-500">
+                        Data ditarik bertahap per 50 item agar operasional kasir tetap ringan & anti-macet.
+                      </p>
+                    </div>
+                  )}
                 </div>
-              );
-            })()}
+              )}
           </div>
         </div>
       )}

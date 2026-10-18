@@ -9,6 +9,7 @@ import {
   CreateReviewPayload,
   KasirSummary,
   StatusAntrian,
+  PaginatedOrdersResponse,
 } from "./types";
 
 /* ========================================================
@@ -96,12 +97,29 @@ export async function kasirLogin(payload: {
   return res.data.data;
 }
 
-export async function fetchKasirOrders(status?: StatusAntrian | string, period?: string): Promise<Order[]> {
-  const params: Record<string, string> = {};
+export async function fetchKasirOrders(
+  status?: StatusAntrian | string,
+  period?: string,
+  limit: number = 50,
+  offset: number = 0
+): Promise<PaginatedOrdersResponse<Order>> {
+  const params: Record<string, any> = { limit, offset };
   if (status) params.status = status;
   if (period && period !== "ALL") params.period = period;
   const res = await api.get("/api/kasir/orders", { params });
-  return res.data.data ?? [];
+  const raw = res.data.data;
+  if (raw && Array.isArray(raw.orders)) {
+    return raw;
+  }
+  return {
+    orders: Array.isArray(raw) ? raw : [],
+    pagination: {
+      limit,
+      offset,
+      total: Array.isArray(raw) ? raw.length : 0,
+      hasMore: false,
+    },
+  };
 }
 
 export async function updateKasirOrderStatus(
@@ -155,12 +173,29 @@ export async function deleteBeverageAdmin(id: string): Promise<{ id: string; nam
   return res.data.data;
 }
 
-export async function fetchAdminOrders(status?: string, period?: string): Promise<any[]> {
-  const params: Record<string, string> = {};
+export async function fetchAdminOrders(
+  status?: string,
+  period?: string,
+  limit: number = 50,
+  offset: number = 0
+): Promise<PaginatedOrdersResponse<any>> {
+  const params: Record<string, any> = { limit, offset };
   if (status && status !== "ALL") params.status = status;
   if (period && period !== "ALL") params.period = period;
   const res = await api.get("/api/admin/orders", { params });
-  return res.data.data ?? [];
+  const raw = res.data.data;
+  if (raw && Array.isArray(raw.orders)) {
+    return raw;
+  }
+  return {
+    orders: Array.isArray(raw) ? raw : [],
+    pagination: {
+      limit,
+      offset,
+      total: Array.isArray(raw) ? raw.length : 0,
+      hasMore: false,
+    },
+  };
 }
 
 export async function updateAdminOrderStatus(

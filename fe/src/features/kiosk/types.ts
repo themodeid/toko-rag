@@ -114,3 +114,16 @@ export interface KasirSummary {
   active_queue_count: number;
   completed_today: number;
 }
+
+export interface PaginationMeta {
+  limit: number;
+  offset: number;
+  total: number;
+  hasMore: boolean;
+}
+
+export interface PaginatedOrdersResponse<T = Order> {
+  orders: T[];
+  pagination: PaginationMeta;
+}
+

@@ -8,6 +8,9 @@ import { groupOrdersByDate } from "@/lib/orderGrouping";
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [totalServerCount, setTotalServerCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [period, setPeriod] = useState<string>("today");
   const [selectedReceiptOrder, setSelectedReceiptOrder] = useState<any | null>(null);
@@ -16,8 +19,10 @@ export default function AdminOrdersPage() {
     try {
       setLoading(true);
       const activePeriod = periodOverride !== undefined ? periodOverride : period;
-      const res = await fetchAdminOrders("ALL", activePeriod);
-      setOrders(res || []);
+      const res = await fetchAdminOrders("ALL", activePeriod, 50, 0);
+      setOrders(res.orders || []);
+      setHasMore(Boolean(res.pagination?.hasMore));
+      setTotalServerCount(res.pagination?.total || 0);
     } catch (err) {
       console.error("Failed to load orders:", err);
     } finally {
@@ -25,9 +30,36 @@ export default function AdminOrdersPage() {
     }
   };
 
+  const handleLoadMore = async () => {
+    if (loadingMore || !hasMore) return;
+    try {
+      setLoadingMore(true);
+      const nextOffset = orders.length;
+      const res = await fetchAdminOrders("ALL", period, 50, nextOffset);
+      setOrders((prev) => [...prev, ...(res.orders || [])]);
+      setHasMore(Boolean(res.pagination?.hasMore));
+      setTotalServerCount(res.pagination?.total || 0);
+    } catch (err) {
+      console.error("Failed to load more orders:", err);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
   useEffect(() => {
     fetchOrders(period);
-    const interval = setInterval(() => fetchOrders(period), 10000);
+    const interval = setInterval(() => {
+      // Auto-refresh hanya pada batch 0 agar data terbaru tetap live
+      fetchAdminOrders("ALL", period, Math.max(orders.length, 50), 0)
+        .then((res) => {
+          if (res.orders) {
+            setOrders(res.orders);
+            setHasMore(Boolean(res.pagination?.hasMore));
+            setTotalServerCount(res.pagination?.total || 0);
+          }
+        })
+        .catch(() => {});
+    }, 12000);
     return () => clearInterval(interval);
   }, [period]);
 
@@ -159,15 +191,20 @@ export default function AdminOrdersPage() {
         </div>
 
         <div className="text-xs text-zinc-400">
-          Ditemukan <strong className="text-zinc-200">{filteredOrders.length}</strong> transaksi di{" "}
-          <strong className="text-zinc-200">{groupedOrders.length}</strong> hari
+          Dimuat <strong className="text-zinc-200">{filteredOrders.length}</strong>
+          {totalServerCount > 0 && (
+            <span>
+              {" "}dari <strong className="text-zinc-200">{totalServerCount}</strong>
+            </span>
+          )}{" "}
+          transaksi di <strong className="text-zinc-200">{groupedOrders.length}</strong> hari
         </div>
       </div>
 
       {/* Compact Audit Summary Bar */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 font-mono">
         <div className="p-3.5 rounded-xl bg-zinc-900/60 border border-zinc-800/80 flex items-center justify-between">
-          <span className="text-xs text-zinc-400">Total Transaksi Tercatat</span>
+          <span className="text-xs text-zinc-400">Total Transaksi Dimuat</span>
           <span className="text-sm font-bold text-zinc-100 tabular-nums">
             {filteredOrders.length} Bon Lunas
           </span>
@@ -354,6 +391,38 @@ export default function AdminOrdersPage() {
               </div>
             </div>
           ))}
+
+          {/* Load More Button */}
+          {hasMore && (
+            <div className="pt-4 pb-8 flex flex-col items-center gap-2">
+              <button
+                type="button"
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                className="w-full sm:w-auto px-6 py-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-zinc-200 font-mono text-xs flex items-center justify-center gap-2.5 shadow-sm transition-all cursor-pointer active:scale-98 disabled:opacity-50"
+              >
+                {loadingMore ? (
+                  <>
+                    <svg className="w-4 h-4 animate-spin text-zinc-400" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                    </svg>
+                    <span>Memuat 50 Data Berikutnya...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>📥 Muat 50 Pesanan Lebih Lama</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700">
+                      Sisa {Math.max(0, totalServerCount - orders.length)} di server
+                    </span>
+                  </>
+                )}
+              </button>
+              <p className="text-[11px] font-mono text-zinc-500">
+                Data ditarik bertahap per 50 item agar request tetap ringan & anti-macet.
+              </p>
+            </div>
+          )}
         </div>
       )}
 

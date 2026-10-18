@@ -23,8 +23,9 @@ export class AdminController {
     try {
       const statusFilter = req.query.status as string | undefined;
       const period = req.query.period as string | undefined;
-      const limit = req.query.limit ? Number(req.query.limit) : 100;
-      const orders = await AdminService.getAllOrders(statusFilter, limit, period);
+      const limit = req.query.limit ? Number(req.query.limit) : 50;
+      const offset = req.query.offset ? Number(req.query.offset) : 0;
+      const orders = await AdminService.getAllOrders(statusFilter, limit, period, offset);
       res.status(200).json({ status: "success", data: orders });
     } catch (error: any) {
       res.status(500).json({ status: "error", message: error.message });

@@ -151,7 +151,12 @@ export class AdminService {
   // ==========================================
   // ORDERS MANAGEMENT FOR OWNER (tb_orders)
   // ==========================================
-  static async getAllOrders(statusFilter?: string, limit: number = 100, period?: string) {
+  static async getAllOrders(
+    statusFilter?: string,
+    limit: number = 50,
+    period?: string,
+    offset: number = 0
+  ) {
     let sql = `
       SELECT 
         o.id,
@@ -206,21 +211,41 @@ export class AdminService {
       whereClauses.push(`o.created_at >= CURRENT_DATE - INTERVAL '30 days'`);
     }
 
-    if (whereClauses.length > 0) {
-      sql += ` WHERE ` + whereClauses.join(" AND ");
-    }
+    const whereSql = whereClauses.length > 0 ? ` WHERE ` + whereClauses.join(" AND ") : "";
 
-    const safeLimit = Math.min(Math.max(Number(limit) || 100, 1), 200);
-    params.push(safeLimit);
+    // Total count untuk keperluan pagination
+    const countSql = `SELECT COUNT(DISTINCT o.id)::int AS total FROM tb_orders o ${whereSql}`;
+    const countRes = await pool.query(countSql, params);
+    const total = parseInt(countRes.rows[0]?.total || 0, 10);
+
+    const safeLimit = Math.min(Math.max(Number(limit) || 50, 1), 100);
+    const safeOffset = Math.max(Number(offset) || 0, 0);
+
+    const queryParams = [...params];
+    queryParams.push(safeLimit);
+    const limitIndex = queryParams.length;
+    queryParams.push(safeOffset);
+    const offsetIndex = queryParams.length;
 
     sql += `
+      ${whereSql}
       GROUP BY o.id
       ORDER BY o.created_at DESC
-      LIMIT $${params.length};
+      LIMIT $${limitIndex} OFFSET $${offsetIndex};
     `;
 
-    const res = await pool.query(sql, params);
-    return res.rows;
+    const res = await pool.query(sql, queryParams);
+    const hasMore = safeOffset + res.rows.length < total;
+
+    return {
+      orders: res.rows,
+      pagination: {
+        limit: safeLimit,
+        offset: safeOffset,
+        total,
+        hasMore,
+      },
+    };
   }
 
   static async updateOrderStatus(orderId: string, status: string) {
