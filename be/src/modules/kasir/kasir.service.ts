@@ -241,10 +241,10 @@ export class KasirService {
   static async getSummaryToday() {
     const sql = `
       SELECT
-        COUNT(*)::int AS total_orders_today,
-        COUNT(*)::int AS total_pesanan_hari_ini,
-        COALESCE(SUM(CASE WHEN status_pembayaran = 'PAID' THEN total_bayar ELSE 0 END), 0)::int AS total_revenue_today,
-        COALESCE(SUM(CASE WHEN status_pembayaran = 'PAID' THEN total_bayar ELSE 0 END), 0)::int AS total_omset_hari_ini,
+        COUNT(CASE WHEN status_pembayaran = 'PAID' OR status_antrian IN ('MENUNGGU_RACIK', 'SEDANG_DIRACIK', 'SIAP_DIAMBIL', 'SELESAI') THEN 1 END)::int AS total_orders_today,
+        COUNT(CASE WHEN status_pembayaran = 'PAID' OR status_antrian IN ('MENUNGGU_RACIK', 'SEDANG_DIRACIK', 'SIAP_DIAMBIL', 'SELESAI') THEN 1 END)::int AS total_pesanan_hari_ini,
+        COALESCE(SUM(CASE WHEN status_pembayaran = 'PAID' OR status_antrian IN ('MENUNGGU_RACIK', 'SEDANG_DIRACIK', 'SIAP_DIAMBIL', 'SELESAI') THEN total_bayar ELSE 0 END), 0)::int AS total_revenue_today,
+        COALESCE(SUM(CASE WHEN status_pembayaran = 'PAID' OR status_antrian IN ('MENUNGGU_RACIK', 'SEDANG_DIRACIK', 'SIAP_DIAMBIL', 'SELESAI') THEN total_bayar ELSE 0 END), 0)::int AS total_omset_hari_ini,
         COUNT(CASE WHEN status_antrian IN ('MENUNGGU_RACIK', 'SEDANG_DIRACIK') THEN 1 END)::int AS active_queue_count,
         COUNT(CASE WHEN status_antrian IN ('MENUNGGU_RACIK', 'SEDANG_DIRACIK') THEN 1 END)::int AS antrian_menunggu,
         COUNT(CASE WHEN status_antrian = 'SELESAI' THEN 1 END)::int AS completed_today
