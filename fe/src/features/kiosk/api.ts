@@ -96,10 +96,11 @@ export async function kasirLogin(payload: {
   return res.data.data;
 }
 
-export async function fetchKasirOrders(status?: StatusAntrian | string): Promise<Order[]> {
-  const res = await api.get("/api/kasir/orders", {
-    params: status ? { status } : undefined,
-  });
+export async function fetchKasirOrders(status?: StatusAntrian | string, period?: string): Promise<Order[]> {
+  const params: Record<string, string> = {};
+  if (status) params.status = status;
+  if (period && period !== "ALL") params.period = period;
+  const res = await api.get("/api/kasir/orders", { params });
   return res.data.data ?? [];
 }
 
@@ -154,10 +155,11 @@ export async function deleteBeverageAdmin(id: string): Promise<{ id: string; nam
   return res.data.data;
 }
 
-export async function fetchAdminOrders(status?: string): Promise<any[]> {
-  const res = await api.get("/api/admin/orders", {
-    params: status && status !== "ALL" ? { status } : undefined,
-  });
+export async function fetchAdminOrders(status?: string, period?: string): Promise<any[]> {
+  const params: Record<string, string> = {};
+  if (status && status !== "ALL") params.status = status;
+  if (period && period !== "ALL") params.period = period;
+  const res = await api.get("/api/admin/orders", { params });
   return res.data.data ?? [];
 }
 

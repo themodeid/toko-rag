@@ -50,7 +50,7 @@ export class KasirService {
   /**
    * Kasir: Melihat Daftar Pesanan Masuk (Kitchen Display System)
    */
-  static async getIncomingOrders(statusFilter?: string) {
+  static async getIncomingOrders(statusFilter?: string, period?: string) {
     let sql = `
       SELECT 
         o.id,
@@ -92,22 +92,36 @@ export class KasirService {
       LEFT JOIN tb_minuman m ON oi.minuman_id = m.id
     `;
 
+    const whereClauses: string[] = [];
     const params: any[] = [];
+
     if (statusFilter === "SELESAI") {
-      sql += ` WHERE o.status_antrian = 'SELESAI'`;
+      whereClauses.push(`o.status_antrian = 'SELESAI'`);
     } else if (statusFilter && statusFilter !== "ALL") {
-      sql += ` WHERE o.status_antrian = $1`;
       params.push(statusFilter);
+      whereClauses.push(`o.status_antrian = $${params.length}`);
     } else {
       // Default: tampilkan yang belum selesai & belum dibatalkan (antrean aktif)
-      sql += ` WHERE o.status_antrian IN ('MENUNGGU_BAYAR', 'MENUNGGU_RACIK', 'SEDANG_DIRACIK', 'SIAP_DIAMBIL')`;
+      whereClauses.push(`o.status_antrian IN ('MENUNGGU_BAYAR', 'MENUNGGU_RACIK', 'SEDANG_DIRACIK', 'SIAP_DIAMBIL')`);
+    }
+
+    if (period === "today") {
+      whereClauses.push(`o.created_at >= CURRENT_DATE`);
+    } else if (period === "7d") {
+      whereClauses.push(`o.created_at >= CURRENT_DATE - INTERVAL '7 days'`);
+    } else if (period === "30d") {
+      whereClauses.push(`o.created_at >= CURRENT_DATE - INTERVAL '30 days'`);
+    }
+
+    if (whereClauses.length > 0) {
+      sql += ` WHERE ` + whereClauses.join(" AND ");
     }
 
     if (statusFilter === "SELESAI") {
       sql += `
         GROUP BY o.id
         ORDER BY o.waktu_selesai DESC NULLS LAST, o.created_at DESC
-        LIMIT 50;
+        LIMIT 200;
       `;
     } else {
       sql += `

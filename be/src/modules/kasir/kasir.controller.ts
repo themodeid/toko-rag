@@ -13,7 +13,8 @@ export class KasirController {
 
   static getIncomingOrders = catchAsync(async (req: Request, res: Response) => {
     const statusFilter = req.query.status as string | undefined;
-    const orders = await KasirService.getIncomingOrders(statusFilter);
+    const period = req.query.period as string | undefined;
+    const orders = await KasirService.getIncomingOrders(statusFilter, period);
     return successResponse(res, orders, "Daftar antrian kasir berhasil diambil", 200);
   });
 

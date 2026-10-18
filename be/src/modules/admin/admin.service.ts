@@ -151,7 +151,7 @@ export class AdminService {
   // ==========================================
   // ORDERS MANAGEMENT FOR OWNER (tb_orders)
   // ==========================================
-  static async getAllOrders(statusFilter?: string, limit: number = 100) {
+  static async getAllOrders(statusFilter?: string, limit: number = 100, period?: string) {
     let sql = `
       SELECT 
         o.id,
@@ -190,10 +190,24 @@ export class AdminService {
       LEFT JOIN tb_minuman m ON oi.minuman_id = m.id
     `;
 
+    const whereClauses: string[] = [];
     const params: any[] = [];
+
     if (statusFilter && statusFilter !== "ALL") {
-      sql += ` WHERE o.status_antrian = $1`;
       params.push(statusFilter);
+      whereClauses.push(`o.status_antrian = $${params.length}`);
+    }
+
+    if (period === "today") {
+      whereClauses.push(`o.created_at >= CURRENT_DATE`);
+    } else if (period === "7d") {
+      whereClauses.push(`o.created_at >= CURRENT_DATE - INTERVAL '7 days'`);
+    } else if (period === "30d") {
+      whereClauses.push(`o.created_at >= CURRENT_DATE - INTERVAL '30 days'`);
+    }
+
+    if (whereClauses.length > 0) {
+      sql += ` WHERE ` + whereClauses.join(" AND ");
     }
 
     const safeLimit = Math.min(Math.max(Number(limit) || 100, 1), 200);

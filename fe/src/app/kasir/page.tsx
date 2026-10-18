@@ -23,6 +23,7 @@ import {
 import { validateCustomerName } from "@/lib/profanityFilter";
 import { getProductImageUrl } from "@/lib/imageHelper";
 import ReceiptModal from "@/components/receipt/ReceiptModal";
+import { groupOrdersByDate } from "@/lib/orderGrouping";
 
 export default function KasirUnifiedPortalPage() {
   const router = useRouter();
@@ -41,6 +42,7 @@ export default function KasirUnifiedPortalPage() {
   const [historyOrders, setHistoryOrders] = useState<Order[]>([]);
   const [loadingHistory, setLoadingHistory] = useState<boolean>(false);
   const [historySearchQuery, setHistorySearchQuery] = useState<string>("");
+  const [historyPeriod, setHistoryPeriod] = useState<string>("today");
 
   // Struk Modal State
   const [selectedReceiptOrder, setSelectedReceiptOrder] = useState<Order | null>(null);
@@ -77,10 +79,11 @@ export default function KasirUnifiedPortalPage() {
     return true;
   };
 
-  const loadHistory = async () => {
+  const loadHistory = async (periodOverride?: string) => {
     try {
       setLoadingHistory(true);
-      const data = await fetchKasirOrders("SELESAI");
+      const activePeriod = periodOverride !== undefined ? periodOverride : historyPeriod;
+      const data = await fetchKasirOrders("SELESAI", activePeriod);
       setHistoryOrders(data);
     } catch (err) {
       console.error("Gagal memuat riwayat pesanan selesai", err);
@@ -117,11 +120,11 @@ export default function KasirUnifiedPortalPage() {
     const interval = setInterval(() => {
       loadData();
       if (activeMainTab === "HISTORY") {
-        loadHistory();
+        loadHistory(historyPeriod);
       }
     }, 5000);
     return () => clearInterval(interval);
-  }, [activeMainTab]);
+  }, [activeMainTab, historyPeriod]);
 
   // Auto-dismiss order success pop-up after 4.5s
   useEffect(() => {
@@ -1226,206 +1229,269 @@ export default function KasirUnifiedPortalPage() {
       {activeMainTab === "HISTORY" && (
         <div className="flex-1 overflow-y-auto">
           <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 flex flex-col gap-6">
-          {/* Header & Search */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xl">📜</span>
-                <h2 className="text-base font-bold text-white tracking-tight">
-                  Riwayat Pesanan Selesai Disajikan
-                </h2>
-                <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
-                  Arsip Hari Ini (50 Terakhir)
-                </span>
-              </div>
-              <p className="text-xs text-zinc-400 mt-1">
-                Daftar pesanan yang telah tuntas diracik dan diserahkan ke pelanggan di meja bar.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <div className="relative flex-1 sm:w-72">
-                <input
-                  type="text"
-                  value={historySearchQuery}
-                  onChange={(e) => setHistorySearchQuery(e.target.value)}
-                  placeholder="Cari nama pemesan atau #tiket..."
-                  className="w-full bg-zinc-950 border border-zinc-800 focus:border-zinc-600 rounded-lg px-3.5 py-2 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none transition font-mono"
-                />
-                {historySearchQuery && (
-                  <button
-                    onClick={() => setHistorySearchQuery("")}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white text-xs"
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-
-              <button
-                onClick={loadHistory}
-                disabled={loadingHistory}
-                className="px-3 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-mono transition flex items-center gap-1 cursor-pointer"
-                title="Muat Ulang Riwayat"
-              >
-                <span className={loadingHistory ? "animate-spin" : ""}>↻</span>
-                <span className="hidden sm:inline">Refresh</span>
-              </button>
-            </div>
-          </div>
-
-          {/* History Content */}
-          {loadingHistory && historyOrders.length === 0 ? (
-            <div className="py-20 text-center font-mono text-xs text-zinc-500">
-              Memuat arsip pesanan selesai...
-            </div>
-          ) : (() => {
-            const query = historySearchQuery.toLowerCase().trim();
-            const filteredHistory = historyOrders.filter((o) => {
-              if (!query) return true;
-              return (
-                (o.order_code && o.order_code.toLowerCase().includes(query)) ||
-                (o.nama_pelanggan && o.nama_pelanggan.toLowerCase().includes(query)) ||
-                o.items?.some((it) => it.nama_minuman.toLowerCase().includes(query))
-              );
-            });
-
-            if (filteredHistory.length === 0) {
-              return (
-                <div className="py-20 text-center border border-dashed border-zinc-800 rounded-2xl bg-zinc-900/40">
-                  <span className="text-3xl">☕</span>
-                  <p className="text-sm text-zinc-400 mt-2 font-mono">
-                    {historySearchQuery
-                      ? "Tidak ditemukan pesanan dengan kata kunci tersebut"
-                      : "Belum ada pesanan yang diselesaikan hari ini"}
-                  </p>
-                  <p className="text-xs text-zinc-500 mt-1">
-                    Pesanan yang diserahkan di Meja Barista akan otomatis muncul di sini.
-                  </p>
+            {/* Header & Search */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">📜</span>
+                  <h2 className="text-base font-bold text-white tracking-tight">
+                    Riwayat Pesanan Selesai Disajikan
+                  </h2>
+                  <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
+                    Arsip Operasional
+                  </span>
                 </div>
-              );
-            }
+                <p className="text-xs text-zinc-400 mt-1">
+                  Daftar pesanan yang telah tuntas diracik dan diserahkan ke pelanggan di meja bar.
+                </p>
+              </div>
 
-            return (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredHistory.map((order) => (
-                  <div
-                    key={order.id}
-                    className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-5 flex flex-col justify-between space-y-4 shadow-sm hover:border-zinc-700 transition"
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1 sm:w-72">
+                  <input
+                    type="text"
+                    value={historySearchQuery}
+                    onChange={(e) => setHistorySearchQuery(e.target.value)}
+                    placeholder="Cari nama pemesan atau #tiket..."
+                    className="w-full bg-zinc-950 border border-zinc-800 focus:border-zinc-600 rounded-lg px-3.5 py-2 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none transition font-mono"
+                  />
+                  {historySearchQuery && (
+                    <button
+                      onClick={() => setHistorySearchQuery("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white text-xs cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => loadHistory(historyPeriod)}
+                  disabled={loadingHistory}
+                  className="px-3 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-mono transition flex items-center gap-1 cursor-pointer"
+                  title="Muat Ulang Riwayat"
+                >
+                  <span className={loadingHistory ? "animate-spin" : ""}>↻</span>
+                  <span className="hidden sm:inline">Refresh</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Period Filter Tabs */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-zinc-900/60 border border-zinc-800/80 p-3 rounded-2xl font-mono">
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+                <span className="text-xs text-zinc-400 mr-1 hidden sm:inline">Periode:</span>
+                {[
+                  { id: "today", label: "Hari Ini" },
+                  { id: "7d", label: "7 Hari Terakhir" },
+                  { id: "30d", label: "30 Hari Terakhir" },
+                  { id: "ALL", label: "Semua Riwayat" },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => {
+                      setHistoryPeriod(tab.id);
+                      loadHistory(tab.id);
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all shrink-0 cursor-pointer ${
+                      historyPeriod === tab.id
+                        ? "bg-zinc-800 text-zinc-100 border border-zinc-700 shadow-sm"
+                        : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50"
+                    }`}
                   >
-                    {/* Header */}
-                    <div className="flex items-start justify-between border-b border-zinc-800/80 pb-3">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xl font-bold font-mono text-zinc-100 tabular-nums">
-                            {order.order_code?.startsWith("#") ? order.order_code : `#${order.order_code}`}
-                          </span>
-                          <span className="px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-mono text-[10px] font-semibold">
-                            ✓ DISERAHKAN
-                          </span>
-                        </div>
-                        <h3 className="text-base font-bold text-white mt-1 uppercase">
-                          {order.nama_pelanggan}
-                        </h3>
-                      </div>
-
-                      <div className="text-right font-mono text-[10px] text-zinc-400 space-y-0.5">
-                        <div>
-                          Masuk:{" "}
-                          <span className="text-zinc-300">
-                            {new Date(order.created_at).toLocaleTimeString("id-ID", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </span>
-                        </div>
-                        {order.waktu_selesai && (
-                          <div className="text-emerald-400 font-bold">
-                            Serah:{" "}
-                            {new Date(order.waktu_selesai).toLocaleTimeString("id-ID", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Items */}
-                    <div className="space-y-2 flex-1">
-                      {order.items?.map((item) => (
-                        <div
-                          key={item.id}
-                          className="p-2.5 rounded-xl bg-zinc-950/70 border border-zinc-800/80 flex items-center justify-between text-xs font-mono"
-                        >
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <span className="px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-100 border border-zinc-700 font-bold font-mono text-xs shrink-0">
-                                {item.qty}x
-                              </span>
-                              <div className="w-8 h-8 rounded-lg overflow-hidden bg-zinc-900 border border-zinc-800 shrink-0 relative">
-                                <img
-                                  src={getProductImageUrl(item.image_url)}
-                                  alt={item.nama_minuman}
-                                  className="w-full h-full object-cover"
-                                  loading="lazy"
-                                />
-                              </div>
-                              <span className="font-bold text-white">
-                                {item.nama_minuman}
-                              </span>
-                            </div>
-                            {(item.suhu === "HOT" || (item.sugar_level && item.sugar_level !== "NORMAL")) && (
-                              <div className="flex items-center space-x-1.5 text-[10px] text-zinc-400">
-                                {item.suhu === "HOT" && <span>🔥 Hot</span>}
-                                {item.suhu === "HOT" && item.sugar_level && item.sugar_level !== "NORMAL" && <span>•</span>}
-                                {item.sugar_level && item.sugar_level !== "NORMAL" && <span>Gula: {item.sugar_level}</span>}
-                              </div>
-                            )}
-                            {item.catatan && (
-                              <p className="text-[10px] text-amber-400/80 italic">
-                                Catatan: {item.catatan}
-                              </p>
-                            )}
-                          </div>
-                          <span className="text-zinc-300 font-bold">
-                            Rp {(item.subtotal || 0).toLocaleString("id-ID")}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Footer / Total & Payment */}
-                    <div className="border-t border-zinc-800/80 pt-3 flex items-center justify-between font-mono text-xs">
-                      <div>
-                        <span className="text-[10px] text-zinc-500 block">Total Nilai</span>
-                        <span className="font-bold text-amber-400 text-sm">
-                          Rp {Number(order.total_amount || 0).toLocaleString("id-ID")}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2.5">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedReceiptOrder(order)}
-                          className="px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[11px] font-mono font-medium flex items-center gap-1.5 transition-colors border border-zinc-700 shadow-sm active:scale-95"
-                          title="Lihat & Cetak Struk Belanja Transaksi Ini"
-                        >
-                          <span>🖨️ Struk</span>
-                        </button>
-                        <div className="text-right">
-                          <span className="text-[10px] text-zinc-500 block">Metode</span>
-                          <span className="text-[11px] font-semibold text-emerald-400">
-                            {order.payment_method || "QRIS"} (Lunas)
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                    {tab.label}
+                  </button>
                 ))}
               </div>
-            );
-          })()}
-        </div>
+
+              <div className="text-xs text-zinc-400">
+                Total Arsip Selesai Dimuat: <strong className="text-zinc-200">{historyOrders.length}</strong>
+              </div>
+            </div>
+
+            {/* History Content */}
+            {loadingHistory && historyOrders.length === 0 ? (
+              <div className="py-20 text-center font-mono text-xs text-zinc-500 bg-zinc-900/40 border border-zinc-800/80 rounded-2xl">
+                Memuat arsip pesanan selesai...
+              </div>
+            ) : (() => {
+              const query = historySearchQuery.toLowerCase().trim();
+              const filteredHistory = historyOrders.filter((o) => {
+                if (!query) return true;
+                return (
+                  (o.order_code && o.order_code.toLowerCase().includes(query)) ||
+                  (o.nama_pelanggan && o.nama_pelanggan.toLowerCase().includes(query)) ||
+                  o.items?.some((it) => it.nama_minuman.toLowerCase().includes(query))
+                );
+              });
+
+              if (filteredHistory.length === 0) {
+                return (
+                  <div className="py-20 text-center border border-dashed border-zinc-800 rounded-2xl bg-zinc-900/40">
+                    <span className="text-3xl">☕</span>
+                    <p className="text-sm text-zinc-400 mt-2 font-mono">
+                      {historySearchQuery
+                        ? "Tidak ditemukan pesanan dengan kata kunci tersebut"
+                        : "Belum ada pesanan yang diselesaikan pada rentang periode ini"}
+                    </p>
+                    <p className="text-xs text-zinc-500 mt-1 font-mono">
+                      Pesanan yang diserahkan di Meja Barista akan otomatis muncul di sini.
+                    </p>
+                  </div>
+                );
+              }
+
+              const groupedHistory = groupOrdersByDate(filteredHistory);
+
+              return (
+                <div className="space-y-8">
+                  {groupedHistory.map((group) => (
+                    <div key={group.dateKey} className="space-y-4">
+                      {/* Date Group Header */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-zinc-800/80">
+                        <div className="flex items-center gap-2.5">
+                          <span className="px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-zinc-800 border border-zinc-700 text-zinc-100 flex items-center gap-1.5 shadow-sm">
+                            <span>📅</span>
+                            <span>{group.title}</span>
+                          </span>
+                          <span className="text-xs text-zinc-400 font-mono">
+                            {group.formattedDate}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 text-xs font-mono">
+                          <span className="text-zinc-400">
+                            <strong className="text-zinc-200">{group.totalOrders}</strong> Diserahkan
+                          </span>
+                          <span className="text-zinc-600">•</span>
+                          <span className="text-zinc-400">
+                            Subtotal: <strong className="text-emerald-400">Rp {group.totalOmset.toLocaleString("id-ID")}</strong>
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Grid of Cards */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {group.orders.map((order) => (
+                          <div
+                            key={order.id}
+                            className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-5 flex flex-col justify-between space-y-4 shadow-sm hover:border-zinc-700 transition"
+                          >
+                            {/* Header */}
+                            <div className="flex items-start justify-between border-b border-zinc-800/80 pb-3">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xl font-bold font-mono text-zinc-100 tabular-nums">
+                                    {order.order_code?.startsWith("#") ? order.order_code : `#${order.order_code}`}
+                                  </span>
+                                  <span className="px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-mono text-[10px] font-semibold">
+                                    ✓ DISERAHKAN
+                                  </span>
+                                </div>
+                                <h3 className="text-base font-bold text-white mt-1 uppercase">
+                                  {order.nama_pelanggan}
+                                </h3>
+                              </div>
+
+                              <div className="text-right font-mono text-[10px] text-zinc-400 space-y-0.5">
+                                <div>
+                                  Masuk:{" "}
+                                  <span className="text-zinc-300">
+                                    {new Date(order.created_at).toLocaleTimeString("id-ID", {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })}
+                                  </span>
+                                </div>
+                                {order.waktu_selesai && (
+                                  <div className="text-emerald-400 font-bold">
+                                    Serah:{" "}
+                                    {new Date(order.waktu_selesai).toLocaleTimeString("id-ID", {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Items */}
+                            <div className="space-y-2 flex-1">
+                              {order.items?.map((item) => (
+                                <div
+                                  key={item.id}
+                                  className="p-2.5 rounded-xl bg-zinc-950/70 border border-zinc-800/80 flex items-center justify-between text-xs font-mono"
+                                >
+                                  <div className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                      <span className="px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-100 border border-zinc-700 font-bold font-mono text-xs shrink-0">
+                                        {item.qty}x
+                                      </span>
+                                      <div className="w-8 h-8 rounded-lg overflow-hidden bg-zinc-900 border border-zinc-800 shrink-0 relative">
+                                        <img
+                                          src={getProductImageUrl(item.image_url)}
+                                          alt={item.nama_minuman}
+                                          className="w-full h-full object-cover"
+                                          loading="lazy"
+                                        />
+                                      </div>
+                                      <span className="font-bold text-white">
+                                        {item.nama_minuman}
+                                      </span>
+                                    </div>
+                                    {(item.suhu === "HOT" || (item.sugar_level && item.sugar_level !== "NORMAL")) && (
+                                      <div className="flex items-center space-x-1.5 text-[10px] text-zinc-400">
+                                        {item.suhu === "HOT" && <span>🔥 Hot</span>}
+                                        {item.suhu === "HOT" && item.sugar_level && item.sugar_level !== "NORMAL" && <span>•</span>}
+                                        {item.sugar_level && item.sugar_level !== "NORMAL" && <span>Gula: {item.sugar_level}</span>}
+                                      </div>
+                                    )}
+                                    {item.catatan && (
+                                      <p className="text-[10px] text-amber-400/80 italic">
+                                        Catatan: {item.catatan}
+                                      </p>
+                                    )}
+                                  </div>
+                                  <span className="text-zinc-300 font-bold">
+                                    Rp {(item.subtotal || 0).toLocaleString("id-ID")}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+
+                            {/* Footer / Total & Payment */}
+                            <div className="border-t border-zinc-800/80 pt-3 flex items-center justify-between font-mono text-xs">
+                              <div>
+                                <span className="text-[10px] text-zinc-500 block">Total Nilai</span>
+                                <span className="font-bold text-amber-400 text-sm">
+                                  Rp {Number(order.total_amount || 0).toLocaleString("id-ID")}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2.5">
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedReceiptOrder(order)}
+                                  className="px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[11px] font-mono font-medium flex items-center gap-1.5 transition-colors border border-zinc-700 shadow-sm active:scale-95 cursor-pointer"
+                                  title="Lihat & Cetak Struk Belanja Transaksi Ini"
+                                >
+                                  <span>🖨️ Struk</span>
+                                </button>
+                                <div className="text-right">
+                                  <span className="text-[10px] text-zinc-500 block">Metode</span>
+                                  <span className="text-[11px] font-semibold text-emerald-400">
+                                    {order.payment_method || "QRIS"} (Lunas)
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+          </div>
         </div>
       )}
 
