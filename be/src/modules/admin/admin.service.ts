@@ -16,10 +16,10 @@ export class AdminService {
 
     const expIntervalClause =
       period === "today"
-        ? "WHERE created_at >= CURRENT_DATE"
+        ? "WHERE deleted_at IS NULL AND created_at >= CURRENT_DATE"
         : period === "7d"
-        ? "WHERE created_at >= CURRENT_DATE - INTERVAL '7 days'"
-        : "WHERE created_at >= CURRENT_DATE - INTERVAL '30 days'";
+        ? "WHERE deleted_at IS NULL AND created_at >= CURRENT_DATE - INTERVAL '7 days'"
+        : "WHERE deleted_at IS NULL AND created_at >= CURRENT_DATE - INTERVAL '30 days'";
 
     // 1. Net Sales (Paid / Processing / Done orders dari tb_orders)
     const salesQuery = await pool.query(`
@@ -62,8 +62,14 @@ export class AdminService {
     const grossProfit = netSales - totalHpp;
     const operatingProfit = grossProfit - totalExpenses;
 
-    // 4. Trend Penjualan Harian
-    const trendDays = period === "today" ? "1 day" : period === "7d" ? "7 days" : "30 days";
+    // 4. Trend Penjualan Harian (Sinkron 1-to-1 dengan interval periode)
+    const trendCondition =
+      period === "today"
+        ? "created_at >= CURRENT_DATE"
+        : period === "7d"
+        ? "created_at >= CURRENT_DATE - INTERVAL '7 days'"
+        : "created_at >= CURRENT_DATE - INTERVAL '30 days'";
+
     const trendQuery = await pool.query(`
       SELECT 
         TO_CHAR(created_at, 'DD Mon') AS tanggal,
@@ -72,7 +78,7 @@ export class AdminService {
         COUNT(id)::int AS orders_count
       FROM tb_orders
       WHERE status_antrian IN ('MENUNGGU_RACIK', 'SEDANG_DIRACIK', 'SIAP_DIAMBIL', 'SELESAI')
-        AND created_at >= CURRENT_DATE - INTERVAL '${trendDays}'
+        AND ${trendCondition}
       GROUP BY raw_date, tanggal
       ORDER BY raw_date ASC
     `);
@@ -97,7 +103,7 @@ export class AdminService {
     // c. Valuasi aset produk (gunakan hpp atau estimasi 38% harga dasar)
     const stockValuationQuery = await pool.query(`
       SELECT COALESCE(SUM(
-        COALESCE(stock, 50) * CASE 
+        COALESCE(stock, 0) * CASE 
           WHEN COALESCE(hpp, 0) > 0 THEN hpp 
           ELSE ROUND(COALESCE(harga, 0) * 0.38) 
         END

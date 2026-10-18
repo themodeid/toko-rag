@@ -49,7 +49,7 @@ export default function AdminOverviewPage() {
   const totalOrders =
     data?.metrics?.totalOrders ??
     (data as any)?.financials?.totalOrders ??
-    (netSales > 0 ? Math.max(1, Math.round(netSales / 26000)) : 0);
+    0;
 
   const isNetProfitPositive = operatingProfit >= 0;
 
@@ -501,7 +501,7 @@ export default function AdminOverviewPage() {
                   </div>
                 </div>
                 <Link
-                  href="/admin/inventory"
+                  href="/admin/menu"
                   className="px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-xs font-mono text-zinc-200 transition-colors"
                 >
                   Cek Stok
@@ -526,7 +526,7 @@ export default function AdminOverviewPage() {
                   </div>
                 </div>
                 <Link
-                  href="/admin/inventory"
+                  href="/admin/menu"
                   className="px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-xs font-mono text-zinc-200 transition-colors"
                 >
                   Detail
