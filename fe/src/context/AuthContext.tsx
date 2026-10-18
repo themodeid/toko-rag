@@ -1,9 +1,8 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { User } from "@/features/user/type";
-import { getUser } from "@/features/user/api";
-import { logout as logoutApi } from "@/features/auth/api";
+import { User } from "@/features/auth/types";
+import { getUser, logout as logoutApi } from "@/features/auth/api";
 
 type AuthContextType = {
   user: User | null;

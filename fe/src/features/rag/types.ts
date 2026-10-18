@@ -1,4 +1,13 @@
-﻿import { Produk } from "../produk/types";
+export interface MatchedProduct {
+  id: string;
+  nama: string;
+  harga: number;
+  stock: number;
+  image?: string;
+  deskripsi?: string;
+}
+
+export type Produk = MatchedProduct;
 
 export interface KnowledgeMatch {
   id: string;

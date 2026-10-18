@@ -11,7 +11,7 @@ import { runMigrations } from "./database/migrationRunner";
 import routes from "./routes/index";
 import { errorHandler } from "./middlewares/errorHandler";
 import { ENV } from "./config/env";
-import { autoCancelExpiredOrdersService } from "./modules/orders/orders.service";
+import { OrderService } from "./modules/order/order.service";
 
 export const app = express();
 
@@ -185,7 +185,7 @@ export async function startServer(): Promise<void> {
     // 5. START BACKGROUND ORDER EXPIRATION WORKER (Setiap 30 detik)
     setInterval(async () => {
       try {
-        await autoCancelExpiredOrdersService();
+        await OrderService.autoCancelExpiredOrders(ENV.ORDER_EXPIRATION_MINUTES);
       } catch (err) {
         console.error("Worker Auto-Cancel Error:", err);
       }

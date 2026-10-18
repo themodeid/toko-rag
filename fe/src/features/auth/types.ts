@@ -20,3 +20,11 @@ export interface AuthContextType {
   setToken: (token: string) => void;
   setRole: (role: string) => void;
 }
+
+export interface User {
+  id: string;
+  username: string;
+  role: string;
+  branch_id?: string | null;
+  created_at?: string;
+}

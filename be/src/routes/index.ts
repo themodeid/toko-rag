@@ -1,14 +1,10 @@
 import { Router } from "express";
 import authRoutes from "../modules/auth/auth.route";
-import produkRoutes from "../modules/produk/produk.route";
-import ordersRoutes from "../modules/orders/orders.routes";
-import userRoutes from "../modules/users/users.routes";
-import ragRoutes from "../modules/rag/rag.route";
-import reportsRoutes from "../modules/reports/reports.routes";
-import branchesRoutes from "../modules/branches/branches.routes";
-import attendanceRoutes from "../modules/attendance/attendance.routes";
-import promosRoutes from "../modules/promos/promos.routes";
+import beverageRoutes from "../modules/beverage/beverage.route";
+import orderKioskRoutes from "../modules/order/order.route";
+import kasirRoutes from "../modules/kasir/kasir.route";
 import adminRoutes from "../modules/admin/admin.route";
+import ragRoutes from "../modules/rag/rag.route";
 import { upload } from "../middlewares/upload";
 import { authGuard } from "../middlewares/auth";
 import { AppError } from "../utils/appError";
@@ -28,29 +24,15 @@ router.get("/health", (_req, res) => {
   });
 });
 
-import beverageRoutes from "../modules/beverage/beverage.route";
-import orderKioskRoutes from "../modules/order/order.route";
-import reviewRoutes from "../modules/review/review.route";
-import kasirRoutes from "../modules/kasir/kasir.route";
-
-// Domain Routes
-// 🥤 Kedai Minuman Modern & Cashless POS Kiosk (New Standard)
+// ======================================================
+// 🥤 Kedai Minuman Modern & Cashless POS Kiosk (Core Modules)
+// ======================================================
+router.use("/auth", authRoutes);
 router.use("/beverages", beverageRoutes);
 router.use("/kiosk-orders", orderKioskRoutes);
-router.use("/reviews", reviewRoutes);
 router.use("/kasir", kasirRoutes);
-
-// Legacy routes (preserved)
-router.use("/auth", authRoutes);
-router.use("/produk", produkRoutes);
-router.use("/orders", ordersRoutes);
-router.use("/users", userRoutes);
-router.use("/rag", ragRoutes);
-router.use("/reports", reportsRoutes);
-router.use("/branches", branchesRoutes);
-router.use("/attendance", attendanceRoutes);
-router.use("/promos", promosRoutes);
 router.use("/admin", adminRoutes);
+router.use("/rag", ragRoutes);
 
 
 // General file upload helper

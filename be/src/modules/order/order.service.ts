@@ -461,4 +461,28 @@ export class OrderService {
       raw_orders: rows,
     };
   }
+
+  /**
+   * Worker: Otomatis membatalkan pesanan kiosk/kasir yang PENDING melebihi batas waktu (default 5 menit)
+   */
+  static async autoCancelExpiredOrders(expirationMinutes: number = 5): Promise<number> {
+    try {
+      const res = await query(
+        `UPDATE tb_orders 
+         SET status_pembayaran = 'EXPIRED', 
+             status_antrian = 'DIBATALKAN'
+         WHERE status_pembayaran = 'PENDING' 
+           AND created_at < NOW() - ($1 || ' minutes')::INTERVAL
+         RETURNING id;`,
+        [expirationMinutes]
+      );
+      if (res.rowCount && res.rowCount > 0) {
+        console.log(`⏰ [Auto-Cancel] ${res.rowCount} pesanan kiosk otomatis dibatalkan karena tidak dibayar dalam ${expirationMinutes} menit.`);
+      }
+      return res.rowCount || 0;
+    } catch (err) {
+      console.error("❌ Error running OrderService.autoCancelExpiredOrders:", err);
+      return 0;
+    }
+  }
 }

@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
-import { BranchProvider } from "@/context/BranchContext";
 import AiChatWidget from "@/components/AiChatWidget";
 
 export const metadata: Metadata = {
@@ -35,10 +34,8 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         <AuthProvider>
-          <BranchProvider>
-            {children}
-            <AiChatWidget />
-          </BranchProvider>
+          {children}
+          <AiChatWidget />
         </AuthProvider>
       </body>
     </html>

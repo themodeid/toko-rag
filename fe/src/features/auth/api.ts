@@ -2,6 +2,7 @@ import {
   LoginPayload,
   RegisterPayload,
   AuthResponse,
+  User,
 } from "@/features/auth/types";
 
 import api from "@/lib/axios";
@@ -34,4 +35,9 @@ export async function logout() {
   localStorage.removeItem("kasir_token");
   localStorage.removeItem("role");
   localStorage.removeItem("refreshToken");
+}
+
+export async function getUser(): Promise<User> {
+  const res = await api.get("/api/auth/me");
+  return res.data?.data || res.data;
 }

@@ -6,8 +6,7 @@ import FeatherIcon from "feather-icons-react";
 import Image from "next/image";
 import Link from "next/link";
 import { sendChatMessageStream, getChatSuggestions } from "@/features/rag/api";
-import { ChatMessage, KnowledgeMatch } from "@/features/rag/types";
-import { Produk } from "@/features/produk/types";
+import { ChatMessage, KnowledgeMatch, Produk } from "@/features/rag/types";
 import { getProductImageUrl } from "@/lib/imageHelper";
 
 export default function AiChatWidget() {

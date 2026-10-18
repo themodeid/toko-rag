@@ -1,6 +1,5 @@
-﻿import api from "@/lib/axios";
-import { RagResponseData, SendChatMessagePayload, KnowledgeMatch } from "./types";
-import { Produk } from "../produk/types";
+import api from "@/lib/axios";
+import { RagResponseData, SendChatMessagePayload, KnowledgeMatch, Produk } from "./types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
 
