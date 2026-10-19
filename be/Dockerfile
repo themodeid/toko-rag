@@ -6,6 +6,7 @@ COPY package*.json ./
 RUN npm install
 
 COPY . .
+RUN mkdir -p uploads
 RUN npm run build
 
 # Production runtime stage
@@ -18,6 +19,7 @@ RUN npm install
 
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/src/database/migrations ./dist/database/migrations
+RUN mkdir -p uploads
 COPY --from=builder /app/uploads ./uploads
 
 EXPOSE 5000

@@ -11,9 +11,13 @@
 node_modules/
 **/node_modules/
 
-# Uploaded media (do not commit user uploads)
-uploads/
-**/uploads/
+# Uploaded media (user uploads)
+be/uploads/*
+!be/uploads/*.jpg
+!be/uploads/.gitkeep
+fe/public/uploads/*
+!fe/public/uploads/*.jpg
+!fe/public/uploads/.gitkeep
 
 # Logs
 npm-debug.log*
@@ -27,7 +31,6 @@ dist/
 build/
 .next/
 **/.next/
-public/
 .cache/
 .tmp/
 
