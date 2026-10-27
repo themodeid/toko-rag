@@ -5,7 +5,7 @@
 # - Pada Pengujian Lokal: berjalan aman di port :8080 atau :80
 # =============================================================================
 
-{$APP_DOMAIN::8080} {
+:80, :8080 {
     # Logging akses Caddy ke stdout
     log {
         output stdout
