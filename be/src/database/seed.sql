@@ -7,8 +7,8 @@
 INSERT INTO auth (username, password, role)
 VALUES 
     ('owner', '$2b$10$4AbiyaJxukDIJc76TgRqCeSq4ReEhnjIgC.dcIUogWTZMlKRWZdxO', 'owner'),
-    ('admin', '$2b$10$4AbiyaJxukDIJc76TgRqCeSq4ReEhnjIgC.dcIUogWTZMlKRWZdxO', 'admin'),
-    ('karyawan', '$2b$10$4AbiyaJxukDIJc76TgRqCeSq4ReEhnjIgC.dcIUogWTZMlKRWZdxO', 'karyawan'),
+    ('admin', '$2b$10$LiJotwE0Z9DE79tXJon3Ye3uZ6ZvJtSAxBi3uH9KU6OxGuaAZX5GO', 'admin'),
+    ('karyawan', '$2b$10$WtE4QNQvOydx7VgFQfUPPu6ufK8E7PgMVZ6UwnTLmdOEh3avQNMsS', 'karyawan'),
     ('user1', '$2b$10$4AbiyaJxukDIJc76TgRqCeSq4ReEhnjIgC.dcIUogWTZMlKRWZdxO', 'user')
 ON CONFLICT (username) DO UPDATE 
 SET password = EXCLUDED.password, role = EXCLUDED.role;

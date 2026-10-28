@@ -16,13 +16,6 @@ export default function UnifiedStaffLoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Preset 1-Klik Akun
-  const handleApplyPreset = (userPreset: string, passPreset: string) => {
-    setUsername(userPreset);
-    setPassword(passPreset);
-    setError(null);
-  };
-
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username.trim() || !password.trim()) {
@@ -97,31 +90,6 @@ export default function UnifiedStaffLoginPage() {
             </div>
           </div>
 
-          {/* Quick Presets (Mudah untuk Pengujian Mas Adam) */}
-          <div className="p-3 rounded-2xl bg-zinc-950 border border-zinc-800/80 space-y-2">
-            <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider block">
-              ⚡ 1-Klik Isi Akun Cepat:
-            </span>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => handleApplyPreset("owner", "owner123")}
-                className="px-2.5 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-mono flex items-center justify-center gap-1.5 transition"
-              >
-                <span>👑</span>
-                <span>Akun Owner</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleApplyPreset("kasir", "kasir123")}
-                className="px-2.5 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-mono flex items-center justify-center gap-1.5 transition"
-              >
-                <span>🧑‍🍳</span>
-                <span>Akun Kasir</span>
-              </button>
-            </div>
-          </div>
-
           {/* Error Message */}
           {error && (
             <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-400 flex items-start gap-2 animate-in fade-in">
@@ -141,7 +109,7 @@ export default function UnifiedStaffLoginPage() {
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Masukkan username (owner / kasir)"
+                  placeholder="Masukkan username (admin / karyawan)"
                   required
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 transition font-mono"
                 />
@@ -196,7 +164,7 @@ export default function UnifiedStaffLoginPage() {
 
           {/* Quick Info */}
           <div className="pt-2 text-center text-xs text-zinc-500 border-t border-zinc-800/60 font-mono">
-            <span>Owner $\rightarrow$ Hub Admin & KDS • Kasir $\rightarrow$ KDS Barista</span>
+            <span>Admin → Hub Admin & KDS • Karyawan → Station Kasir & Barista</span>
           </div>
         </div>
       </main>
