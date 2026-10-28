@@ -1,7 +1,7 @@
 import api from "@/lib/axios";
 import { RagResponseData, SendChatMessagePayload, KnowledgeMatch, Produk } from "./types";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
+const API_BASE_URL = typeof window !== "undefined" ? "" : (process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "http://backend:5000");
 
 /**
  * Mengirim pesan ke AI RAG Assistant backend (REST JSON)

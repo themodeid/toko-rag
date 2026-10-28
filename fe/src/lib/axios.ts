@@ -1,7 +1,17 @@
 import axios from "axios";
 
+export const getBaseUrl = (): string => {
+  if (typeof window !== "undefined") {
+    // Di browser client, selalu gunakan relative URL "" agar request /api/*
+    // otomatis diarahkan ke origin saat ini (mis. http://187.77.155.25 atau domain)
+    // dan ditangani langsung oleh reverse proxy Caddy (anti-CORS, anti-localhost leak)
+    return "";
+  }
+  return process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "http://backend:5000";
+};
+
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000",
+  baseURL: getBaseUrl(),
   timeout: 30000,
   withCredentials: true,
 });

@@ -70,7 +70,7 @@ export async function streamAdminRagChat({
         ? localStorage.getItem("token") || document.cookie.replace(/(?:(?:^|.*;\s*)token\s*\=\s*([^;]*).*$)|^.*$/, "$1")
         : "";
 
-    const response = await fetch("http://localhost:5000/api/rag/admin/chat-stream", {
+    const response = await fetch("/api/rag/admin/chat-stream", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

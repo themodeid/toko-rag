@@ -13,9 +13,7 @@ export function getProductImageUrl(imagePath?: string | null): string {
     return trimmed;
   }
 
-  const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
+  // Gunakan relative path /uploads/... agar Caddy meneruskannya ke backend secara transparan
   const cleanPath = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
-  
-  return `${backendUrl}${cleanPath}`;
+  return cleanPath;
 }
-
