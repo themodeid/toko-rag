@@ -73,6 +73,21 @@ export class AdminController {
     }
   }
 
+  static async updateStaff(req: Request, res: Response) {
+    try {
+      const id = String(req.params.id);
+      const { nama, role, password } = req.body;
+      const updated = await AdminService.updateStaff(id, {
+        nama,
+        role,
+        passwordPlain: password,
+      });
+      res.status(200).json({ status: "success", data: updated });
+    } catch (error: any) {
+      res.status(error.statusCode || 500).json({ status: "error", message: error.message });
+    }
+  }
+
   static async deleteStaff(req: Request, res: Response) {
     try {
       const id = String(req.params.id);

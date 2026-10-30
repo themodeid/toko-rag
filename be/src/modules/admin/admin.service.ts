@@ -341,7 +341,73 @@ export class AdminService {
     return res.rows[0];
   }
 
+  static async updateStaff(
+    id: string,
+    payload: {
+      nama?: string;
+      role?: string;
+      passwordPlain?: string;
+    }
+  ) {
+    const { nama, role, passwordPlain } = payload;
+    const existing = await pool.query(
+      "SELECT id, username, nama, role FROM tb_staff WHERE id = $1 AND deleted_at IS NULL",
+      [id]
+    );
+    if (existing.rows.length === 0) {
+      throw new AppError("Staf tidak ditemukan", 404);
+    }
+
+    const currentStaff = existing.rows[0];
+    const newNama = nama !== undefined && nama.trim() ? nama.trim() : currentStaff.nama;
+    
+    let newRole = currentStaff.role;
+    if (role !== undefined && role.trim()) {
+      const validRoles = ["owner", "admin", "karyawan", "kasir"];
+      if (!validRoles.includes(role)) {
+        throw new AppError("Role staf tidak valid", 400);
+      }
+      newRole = role;
+    }
+
+    let sql = "";
+    let params: any[] = [];
+
+    if (passwordPlain && passwordPlain.trim()) {
+      const passwordHash = await bcrypt.hash(passwordPlain.trim(), 10);
+      sql = `
+        UPDATE tb_staff
+        SET nama = $1, role = $2, password_hash = $3
+        WHERE id = $4 AND deleted_at IS NULL
+        RETURNING id, username, nama, role, created_at;
+      `;
+      params = [newNama, newRole, passwordHash, id];
+    } else {
+      sql = `
+        UPDATE tb_staff
+        SET nama = $1, role = $2
+        WHERE id = $3 AND deleted_at IS NULL
+        RETURNING id, username, nama, role, created_at;
+      `;
+      params = [newNama, newRole, id];
+    }
+
+    const res = await pool.query(sql, params);
+    return res.rows[0];
+  }
+
   static async deleteStaff(id: string) {
+    const existing = await pool.query(
+      "SELECT id, username, role FROM tb_staff WHERE id = $1 AND deleted_at IS NULL",
+      [id]
+    );
+    if (existing.rows.length === 0) {
+      throw new AppError("Staf tidak ditemukan atau sudah dihapus", 404);
+    }
+    if (existing.rows[0].role === "owner" || existing.rows[0].role === "admin") {
+      throw new AppError("Akun Owner/Admin utama dilindungi dan tidak dapat dihapus", 403);
+    }
+
     const res = await pool.query(
       `UPDATE tb_staff 
        SET deleted_at = CURRENT_TIMESTAMP 
@@ -349,9 +415,6 @@ export class AdminService {
        RETURNING id, username;`,
       [id]
     );
-    if (res.rows.length === 0) {
-      throw new AppError("Staf tidak ditemukan atau sudah dihapus", 404);
-    }
     return res.rows[0];
   }
 

@@ -3,48 +3,51 @@ import api from "@/lib/axios";
 export interface StaffMember {
   id: string;
   username: string;
-  role: "owner" | "admin" | "karyawan";
+  nama: string;
+  role: "owner" | "admin" | "karyawan" | "kasir";
   created_at: string;
-  today_attendance_status?: string | null;
-  today_clock_in?: string | null;
 }
 
 export interface CreateStaffPayload {
   username: string;
+  nama: string;
   password: string;
-  role: "karyawan";
+  role: "owner" | "admin" | "karyawan" | "kasir";
+}
+
+export interface UpdateStaffPayload {
+  nama?: string;
+  role?: "owner" | "admin" | "karyawan" | "kasir";
+  password?: string;
 }
 
 export async function getAllStaff(): Promise<StaffMember[]> {
-  const res = await api.get<{ status: string; data: { staff: StaffMember[] } }>(
-    "/api/users/staff"
+  const res = await api.get<{ status: string; data: StaffMember[] }>(
+    "/api/admin/staff"
   );
-  return res.data.data.staff || [];
+  return res.data.data || [];
 }
 
 export async function createStaff(data: CreateStaffPayload): Promise<StaffMember> {
-  const res = await api.post<{ status: string; data: { staff: StaffMember } }>(
-    "/api/users/staff",
+  const res = await api.post<{ status: string; data: StaffMember }>(
+    "/api/admin/staff",
     data
   );
-  return res.data.data.staff;
+  return res.data.data;
 }
 
 export async function updateStaff(
   id: string,
-  data: {
-    role?: "karyawan" | "admin" | "owner";
-    password?: string;
-  }
+  data: UpdateStaffPayload
 ): Promise<StaffMember> {
-  const res = await api.patch<{ status: string; data: { staff: StaffMember } }>(
-    `/api/users/staff/${id}`,
+  const res = await api.patch<{ status: string; data: StaffMember }>(
+    `/api/admin/staff/${id}`,
     data
   );
-  return res.data.data.staff;
+  return res.data.data;
 }
 
 export async function deleteStaff(id: string): Promise<boolean> {
-  await api.delete(`/api/users/staff/${id}`);
+  await api.delete(`/api/admin/staff/${id}`);
   return true;
 }

@@ -13,6 +13,8 @@ router.patch("/orders/:id/status", AdminController.updateOrderStatus);
 // Staff Management (tb_staff)
 router.get("/staff", AdminController.getAllStaff);
 router.post("/staff", AdminController.createStaff);
+router.patch("/staff/:id", AdminController.updateStaff);
+router.put("/staff/:id", AdminController.updateStaff);
 router.delete("/staff/:id", AdminController.deleteStaff);
 
 // Inventory (Bahan Baku)
