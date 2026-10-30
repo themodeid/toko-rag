@@ -34,33 +34,7 @@ ON CONFLICT (id) DO UPDATE SET
     deskripsi = EXCLUDED.deskripsi,
     urutan = EXCLUDED.urutan;
 
--- 3. SEED MENU MINUMAN ARTISAN (HPP Langsung Per Cup & Stok Siap Saji)
-INSERT INTO tb_minuman (id, kategori_id, nama, deskripsi, harga, hpp, stock, is_available, image_url, estimasi_menit) 
-VALUES
-    ('c0000000-0000-0000-0000-000000000001', 1, 'Kopi Susu Gula Aren Spesial', 'Espresso ganda mantap, susu sapi segar, dan lelehan gula aren organik Cilacap.', 22000, 7500, 60, true, '/images/kopi-aren.jpg', 3),
-    ('c0000000-0000-0000-0000-000000000002', 1, 'Espresso Tonic Yuzu', 'Ekstrak espresso dingin berpadu air tonik berkilau dan sentuhan citrus Yuzu segar.', 28000, 8500, 50, true, '/images/espresso-tonic.jpg', 2),
-    ('c0000000-0000-0000-0000-000000000003', 1, 'Caramel Macchiato Velvet', 'Espresso kental berlapis sirup vanilla dan saus karamel panggang gurih.', 26000, 8000, 45, true, '/images/caramel-macchiato.jpg', 4),
-    ('c0000000-0000-0000-0000-000000000004', 2, 'Earl Grey Cloud Milk Tea', 'Teh Earl Grey harum bergamot dengan busa susu asin manis lembut di atasnya.', 24000, 6500, 50, true, '/images/earl-grey.jpg', 3),
-    ('c0000000-0000-0000-0000-000000000005', 2, 'Peach Jasmine Sparkling Tea', 'Seduhan melati wangi dipadukan sari buah persik manis dan soda dingin.', 22000, 6000, 40, true, '/images/peach-jasmine.jpg', 2),
-    ('c0000000-0000-0000-0000-000000000006', 3, 'Berry Hibiscus Fizz Mocktail', 'Ekstrak bunga telang dan rosela merah dengan sirup stroberi liar menyegarkan.', 25000, 7000, 35, true, '/images/berry-fizz.jpg', 3),
-    ('c0000000-0000-0000-0000-000000000007', 3, 'Tropical Mango Mint Cooler', 'Puree mangga gedong gincu manis harum dengan daun mint segar dan sparkling water.', 25000, 7000, 35, true, '/images/mango-mint.jpg', 3),
-    ('c0000000-0000-0000-0000-000000000008', 4, 'Kyoto Uji Matcha Latte', 'Bubuk matcha murni impor Uji Kyoto berpadu creamy milk premium.', 28000, 9500, 50, true, '/images/matcha-latte.jpg', 4)
-ON CONFLICT (id) DO UPDATE SET
-    nama = EXCLUDED.nama,
-    deskripsi = EXCLUDED.deskripsi,
-    harga = EXCLUDED.harga,
-    hpp = EXCLUDED.hpp,
-    stock = EXCLUDED.stock,
-    is_available = EXCLUDED.is_available;
-
--- 4. SEED ULASAN REPRESENTATIF
-INSERT INTO tb_ulasan (id, minuman_id, nama_pelanggan, rating, komentar) 
-VALUES
-    ('e0000000-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-000000000001', 'Rian Pramana', 5, 'Kopi arennya creamy banget, manisnya pas nggak bikin enek!'),
-    ('e0000000-0000-0000-0000-000000000002', 'c0000000-0000-0000-0000-000000000008', 'Jessica Tan', 5, 'Matchanya pekat dan otentik banget, beneran pakai grade Uji!')
-ON CONFLICT (id) DO NOTHING;
-
--- 5. SEED BIAYA OPERASIONAL SAMPEL (OPEX)
+-- 3. SEED BIAYA OPERASIONAL SAMPEL (OPEX)
 INSERT INTO tb_biaya_operasional (id, nama_biaya, kategori, nominal, keterangan)
 VALUES
     ('f0000000-0000-0000-0000-000000000001', 'Es Batu Kristal & Cup Sealer', 'OPERASIONAL', 150000, 'Pasokan es batu 5 sak dan cup artisan bar'),
@@ -68,7 +42,7 @@ VALUES
     ('f0000000-0000-0000-0000-000000000003', 'WiFi Kedai 100 Mbps', 'INTERNET', 200000, 'Langganan internet WiFi Biznet')
 ON CONFLICT (id) DO NOTHING;
 
--- 6. SEED KNOWLEDGE BASE UNTUK RAG CONCIERGE & COPILOT
+-- 4. SEED KNOWLEDGE BASE UNTUK RAG CONCIERGE & COPILOT
 INSERT INTO knowledge_base (id, category, title, content, tags, is_active)
 VALUES 
     (

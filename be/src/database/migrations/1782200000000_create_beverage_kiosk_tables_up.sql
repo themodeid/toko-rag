@@ -84,7 +84,7 @@ CREATE INDEX IF NOT EXISTS idx_orders_created ON tb_orders(created_at);
 CREATE INDEX IF NOT EXISTS idx_ulasan_minuman ON tb_ulasan(minuman_id);
 
 -- ==============================================================================
--- 🍃 SEEDING KATEGORI & MENU MINUMAN SIGNATURE + KASIR DEFAULT
+-- 🍃 SEEDING KATEGORI & KASIR DEFAULT (ESSENTIAL LOOKUP DATA ONLY)
 -- ==============================================================================
 
 -- Seed Akun Kasir Default (password: kasir123 -> bcrypt hash $2b$10$vI8aWBnW3fID.ZQ4/zo1G.qHvhHAas.a/5iVpQv3B3E7yZ6P4aO/e)
@@ -103,25 +103,3 @@ ON CONFLICT (id) DO UPDATE SET
     slug = EXCLUDED.slug,
     deskripsi = EXCLUDED.deskripsi,
     urutan = EXCLUDED.urutan;
-
--- Seed 8 Minuman Pilihan (Representatif Kedai Modern)
-INSERT INTO tb_minuman (id, kategori_id, nama, deskripsi, harga, is_available, image_url) VALUES
-('c0000000-0000-0000-0000-000000000001', 1, 'Kopi Susu Gula Aren Spesial', 'Espresso ganda mantap, susu sapi segar, dan lelehan gula aren organik Cilacap.', 22000, true, '/images/kopi-aren.jpg'),
-('c0000000-0000-0000-0000-000000000002', 1, 'Espresso Tonic Yuzu', 'Ekstrak espresso dingin berpadu air tonik berkilau dan sentuhan citrus Yuzu segar.', 28000, true, '/images/espresso-tonic.jpg'),
-('c0000000-0000-0000-0000-000000000003', 1, 'Caramel Macchiato Velvet', 'Espresso kental berlapis sirup vanilla dan saus karamel panggang gurih.', 26000, true, '/images/caramel-macchiato.jpg'),
-('c0000000-0000-0000-0000-000000000004', 2, 'Earl Grey Cloud Milk Tea', 'Teh Earl Grey harum bergamot dengan busa susu asin manis lembut di atasnya.', 24000, true, '/images/earl-grey.jpg'),
-('c0000000-0000-0000-0000-000000000005', 2, 'Peach Jasmine Sparkling Tea', 'Seduhan melati wangi dipadukan sari buah persik manis dan soda dingin.', 22000, true, '/images/peach-jasmine.jpg'),
-('c0000000-0000-0000-0000-000000000006', 3, 'Berry Hibiscus Fizz Mocktail', 'Ekstrak bunga telang dan rosela merah dengan sirup stroberi liar menyegarkan.', 25000, true, '/images/berry-fizz.jpg'),
-('c0000000-0000-0000-0000-000000000007', 3, 'Tropical Mango Mint Cooler', 'Puree mangga gedong gincu manis harum dengan daun mint segar dan sparkling water.', 25000, true, '/images/mango-mint.jpg'),
-('c0000000-0000-0000-0000-000000000008', 4, 'Kyoto Uji Matcha Latte', 'Bubuk matcha murni impor Uji Kyoto berpadu creamy milk premium.', 28000, true, '/images/matcha-latte.jpg')
-ON CONFLICT (id) DO UPDATE SET
-    nama = EXCLUDED.nama,
-    deskripsi = EXCLUDED.deskripsi,
-    harga = EXCLUDED.harga,
-    is_available = EXCLUDED.is_available;
-
--- Seed Ulasan Awal (Representatif Bintang 5)
-INSERT INTO tb_ulasan (id, minuman_id, nama_pelanggan, rating, komentar) VALUES
-('e0000000-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-000000000001', 'Rian Pramana', 5, 'Kopi arennya creamy banget, manisnya pas nggak bikin enek!'),
-('e0000000-0000-0000-0000-000000000002', 'c0000000-0000-0000-0000-000000000008', 'Jessica Tan', 5, 'Matchanya pekat dan otentik banget, beneran pakai grade Uji!')
-ON CONFLICT (id) DO NOTHING;
