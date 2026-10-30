@@ -1,152 +1,90 @@
 -- ==============================================================================
--- DATABASE SEED DATA (TOKO ONLINE + POS + RAG AI - RINCI STANDARD)
+-- 🥤 DATABASE SEED DATA (TOKO+RAG ARTISAN BEVERAGE BAR POS 3NF)
 -- File: src/database/seed.sql
 -- ==============================================================================
 
--- 1. SEED AUTH USERS (Default Passwords: admin123)
-INSERT INTO auth (username, password, role)
+-- 1. SEED STAFF / KASIR / OWNER (Bcrypt Hashes - Cost Factor 10)
+-- Passwords:
+-- owner:    owner123    ($2b$10$vI8aWBnW3fID.ZQ4/zo1G.qHvhHAas.a/5iVpQv3B3E7yZ6P4aO/e)
+-- admin:    admin123    ($2b$10$LiJotwE0Z9DE79tXJon3Ye3uZ6ZvJtSAxBi3uH9KU6OxGuaAZX5GO)
+-- karyawan: karyawan123 ($2b$10$WtE4QNQvOydx7VgFQfUPPu6ufK8E7PgMVZ6UwnTLmdOEh3avQNMsS)
+-- kasir:    kasir123    ($2b$10$vI8aWBnW3fID.ZQ4/zo1G.qHvhHAas.a/5iVpQv3B3E7yZ6P4aO/e)
+
+INSERT INTO tb_staff (username, password_hash, nama, role)
 VALUES 
-    ('owner', '$2b$10$4AbiyaJxukDIJc76TgRqCeSq4ReEhnjIgC.dcIUogWTZMlKRWZdxO', 'owner'),
-    ('admin', '$2b$10$LiJotwE0Z9DE79tXJon3Ye3uZ6ZvJtSAxBi3uH9KU6OxGuaAZX5GO', 'admin'),
-    ('karyawan', '$2b$10$WtE4QNQvOydx7VgFQfUPPu6ufK8E7PgMVZ6UwnTLmdOEh3avQNMsS', 'karyawan'),
-    ('user1', '$2b$10$4AbiyaJxukDIJc76TgRqCeSq4ReEhnjIgC.dcIUogWTZMlKRWZdxO', 'user')
+    ('owner', '$2b$10$vI8aWBnW3fID.ZQ4/zo1G.qHvhHAas.a/5iVpQv3B3E7yZ6P4aO/e', 'Adam Owner', 'owner'),
+    ('admin', '$2b$10$LiJotwE0Z9DE79tXJon3Ye3uZ6ZvJtSAxBi3uH9KU6OxGuaAZX5GO', 'Administrator', 'admin'),
+    ('karyawan', '$2b$10$WtE4QNQvOydx7VgFQfUPPu6ufK8E7PgMVZ6UwnTLmdOEh3avQNMsS', 'Karyawan Barista', 'karyawan'),
+    ('kasir', '$2b$10$vI8aWBnW3fID.ZQ4/zo1G.qHvhHAas.a/5iVpQv3B3E7yZ6P4aO/e', 'Barista Utama', 'kasir')
 ON CONFLICT (username) DO UPDATE 
-SET password = EXCLUDED.password, role = EXCLUDED.role;
+SET password_hash = EXCLUDED.password_hash, 
+    nama = EXCLUDED.nama, 
+    role = EXCLUDED.role;
 
--- 2. SEED MASTER PRODUK
-CREATE UNIQUE INDEX IF NOT EXISTS idx_produk_nama ON produk(nama);
+-- 2. SEED KATEGORI MINUMAN
+INSERT INTO tb_kategori_minuman (id, nama_kategori, slug, deskripsi, urutan) 
+VALUES
+    (1, 'Artisan Coffee', 'artisan-coffee', 'Biji kopi pilihan Nusantara diseduh dengan teknik modern', 1),
+    (2, 'Signature Tea', 'signature-tea', 'Teh aromatik pilihan berpadu aroma buah dan bunga segar', 2),
+    (3, 'Refreshing Mocktail', 'refreshing-mocktail', 'Kesegaran soda buah alami dingin tanpa alkohol', 3),
+    (4, 'Milk Series & Cocoa', 'milk-series', 'Perpaduan susu segar lembut dan cokelat premium', 4)
+ON CONFLICT (id) DO UPDATE SET 
+    nama_kategori = EXCLUDED.nama_kategori,
+    slug = EXCLUDED.slug,
+    deskripsi = EXCLUDED.deskripsi,
+    urutan = EXCLUDED.urutan;
 
-INSERT INTO produk (id, nama, harga, hpp, stock, status, image, kategori, deskripsi, ingredients, estimasi_menit)
-VALUES 
-    (
-        'a0000000-0000-0000-0000-000000000001',
-        'Iced Caramel Latte', 
-        28000, 
-        8500, 
-        100, 
-        TRUE, 
-        '/uploads/caramel_latte.jpg', 
-        'Kopi', 
-        '⭐ Signature Coffee! Espresso double shot dipadukan dengan sirup karamel bakar dan susu segar dingin berkualitas tinggi.', 
-        'Double shot espresso arabika, susu segar pasteurisasi, sirup karamel, es batu kristal.', 
-        3
-    ),
-    (
-        'a0000000-0000-0000-0000-000000000002',
-        'Iced Americano Arabica', 
-        20000, 
-        4500, 
-        150, 
-        TRUE, 
-        '/uploads/americano.jpg', 
-        'Kopi', 
-        'Double shot espresso 100% Arabika specialty dengan air dingin terfiltrasi. Rasa bersih, aroma buah segar, 0 kalori gula.', 
-        'Double shot espresso arabika, air mineral dingin, es batu kristal.', 
-        2
-    ),
-    (
-        'a0000000-0000-0000-0000-000000000003',
-        'Kyoto Matcha Latte', 
-        26000, 
-        9200, 
-        80, 
-        TRUE, 
-        '/uploads/matcha_latte.jpg', 
-        'Non-Kopi', 
-        'Bubuk matcha premium asli Uji Kyoto dipadukan dengan steamed fresh milk. Rasa gurih alami, kaya antioksidan, dan manis seimbang.', 
-        'Pure ceremonial matcha powder, fresh milk, sirup tebu alami, es batu.', 
-        4
-    ),
-    (
-        'a0000000-0000-0000-0000-000000000004',
-        'Creamy Thai Tea', 
-        18000, 
-        5100, 
-        90, 
-        TRUE, 
-        '/uploads/thai_tea.jpg', 
-        'Non-Kopi', 
-        'Teh rempah wangi asli Thailand diseduh pekat dengan susu evaporasi dan kental manis gurih legit.', 
-        'Daun teh hitam Thailand, susu evaporasi, susu kental manis, es kristal.', 
-        3
-    ),
-    (
-        'a0000000-0000-0000-0000-000000000005',
-        'Butter Croissant Artisan', 
-        22000, 
-        11000, 
-        35, 
-        TRUE, 
-        '/uploads/croissant.jpg', 
-        'Pastry', 
-        'Pastry klasik Prancis renyah berlapis dengan mentega murni New Zealand, dipanggang segar setiap pagi.', 
-        'Tepung terigu protein tinggi, pure butter New Zealand, ragi, garam laut.', 
-        2
-    )
-ON CONFLICT (nama) DO UPDATE 
-SET harga = EXCLUDED.harga,
+-- 3. SEED MENU MINUMAN ARTISAN (HPP Langsung Per Cup & Stok Siap Saji)
+INSERT INTO tb_minuman (id, kategori_id, nama, deskripsi, harga, hpp, stock, is_available, image_url, estimasi_menit) 
+VALUES
+    ('c0000000-0000-0000-0000-000000000001', 1, 'Kopi Susu Gula Aren Spesial', 'Espresso ganda mantap, susu sapi segar, dan lelehan gula aren organik Cilacap.', 22000, 7500, 60, true, '/images/kopi-aren.jpg', 3),
+    ('c0000000-0000-0000-0000-000000000002', 1, 'Espresso Tonic Yuzu', 'Ekstrak espresso dingin berpadu air tonik berkilau dan sentuhan citrus Yuzu segar.', 28000, 8500, 50, true, '/images/espresso-tonic.jpg', 2),
+    ('c0000000-0000-0000-0000-000000000003', 1, 'Caramel Macchiato Velvet', 'Espresso kental berlapis sirup vanilla dan saus karamel panggang gurih.', 26000, 8000, 45, true, '/images/caramel-macchiato.jpg', 4),
+    ('c0000000-0000-0000-0000-000000000004', 2, 'Earl Grey Cloud Milk Tea', 'Teh Earl Grey harum bergamot dengan busa susu asin manis lembut di atasnya.', 24000, 6500, 50, true, '/images/earl-grey.jpg', 3),
+    ('c0000000-0000-0000-0000-000000000005', 2, 'Peach Jasmine Sparkling Tea', 'Seduhan melati wangi dipadukan sari buah persik manis dan soda dingin.', 22000, 6000, 40, true, '/images/peach-jasmine.jpg', 2),
+    ('c0000000-0000-0000-0000-000000000006', 3, 'Berry Hibiscus Fizz Mocktail', 'Ekstrak bunga telang dan rosela merah dengan sirup stroberi liar menyegarkan.', 25000, 7000, 35, true, '/images/berry-fizz.jpg', 3),
+    ('c0000000-0000-0000-0000-000000000007', 3, 'Tropical Mango Mint Cooler', 'Puree mangga gedong gincu manis harum dengan daun mint segar dan sparkling water.', 25000, 7000, 35, true, '/images/mango-mint.jpg', 3),
+    ('c0000000-0000-0000-0000-000000000008', 4, 'Kyoto Uji Matcha Latte', 'Bubuk matcha murni impor Uji Kyoto berpadu creamy milk premium.', 28000, 9500, 50, true, '/images/matcha-latte.jpg', 4)
+ON CONFLICT (id) DO UPDATE SET
+    nama = EXCLUDED.nama,
+    deskripsi = EXCLUDED.deskripsi,
+    harga = EXCLUDED.harga,
     hpp = EXCLUDED.hpp,
     stock = EXCLUDED.stock,
-    kategori = EXCLUDED.kategori,
-    deskripsi = EXCLUDED.deskripsi,
-    ingredients = EXCLUDED.ingredients;
+    is_available = EXCLUDED.is_available;
 
--- 3. SEED INVENTORY BAHAN BAKU
-INSERT INTO tb_bahan_baku (id, nama_bahan, kategori, satuan, stok_saat_ini, stok_minimum, harga_per_satuan, supplier)
+-- 4. SEED ULASAN REPRESENTATIF
+INSERT INTO tb_ulasan (id, minuman_id, nama_pelanggan, rating, komentar) 
 VALUES
-    ('b0000000-0000-0000-0000-000000000001', 'Biji Kopi House Blend Arabika', 'Biji Kopi', 'gr', 4500.00, 1000.00, 250.00, 'Gayo Specialty Coffee Roaster'),
-    ('b0000000-0000-0000-0000-000000000002', 'Fresh Milk Pasteurisasi (Greenfield)', 'Susu/Dairy', 'ml', 1500.00, 3000.00, 20.00, 'Distributor Susu Sejahtera'), -- alert: below minimum!
-    ('b0000000-0000-0000-0000-000000000003', 'Oat Milk Barista Edition', 'Susu/Dairy', 'ml', 800.00, 2000.00, 45.00, 'Oatside Direct'), -- alert: below minimum!
-    ('b0000000-0000-0000-0000-000000000004', 'Sirup Karamel Monin', 'Sirup', 'ml', 1200.00, 500.00, 180.00, 'PT Sumber Sirup Alami'),
-    ('b0000000-0000-0000-0000-000000000005', 'Ceremonial Matcha Powder', 'Bahan Kering', 'gr', 850.00, 300.00, 600.00, 'Kyoto Import Trade'),
-    ('b0000000-0000-0000-0000-000000000006', 'Cup Plastik 16oz + Lid + Straw', 'Kemasan', 'pcs', 450.00, 150.00, 1000.00, 'Pabrik Kemasan Prima')
-ON CONFLICT (id) DO UPDATE
-SET stok_saat_ini = EXCLUDED.stok_saat_ini,
-    harga_per_satuan = EXCLUDED.harga_per_satuan,
-    stok_minimum = EXCLUDED.stok_minimum;
+    ('e0000000-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-000000000001', 'Rian Pramana', 5, 'Kopi arennya creamy banget, manisnya pas nggak bikin enek!'),
+    ('e0000000-0000-0000-0000-000000000002', 'c0000000-0000-0000-0000-000000000008', 'Jessica Tan', 5, 'Matchanya pekat dan otentik banget, beneran pakai grade Uji!')
+ON CONFLICT (id) DO NOTHING;
 
--- 4. SEED RESEP MENU (Menghubungkan Menu ke Bahan Baku)
-INSERT INTO tb_resep_menu (produk_id, bahan_id, jumlah_pakai)
+-- 5. SEED BIAYA OPERASIONAL SAMPEL (OPEX)
+INSERT INTO tb_biaya_operasional (id, nama_biaya, kategori, nominal, keterangan)
 VALUES
-    -- Iced Caramel Latte
-    ('a0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', 18.00), -- 18 gr kopi (Rp 4.500)
-    ('a0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000002', 120.00), -- 120 ml susu (Rp 2.400)
-    ('a0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000004', 15.00), -- 15 ml sirup (Rp 2.700)
-    ('a0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000006', 1.00),  -- 1 cup set (Rp 1.000)
-    -- Iced Americano Arabica
-    ('a0000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000001', 18.00), -- 18 gr kopi (Rp 4.500)
-    ('a0000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000006', 1.00),  -- 1 cup set (Rp 1.000)
-    -- Kyoto Matcha Latte
-    ('a0000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000005', 8.00),  -- 8 gr matcha (Rp 4.800)
-    ('a0000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000002', 150.00), -- 150 ml susu (Rp 3.000)
-    ('a0000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000006', 1.00)   -- 1 cup set (Rp 1.000)
-ON CONFLICT (produk_id, bahan_id) DO UPDATE
-SET jumlah_pakai = EXCLUDED.jumlah_pakai;
+    ('f0000000-0000-0000-0000-000000000001', 'Es Batu Kristal & Cup Sealer', 'OPERASIONAL', 150000, 'Pasokan es batu 5 sak dan cup artisan bar'),
+    ('f0000000-0000-0000-0000-000000000002', 'Listrik Mesin Espresso & Chiller', 'UTILITAS', 450000, 'Token listrik bulanan kedai minuman'),
+    ('f0000000-0000-0000-0000-000000000003', 'WiFi Kedai 100 Mbps', 'INTERNET', 200000, 'Langganan internet WiFi Biznet')
+ON CONFLICT (id) DO NOTHING;
 
--- 5. SEED BIAYA OPERASIONAL (OPEX BULAN INI)
-INSERT INTO tb_biaya_operasional (kategori, keterangan, nominal, tanggal)
-VALUES
-    ('Sewa Tempat', 'Sewa ruko kafe bulan September 2026', 1800000, CURRENT_DATE),
-    ('Listrik & Air', 'Tagihan PLN & PAM mesin espresso & chiller', 650000, CURRENT_DATE),
-    ('Gaji Karyawan', 'Insentif barista paruh waktu', 500000, CURRENT_DATE),
-    ('Internet', 'WiFi kafe Biznet 100 Mbps', 200000, CURRENT_DATE)
-ON CONFLICT DO NOTHING;
-
--- 6. SEED KNOWLEDGE BASE RAG
-INSERT INTO knowledge_base (category, title, content, tags, is_active)
+-- 6. SEED KNOWLEDGE BASE UNTUK RAG CONCIERGE & COPILOT
+INSERT INTO knowledge_base (id, category, title, content, tags, is_active)
 VALUES 
     (
+        'd0000000-0000-0000-0000-000000000001',
         'operasional', 
-        'Jam Operasional & Fasilitas Kafe', 
-        'Kafe buka setiap hari Senin s/d Minggu pukul 08:00 - 22:00 WIB. Dilengkapi WiFi kencang 100 Mbps, banyak stopkontak di setiap meja, musala bersih, dan area outdoor ramah merokok.', 
-        ARRAY['jam buka', 'wifi', 'colokan', 'stopkontak', 'musala', 'outdoor', 'smoking area'], 
+        'Jam Operasional & Fasilitas Kedai', 
+        'Kedai buka setiap hari Senin s/d Minggu pukul 08:00 - 22:00 WIB. Dilengkapi WiFi 100 Mbps, stopkontak di setiap sudut meja, musala bersih, dan area outdoor nyaman.', 
+        ARRAY['jam buka', 'wifi', 'colokan', 'stopkontak', 'musala', 'outdoor'], 
         TRUE
     ),
     (
+        'd0000000-0000-0000-0000-000000000002',
         'menu', 
         'Pilihan Susu Nabati & Menu Ramah Alergen (Dairy-Free)', 
-        'Seluruh varian latte kami (Caramel Latte, Matcha Latte) dapat di-upgrade menggunakan Oat Milk (Oatside) untuk pelanggan vegetarian atau intoleransi laktosa (dairy-free). Varian Iced Americano 100% bebas gula dan bebas susu.', 
+        'Seluruh varian latte kami (Kopi Susu, Matcha Latte) dapat disesuaikan tingkat kemanisannya (LESS/NORMAL/EXTRA). Varian Espresso Tonic dan Mocktail 100% bebas susu (dairy-free) dan sangat menyegarkan.', 
         ARRAY['oatmilk', 'dairy-free', 'vegan', 'laktosa', 'alergi susu', 'gula'], 
         TRUE
     )
-ON CONFLICT DO NOTHING;
+ON CONFLICT (id) DO NOTHING;

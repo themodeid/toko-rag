@@ -88,10 +88,20 @@ export async function searchRelevantProducts(
   // 1. Jika query adalah rekomendasi umum atau katalog keseluruhan
   if (keywords.length === 0 || isGenericCatalogQuery(query)) {
     const defaultRes = await pool.query<ProductResult>(
-      `SELECT id, nama, harga, stock, status, image, kategori, deskripsi, ingredients
-       FROM produk
-       WHERE deleted_at IS NULL AND status = TRUE AND stock > 0
-       ORDER BY stock DESC, created_at DESC
+      `SELECT 
+         m.id, 
+         m.nama, 
+         m.harga, 
+         m.stock, 
+         m.is_available AS status, 
+         COALESCE(m.image_url, '') AS image, 
+         COALESCE(km.nama_kategori, 'Umum') AS kategori, 
+         m.deskripsi, 
+         COALESCE(km.deskripsi, '') AS ingredients
+       FROM tb_minuman m
+       LEFT JOIN tb_kategori_minuman km ON m.kategori_id = km.id
+       WHERE m.deleted_at IS NULL AND m.is_available = TRUE AND m.stock > 0
+       ORDER BY m.stock DESC, m.created_at DESC
        LIMIT $1`,
       [limit]
     );
@@ -104,7 +114,22 @@ export async function searchRelevantProducts(
   const fullKeywordPhrase = `%${keywords.join("%")}%`;
 
   const sql = `
-    WITH scored_products AS (
+    WITH base_minuman AS (
+      SELECT 
+        m.id, 
+        m.nama, 
+        m.harga, 
+        m.stock, 
+        m.is_available AS status, 
+        COALESCE(m.image_url, '') AS image, 
+        COALESCE(km.nama_kategori, 'Umum') AS kategori, 
+        COALESCE(m.deskripsi, '') AS deskripsi, 
+        COALESCE(km.deskripsi, '') AS ingredients
+      FROM tb_minuman m
+      LEFT JOIN tb_kategori_minuman km ON m.kategori_id = km.id
+      WHERE m.deleted_at IS NULL AND m.is_available = TRUE
+    ),
+    scored_products AS (
       SELECT 
         id, nama, harga, stock, status, image, kategori, deskripsi, ingredients,
         (
@@ -114,8 +139,8 @@ export async function searchRelevantProducts(
           CASE WHEN LOWER(nama) LIKE LOWER($2) THEN 70 ELSE 0 END +
           -- Substring match di kategori
           CASE WHEN LOWER(kategori) LIKE LOWER($2) THEN 30 ELSE 0 END +
-          -- Keyword match di bahan (ingredients)
-          CASE WHEN LOWER(ingredients) LIKE LOWER($2) THEN 25 ELSE 0 END +
+          -- Keyword match di deskripsi
+          CASE WHEN LOWER(deskripsi) LIKE LOWER($2) THEN 25 ELSE 0 END +
           -- Full-text search rank
           (ts_rank_cd(
             to_tsvector('simple', 
@@ -127,8 +152,7 @@ export async function searchRelevantProducts(
             plainto_tsquery('simple', $3)
           ) * 30)
         ) AS relevance_score
-      FROM produk
-      WHERE deleted_at IS NULL
+      FROM base_minuman
     )
     SELECT id, nama, harga, stock, status, image, kategori, deskripsi, ingredients, relevance_score
     FROM scored_products
@@ -154,11 +178,21 @@ export async function searchRelevantProducts(
     // Fallback: pencarian sederhana ILIKE per keyword
     try {
       const fallbackSql = `
-        SELECT id, nama, harga, stock, status, image, kategori, deskripsi, ingredients
-        FROM produk
-        WHERE deleted_at IS NULL
-          AND (${keywordLikes.map((_, i) => `LOWER(nama) LIKE $${i + 1}`).join(" OR ")})
-        ORDER BY stock DESC
+        SELECT 
+          m.id, 
+          m.nama, 
+          m.harga, 
+          m.stock, 
+          m.is_available AS status, 
+          COALESCE(m.image_url, '') AS image, 
+          COALESCE(km.nama_kategori, 'Umum') AS kategori, 
+          COALESCE(m.deskripsi, '') AS deskripsi, 
+          COALESCE(km.deskripsi, '') AS ingredients
+        FROM tb_minuman m
+        LEFT JOIN tb_kategori_minuman km ON m.kategori_id = km.id
+        WHERE m.deleted_at IS NULL AND m.is_available = TRUE
+          AND (${keywordLikes.map((_, i) => `LOWER(m.nama) LIKE $${i + 1}`).join(" OR ")})
+        ORDER BY m.stock DESC
         LIMIT $${keywordLikes.length + 1}
       `;
       const fallbackRes = await pool.query<ProductResult>(fallbackSql, [...keywordLikes, limit]);

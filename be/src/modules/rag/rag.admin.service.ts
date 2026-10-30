@@ -32,31 +32,32 @@ export async function buildAdminRagContext(): Promise<AdminRagContext> {
     pool.query(`
       SELECT 
         COALESCE(COUNT(DISTINCT o.id), 0) AS total_transaksi,
-        COALESCE(SUM(o.total_price), 0) AS total_omzet,
-        COALESCE(SUM(oi.quantity * COALESCE(oi.harga_modal, ROUND(oi.harga_barang * 0.4))), 0) AS total_hpp,
-        COALESCE(SUM(o.total_price) - SUM(oi.quantity * COALESCE(oi.harga_modal, ROUND(oi.harga_barang * 0.4))), 0) AS laba_kotor
-      FROM orders o
-      LEFT JOIN order_items oi ON o.id = oi.order_id
-      WHERE o.status_pesanan IN ('ANTRI', 'DIPROSES', 'SELESAI')
+        COALESCE(SUM(o.total_bayar), 0) AS total_omzet,
+        COALESCE(SUM(oi.qty * COALESCE(oi.hpp_satuan, ROUND(oi.harga_satuan * 0.4))), 0) AS total_hpp,
+        COALESCE(SUM(o.total_bayar) - SUM(oi.qty * COALESCE(oi.hpp_satuan, ROUND(oi.harga_satuan * 0.4))), 0) AS laba_kotor
+      FROM tb_orders o
+      LEFT JOIN tb_order_items oi ON o.id = oi.order_id
+      WHERE o.status_antrian IN ('MENUNGGU_RACIK', 'SEDANG_DIRACIK', 'SIAP_DIAMBIL', 'SELESAI')
         AND o.status_pembayaran = 'PAID'
     `),
 
     // 2. Top Produk Terlaris & Margin
     pool.query(`
       SELECT 
-        p.nama,
-        COALESCE(p.kategori, 'Umum') AS kategori,
-        p.harga,
-        COALESCE(p.hpp, ROUND(p.harga * 0.4)) AS hpp,
-        SUM(oi.quantity) AS total_terjual,
+        m.nama,
+        COALESCE(km.nama_kategori, 'Umum') AS kategori,
+        m.harga,
+        COALESCE(m.hpp, ROUND(m.harga * 0.4)) AS hpp,
+        SUM(oi.qty) AS total_terjual,
         SUM(oi.subtotal) AS total_omzet,
-        SUM(oi.subtotal - (oi.quantity * COALESCE(oi.harga_modal, ROUND(oi.harga_barang * 0.4)))) AS total_laba
-      FROM order_items oi
-      INNER JOIN orders o ON oi.order_id = o.id
-      INNER JOIN produk p ON oi.produk_id = p.id
-      WHERE o.status_pesanan IN ('ANTRI', 'DIPROSES', 'SELESAI')
+        SUM(oi.subtotal - (oi.qty * COALESCE(oi.hpp_satuan, ROUND(oi.harga_satuan * 0.4)))) AS total_laba
+      FROM tb_order_items oi
+      INNER JOIN tb_orders o ON oi.order_id = o.id
+      INNER JOIN tb_minuman m ON oi.minuman_id = m.id
+      LEFT JOIN tb_kategori_minuman km ON m.kategori_id = km.id
+      WHERE o.status_antrian IN ('MENUNGGU_RACIK', 'SEDANG_DIRACIK', 'SIAP_DIAMBIL', 'SELESAI')
         AND o.status_pembayaran = 'PAID'
-      GROUP BY p.id, p.nama, p.kategori, p.harga, p.hpp
+      GROUP BY m.id, m.nama, km.nama_kategori, m.harga, m.hpp
       ORDER BY total_terjual DESC
       LIMIT 10
     `),
@@ -66,8 +67,8 @@ export async function buildAdminRagContext(): Promise<AdminRagContext> {
       SELECT 
         TO_CHAR(created_at, 'HH24:00') AS jam,
         COUNT(id) AS jumlah_pesanan
-      FROM orders
-      WHERE status_pesanan IN ('ANTRI', 'DIPROSES', 'SELESAI')
+      FROM tb_orders
+      WHERE status_antrian IN ('MENUNGGU_RACIK', 'SEDANG_DIRACIK', 'SIAP_DIAMBIL', 'SELESAI')
       GROUP BY TO_CHAR(created_at, 'HH24:00')
       ORDER BY jumlah_pesanan DESC
       LIMIT 5
@@ -87,8 +88,8 @@ export async function buildAdminRagContext(): Promise<AdminRagContext> {
 
     // 5. Menu yang Stoknya Menipis / Habis
     pool.query(`
-      SELECT nama, stock, harga, status
-      FROM produk
+      SELECT nama, stock, harga, is_available AS status
+      FROM tb_minuman
       WHERE stock <= 10 AND deleted_at IS NULL
       ORDER BY stock ASC
       LIMIT 10
@@ -96,8 +97,8 @@ export async function buildAdminRagContext(): Promise<AdminRagContext> {
 
     // 6. Ringkasan Pengeluaran Terbesar
     pool.query(`
-      SELECT kategori, SUM(jumlah) AS total_biaya, COUNT(id) AS frekuensi
-      FROM expenses
+      SELECT kategori, SUM(nominal) AS total_biaya, COUNT(id) AS frekuensi
+      FROM tb_biaya_operasional
       GROUP BY kategori
       ORDER BY total_biaya DESC
     `),

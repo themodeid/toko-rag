@@ -7,13 +7,15 @@ import { RegisterInput, LoginInput } from "./auth.schema";
 
 export const registerAdminService = async (data: RegisterInput) => {
   const hashedPassword = await bcrypt.hash(data.password, 10);
-  const role = data.role ? data.role.toLowerCase() : "owner";
+  const role = data.role && ["owner", "admin"].includes(data.role.toLowerCase())
+    ? data.role.toLowerCase()
+    : "admin";
 
   const result = await pool.query(
-    `INSERT INTO auth (username, password, role)
-     VALUES ($1, $2, $3)
-     RETURNING id, username, role, created_at`,
-    [data.username, hashedPassword, role]
+    `INSERT INTO tb_staff (username, password_hash, nama, role)
+     VALUES ($1, $2, $3, $4)
+     RETURNING id, username, nama, role, created_at`,
+    [data.username.trim(), hashedPassword, data.username.trim(), role]
   );
 
   return result.rows[0];
@@ -21,13 +23,15 @@ export const registerAdminService = async (data: RegisterInput) => {
 
 export const registerUserService = async (data: RegisterInput) => {
   const hashedPassword = await bcrypt.hash(data.password, 10);
-  const role = data.role ? data.role.toLowerCase() : "user";
+  const role = data.role && ["karyawan", "kasir"].includes(data.role.toLowerCase())
+    ? data.role.toLowerCase()
+    : "karyawan";
 
   const result = await pool.query(
-    `INSERT INTO auth (username, password, role)
-     VALUES ($1, $2, $3)
-     RETURNING id, username, role, created_at`,
-    [data.username, hashedPassword, role]
+    `INSERT INTO tb_staff (username, password_hash, nama, role)
+     VALUES ($1, $2, $3, $4)
+     RETURNING id, username, nama, role, created_at`,
+    [data.username.trim(), hashedPassword, data.username.trim(), role]
   );
 
   return result.rows[0];
@@ -35,23 +39,13 @@ export const registerUserService = async (data: RegisterInput) => {
 
 export const loginService = async (data: LoginInput) => {
   const result = await pool.query(
-    `SELECT id, username, password, role
-     FROM auth
-     WHERE username = $1`,
-    [data.username]
+    `SELECT id, username, password_hash AS password, nama, role
+     FROM tb_staff
+     WHERE username = $1 AND deleted_at IS NULL`,
+    [data.username.trim()]
   );
 
-  let user = result.rows[0];
-  if (!user) {
-    const staffRes = await pool.query(
-      `SELECT id, username, password_hash as password, role
-       FROM tb_staff
-       WHERE username = $1`,
-      [data.username]
-    );
-    user = staffRes.rows[0];
-  }
-
+  const user = result.rows[0];
   if (!user) {
     throw new AppError("Username atau password salah", 401);
   }
@@ -62,7 +56,7 @@ export const loginService = async (data: LoginInput) => {
   }
 
   const token = jwt.sign(
-    { id: user.id, role: user.role },
+    { id: user.id, username: user.username, role: user.role, nama: user.nama },
     ENV.JWT_SECRET,
     { expiresIn: ENV.JWT_EXPIRES_IN as any }
   );
@@ -72,16 +66,12 @@ export const loginService = async (data: LoginInput) => {
     user: {
       id: user.id,
       username: user.username,
+      nama: user.nama,
       role: user.role,
     },
   };
 };
 
-export const logoutService = async (refreshToken?: string) => {
-  if (refreshToken) {
-    await pool.query(`DELETE FROM refresh_tokens WHERE token = $1`, [
-      refreshToken,
-    ]);
-  }
+export const logoutService = async (_refreshToken?: string) => {
   return true;
 };
