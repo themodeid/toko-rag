@@ -21,7 +21,7 @@ import {
   checkoutKioskOrder,
 } from "@/features/kiosk/api";
 import { validateCustomerName } from "@/lib/profanityFilter";
-import { getProductImageUrl } from "@/lib/imageHelper";
+import { getProductImageUrl, handleImageFallback } from "@/lib/imageHelper";
 import ReceiptModal from "@/components/receipt/ReceiptModal";
 import { groupOrdersByDate } from "@/lib/orderGrouping";
 
@@ -512,6 +512,7 @@ export default function KasirUnifiedPortalPage() {
                 <div className="w-10 h-10 rounded-lg overflow-hidden bg-zinc-900 border border-zinc-800 shrink-0 relative">
                   <img
                     src={getProductImageUrl(item.image_url)}
+                    onError={handleImageFallback}
                     alt={item.nama_minuman}
                     className="w-full h-full object-cover"
                     loading="lazy"
@@ -846,6 +847,7 @@ export default function KasirUnifiedPortalPage() {
                         <div className="w-full h-28 rounded-lg overflow-hidden bg-zinc-950 relative border border-zinc-800/80">
                           <img
                             src={getProductImageUrl(bev.image_url)}
+                            onError={handleImageFallback}
                             alt={bev.nama}
                             className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                             loading="lazy"
@@ -929,6 +931,7 @@ export default function KasirUnifiedPortalPage() {
                         <div className="w-9 h-9 rounded-lg overflow-hidden bg-zinc-900 border border-zinc-800 shrink-0 relative">
                           <img
                             src={getProductImageUrl(item.minuman.image_url)}
+                            onError={handleImageFallback}
                             alt={item.minuman.nama}
                             className="w-full h-full object-cover"
                             loading="lazy"
@@ -1463,6 +1466,7 @@ export default function KasirUnifiedPortalPage() {
                                       <div className="w-8 h-8 rounded-lg overflow-hidden bg-zinc-900 border border-zinc-800 shrink-0 relative">
                                         <img
                                           src={getProductImageUrl(item.image_url)}
+                    onError={handleImageFallback}
                                           alt={item.nama_minuman}
                                           className="w-full h-full object-cover"
                                           loading="lazy"

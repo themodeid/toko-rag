@@ -15,6 +15,9 @@ import { OrderService } from "./modules/order/order.service";
 
 export const app = express();
 
+// Trust reverse proxy (Caddy) for accurate client IP identification and rate limiting
+app.set("trust proxy", 1);
+
 // ======================================================
 // 🛠️ MIDDLEWARES
 // ======================================================
